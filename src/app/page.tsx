@@ -24,13 +24,13 @@ export default function LandingPage() {
         <div className="inline-flex items-center gap-2 rounded-full bg-blue-500/10 border border-blue-500/20 px-4 py-1.5 text-sm text-blue-400 mb-8">
           <Sparkles className="h-3.5 w-3.5" /> AI-powered quality reports in seconds
         </div>
-        <h1 className="text-5xl font-bold text-white leading-tight mb-6">
-          Stop using Google Forms<br />for cleaning inspections
+        <h1 className="text-3xl sm:text-5xl font-bold text-white leading-tight mb-6">
+          Stop using Google Forms<br className="hidden sm:block" /> for cleaning inspections
         </h1>
-        <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
+        <p className="text-lg sm:text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
           CleanCheck lets your team document jobs with photos, auto-generates professional QC reports using AI, and emails them directly to your clients.
         </p>
-        <div className="flex items-center justify-center gap-4">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link href="/signup">
             <Button size="lg" className="bg-blue-500 hover:bg-blue-600 text-white">Start 14-day free trial</Button>
           </Link>
