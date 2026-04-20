@@ -24,7 +24,7 @@ export default async function InspectionsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Inspections</h1>
+        <h1 className="text-2xl font-bold text-white">Inspections</h1>
         <Link href="/inspections/new">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
@@ -49,26 +49,26 @@ export default async function InspectionsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 text-left text-gray-500">
+                  <tr className="border-b border-white/10 text-left text-gray-500">
                     <th className="pb-3 font-medium">Property</th>
-                    <th className="pb-3 font-medium">Team</th>
-                    <th className="pb-3 font-medium">Date</th>
+                    <th className="pb-3 font-medium hidden sm:table-cell">Team</th>
+                    <th className="pb-3 font-medium hidden sm:table-cell">Date</th>
                     <th className="pb-3 font-medium">Score</th>
                     <th className="pb-3 font-medium">Status</th>
                     <th className="pb-3 font-medium"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-white/5">
                   {inspections.map(i => (
-                    <tr key={i.id} className="hover:bg-gray-50">
-                      <td className="py-3 font-medium text-gray-900">
+                    <tr key={i.id} className="hover:bg-white/5">
+                      <td className="py-3 font-medium text-gray-100">
                         {(i.properties as any)?.name ?? '—'}
                       </td>
-                      <td className="py-3 text-gray-600">{(i.teams as any)?.name ?? '—'}</td>
-                      <td className="py-3 text-gray-600">{new Date(i.created_at).toLocaleDateString()}</td>
+                      <td className="py-3 text-gray-400 hidden sm:table-cell">{(i.teams as any)?.name ?? '—'}</td>
+                      <td className="py-3 text-gray-400 hidden sm:table-cell">{new Date(i.created_at).toLocaleDateString()}</td>
                       <td className="py-3">
                         {i.overall_score ? (
-                          <span className={`font-semibold ${i.overall_score >= 80 ? 'text-green-600' : i.overall_score >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                          <span className={`font-semibold ${i.overall_score >= 80 ? 'text-green-400' : i.overall_score >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>
                             {i.overall_score}%
                           </span>
                         ) : '—'}

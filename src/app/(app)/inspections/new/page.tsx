@@ -88,7 +88,7 @@ export default function NewInspectionPage() {
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">New Inspection</h1>
+      <h1 className="text-2xl font-bold text-white">New Inspection</h1>
       <Card>
         <CardHeader>
           <CardTitle>Inspection Details</CardTitle>
@@ -96,10 +96,10 @@ export default function NewInspectionPage() {
         <CardContent>
           <form onSubmit={handleCreate} className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Property</label>
+              <label className="mb-1.5 block text-sm font-medium text-gray-300">Property</label>
               {properties.length > 0 ? (
                 <select
-                  className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={propertyId}
                   onChange={e => setPropertyId(e.target.value)}
                 >
@@ -126,9 +126,9 @@ export default function NewInspectionPage() {
               )}
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Team (optional)</label>
+              <label className="mb-1.5 block text-sm font-medium text-gray-300">Team (optional)</label>
               <select
-                className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={teamId}
                 onChange={e => setTeamId(e.target.value)}
               >
@@ -139,9 +139,9 @@ export default function NewInspectionPage() {
               </select>
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Notes (optional)</label>
+              <label className="mb-1.5 block text-sm font-medium text-gray-300">Notes (optional)</label>
               <textarea
-                className="flex min-h-[80px] w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex min-h-[80px] w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Any special instructions or notes..."
                 value={notes}
                 onChange={e => setNotes(e.target.value)}

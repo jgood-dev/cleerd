@@ -112,10 +112,10 @@ export default function InspectionDetailPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-white">
             {inspection.properties?.name ?? 'Inspection'}
           </h1>
-          <p className="text-gray-500">
+          <p className="text-gray-400">
             {inspection.teams?.name ?? 'No team'} · {new Date(inspection.created_at).toLocaleDateString()}
           </p>
         </div>
@@ -131,20 +131,20 @@ export default function InspectionDetailPage() {
             <CardTitle>Checklist</CardTitle>
             <span className="text-sm text-gray-500">{completedItems}/{checklist.length} · {checklistScore}%</span>
           </div>
-          <div className="h-2 rounded-full bg-gray-100">
-            <div className="h-2 rounded-full bg-blue-600 transition-all" style={{ width: `${checklistScore}%` }} />
+          <div className="h-2 rounded-full bg-white/10">
+            <div className="h-2 rounded-full bg-blue-500 transition-all" style={{ width: `${checklistScore}%` }} />
           </div>
         </CardHeader>
         <CardContent>
           <ul className="space-y-2">
             {checklist.map(item => (
               <li key={item.id}
-                className="flex cursor-pointer items-center gap-3 rounded-lg p-2 hover:bg-gray-50"
+                className="flex cursor-pointer items-center gap-3 rounded-lg p-2 hover:bg-white/5"
                 onClick={() => toggleChecklist(item)}>
                 {item.completed
-                  ? <CheckSquare className="h-5 w-5 text-blue-600" />
-                  : <Square className="h-5 w-5 text-gray-400" />}
-                <span className={item.completed ? 'text-gray-400 line-through' : 'text-gray-700'}>
+                  ? <CheckSquare className="h-5 w-5 text-blue-400" />
+                  : <Square className="h-5 w-5 text-gray-500" />}
+                <span className={item.completed ? 'text-gray-500 line-through' : 'text-gray-200'}>
                   {item.label}
                 </span>
               </li>
@@ -160,7 +160,7 @@ export default function InspectionDetailPage() {
             <CardTitle>Photos ({photos.length})</CardTitle>
             <div className="flex items-center gap-2">
               <select
-                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={photoType}
                 onChange={e => setPhotoType(e.target.value as any)}
               >
@@ -197,12 +197,12 @@ export default function InspectionDetailPage() {
           {inspection.ai_report ? (
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <span className="text-lg font-bold text-gray-900">Score:</span>
-                <span className={`text-2xl font-bold ${inspection.overall_score >= 80 ? 'text-green-600' : inspection.overall_score >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                <span className="text-lg font-bold text-gray-100">Score:</span>
+                <span className={`text-2xl font-bold ${inspection.overall_score >= 80 ? 'text-green-400' : inspection.overall_score >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>
                   {inspection.overall_score}%
                 </span>
               </div>
-              <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-700 whitespace-pre-wrap">
+              <div className="rounded-lg bg-white/5 border border-white/10 p-4 text-sm text-gray-300 whitespace-pre-wrap">
                 {inspection.ai_report}
               </div>
             </div>
@@ -238,21 +238,21 @@ function PhotoGrid({ photos, getPhotoUrl }: { photos: any[], getPhotoUrl: (p: st
     loadUrls()
   }, [photos])
 
-  const typeColor: Record<string, string> = { before: 'bg-blue-100 text-blue-700', after: 'bg-green-100 text-green-700', issue: 'bg-red-100 text-red-700' }
+  const typeColor: Record<string, string> = { before: 'bg-blue-500/20 text-blue-300', after: 'bg-green-500/20 text-green-300', issue: 'bg-red-500/20 text-red-300' }
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       {photos.map(photo => (
-        <div key={photo.id} className="relative overflow-hidden rounded-lg border border-gray-200">
+        <div key={photo.id} className="relative overflow-hidden rounded-lg border border-white/10">
           {urls[photo.id] ? (
             <img src={urls[photo.id]} alt={photo.photo_type} className="h-36 w-full object-cover" />
           ) : (
-            <div className="flex h-36 items-center justify-center bg-gray-100">
+            <div className="flex h-36 items-center justify-center bg-white/5">
               <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
             </div>
           )}
           <div className="absolute bottom-2 left-2">
-            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${typeColor[photo.photo_type] ?? 'bg-gray-100 text-gray-700'}`}>
+            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${typeColor[photo.photo_type] ?? 'bg-white/10 text-gray-300'}`}>
               {photo.photo_type}
             </span>
           </div>

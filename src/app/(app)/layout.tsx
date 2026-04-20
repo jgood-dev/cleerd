@@ -14,7 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Topbar userEmail={user.email ?? ''} />
-        <main className="flex-1 overflow-auto p-6">{children}</main>
+        <main className="flex-1 overflow-auto p-4 md:p-6 pt-18 md:pt-6">{children}</main>
       </div>
     </div>
   )

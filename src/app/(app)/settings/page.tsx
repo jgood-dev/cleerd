@@ -58,7 +58,7 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+      <h1 className="text-2xl font-bold text-white">Settings</h1>
 
       <Card>
         <CardHeader><CardTitle>Business Info</CardTitle></CardHeader>
@@ -67,15 +67,15 @@ export default function SettingsPage() {
             <Input value={orgName} onChange={e => setOrgName(e.target.value)} placeholder="Business name" />
             <Button type="submit">{saved ? 'Saved!' : 'Save'}</Button>
           </form>
-          <p className="mt-3 text-sm text-gray-500">Plan: <span className="font-medium capitalize">{org?.plan ?? 'solo'}</span></p>
+          <p className="mt-3 text-sm text-gray-400">Plan: <span className="font-medium capitalize text-gray-200">{org?.plan ?? 'solo'}</span></p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader><CardTitle>Properties / Client Locations</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <form onSubmit={addProperty} className="space-y-3 rounded-lg border border-gray-200 p-4">
-            <p className="text-sm font-medium text-gray-700">Add Property</p>
+          <form onSubmit={addProperty} className="space-y-3 rounded-lg border border-white/10 bg-white/5 p-4">
+            <p className="text-sm font-medium text-gray-300">Add Property</p>
             <Input placeholder="Property name (e.g. 123 Oak St)" value={newPropName} onChange={e => setNewPropName(e.target.value)} />
             <Input placeholder="Address (optional)" value={newPropAddress} onChange={e => setNewPropAddress(e.target.value)} />
             <Input type="email" placeholder="Client email for reports (optional)" value={newPropEmail} onChange={e => setNewPropEmail(e.target.value)} />
@@ -83,12 +83,12 @@ export default function SettingsPage() {
               <Plus className="mr-2 h-4 w-4" /> Add Property
             </Button>
           </form>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-white/5">
             {properties.map(p => (
               <div key={p.id} className="flex items-center justify-between py-3">
                 <div>
-                  <p className="font-medium text-gray-900">{p.name}</p>
-                  <p className="text-sm text-gray-500">{p.address ?? 'No address'} · {p.client_email ?? 'No client email'}</p>
+                  <p className="font-medium text-gray-100">{p.name}</p>
+                  <p className="text-sm text-gray-400">{p.address ?? 'No address'} · {p.client_email ?? 'No client email'}</p>
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => deleteProperty(p.id)} className="text-gray-400 hover:text-red-600">
                   <Trash2 className="h-4 w-4" />

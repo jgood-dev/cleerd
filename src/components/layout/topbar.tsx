@@ -15,7 +15,7 @@ export function Topbar({ userEmail }: { userEmail: string }) {
   }
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-white/10 bg-[#161b27] px-6">
+    <header className="hidden md:flex h-16 items-center justify-between border-b border-white/10 bg-[#161b27] px-6">
       <div />
       <div className="flex items-center gap-4">
         <button className="rounded-lg p-2 text-gray-500 hover:bg-white/5 hover:text-gray-300 transition-colors">

@@ -43,7 +43,7 @@ export default function TeamsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Teams</h1>
+      <h1 className="text-2xl font-bold text-white">Teams</h1>
 
       <Card>
         <CardHeader><CardTitle>Add Team</CardTitle></CardHeader>
@@ -69,8 +69,8 @@ export default function TeamsPage() {
           <Card key={team.id}>
             <CardContent className="flex items-center justify-between p-6">
               <div>
-                <p className="font-semibold text-gray-900">{team.name}</p>
-                <p className="text-sm text-gray-500">{team.team_members?.length ?? 0} members</p>
+                <p className="font-semibold text-gray-100">{team.name}</p>
+                <p className="text-sm text-gray-400">{team.team_members?.length ?? 0} members</p>
               </div>
               <Button variant="ghost" size="icon" onClick={() => deleteTeam(team.id)} className="text-gray-400 hover:text-red-600">
                 <Trash2 className="h-4 w-4" />
