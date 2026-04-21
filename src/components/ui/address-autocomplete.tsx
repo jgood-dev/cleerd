@@ -17,7 +17,7 @@ function getLoader() {
   if (!apiKey) return null
   if (!loaderPromise) {
     const loader = new Loader({ apiKey, libraries: ['places'] })
-    loaderPromise = loader.importLibrary('places').then(() => {})
+    loaderPromise = loader.load().then(() => {})
   }
   return loaderPromise
 }
