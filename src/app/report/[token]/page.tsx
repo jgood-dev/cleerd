@@ -7,13 +7,12 @@ export default async function ClientReportPage({ params }: { params: { token: st
 
   const { data: inspection } = await supabase
     .from('inspections')
-    .select('*, properties(name, address), organizations(name), inspection_photos(*), checklist_items(*)')
+    .select('*, properties(name, address), inspection_photos(*), checklist_items(*)')
     .eq('share_token', params.token)
     .single()
 
   if (!inspection || !inspection.ai_report) notFound()
 
-  const org = inspection.organizations as any
   const property = inspection.properties as any
   const photos = (inspection.inspection_photos as any[]) ?? []
   const checklist = (inspection.checklist_items as any[]) ?? []
@@ -50,7 +49,6 @@ export default async function ClientReportPage({ params }: { params: { token: st
       <main className="mx-auto max-w-3xl px-4 py-10 space-y-8">
         {/* Title block */}
         <div className="rounded-xl border border-white/10 bg-[#161b27] p-6">
-          <p className="text-sm text-blue-400 font-medium mb-1">{org?.name}</p>
           <h1 className="text-2xl font-bold text-white mb-1">{property?.name ?? 'Cleaning Inspection'}</h1>
           {property?.address && <p className="text-gray-400 text-sm">{property.address}</p>}
           <p className="text-gray-500 text-sm mt-2">

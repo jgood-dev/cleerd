@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
 
   const { data: inspection } = await supabase
     .from('inspections')
-    .select('*, properties(name, address, client_email), organizations(name)')
+    .select('*, properties(name, address, client_email)')
     .eq('id', inspectionId)
     .single()
 
@@ -26,7 +26,6 @@ export async function POST(request: NextRequest) {
     await supabase.from('inspections').update({ share_token: token }).eq('id', inspectionId)
   }
 
-  const org = inspection.organizations as any
   const property = inspection.properties as any
   const reportUrl = `${process.env.NEXT_PUBLIC_APP_URL}/report/${token}`
   const score = inspection.overall_score
@@ -53,7 +52,6 @@ export async function POST(request: NextRequest) {
         <!-- Body -->
         <tr><td style="background:#161b27;border:1px solid rgba(255,255,255,0.1);border-top:none;border-bottom:none;padding:32px;">
 
-          <p style="margin:0 0 8px;color:#9ca3af;font-size:13px;">${org?.name ?? 'Your cleaning service'}</p>
           <h1 style="margin:0 0 4px;color:#ffffff;font-size:24px;font-weight:700;">${property?.name ?? 'Inspection Complete'}</h1>
           ${property?.address ? `<p style="margin:0 0 24px;color:#6b7280;font-size:14px;">${property.address}</p>` : '<div style="margin-bottom:24px;"></div>'}
 
