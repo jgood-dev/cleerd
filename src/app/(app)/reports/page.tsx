@@ -1,21 +1,42 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { FileText } from 'lucide-react'
+import { FileText, Trash2 } from 'lucide-react'
 
-export default async function ReportsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+export default function ReportsPage() {
+  const supabase = createClient()
+  const [inspections, setInspections] = useState<any[]>([])
 
-  const { data: org } = await supabase.from('organizations').select('id').eq('owner_id', user!.id).single()
+  useEffect(() => { load() }, [])
 
-  const { data: inspections } = await supabase
-    .from('inspections')
-    .select('*, properties(name)')
-    .eq('org_id', org?.id)
-    .not('ai_report', 'is', null)
-    .order('completed_at', { ascending: false })
+  async function load() {
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: org } = await supabase.from('organizations').select('id').eq('owner_id', user!.id).single()
+    if (!org) return
+    const { data } = await supabase
+      .from('inspections')
+      .select('*, properties(name, address)')
+      .eq('org_id', org.id)
+      .not('ai_report', 'is', null)
+      .order('completed_at', { ascending: false })
+    setInspections(data ?? [])
+  }
+
+  async function deleteReport(id: string) {
+    if (!confirm('Delete this report? The AI report and score will be cleared. The inspection will remain.')) return
+    await supabase.from('inspections').update({
+      ai_report: null,
+      overall_score: null,
+      status: 'in_progress',
+      completed_at: null,
+    }).eq('id', id)
+    setInspections(prev => prev.filter(i => i.id !== id))
+  }
 
   return (
     <div className="space-y-6">
@@ -23,31 +44,43 @@ export default async function ReportsPage() {
       <Card>
         <CardHeader><CardTitle>Completed Reports</CardTitle></CardHeader>
         <CardContent>
-          {!inspections?.length ? (
+          {!inspections.length ? (
             <div className="py-12 text-center text-gray-400">
               <FileText className="mx-auto mb-3 h-10 w-10 text-gray-600" />
               <p>No reports yet. Complete an inspection and generate an AI report.</p>
             </div>
           ) : (
             <div className="divide-y divide-white/5">
-              {inspections.map(i => (
-                <Link key={i.id} href={`/inspections/${i.id}`} className="flex items-center justify-between py-4 px-2 hover:bg-white/5 rounded-lg">
-                  <div>
-                    <p className="font-medium text-gray-100">{(i.properties as any)?.name ?? 'Unknown Property'}</p>
-                    <p className="text-sm text-gray-400">{i.completed_at ? new Date(i.completed_at).toLocaleDateString() : '—'}</p>
+              {inspections.map(i => {
+                const property = i.properties as any
+                const displayName = property?.address ?? property?.name ?? 'Unknown Property'
+                return (
+                  <div key={i.id} className="flex items-center justify-between py-4 px-2 rounded-lg hover:bg-white/5 group">
+                    <Link href={`/inspections/${i.id}`} className="flex-1 min-w-0 mr-4">
+                      <p className="font-medium text-gray-100">{displayName}</p>
+                      <p className="text-sm text-gray-400">{i.completed_at ? new Date(i.completed_at).toLocaleDateString() : '—'}</p>
+                    </Link>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      {i.overall_score && (
+                        <span className={`text-sm font-semibold ${i.overall_score >= 80 ? 'text-green-400' : i.overall_score >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>
+                          {i.overall_score}%
+                        </span>
+                      )}
+                      <Badge variant={i.status === 'report_sent' ? 'success' : 'secondary'}>
+                        {i.status === 'report_sent' ? 'Sent' : 'Not sent'}
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deleteReport(i.id)}
+                        className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    {i.overall_score && (
-                      <span className={`text-sm font-semibold ${i.overall_score >= 80 ? 'text-green-400' : i.overall_score >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>
-                        {i.overall_score}%
-                      </span>
-                    )}
-                    <Badge variant={i.status === 'report_sent' ? 'success' : 'secondary'}>
-                      {i.status === 'report_sent' ? 'Sent' : 'Not sent'}
-                    </Badge>
-                  </div>
-                </Link>
-              ))}
+                )
+              })}
             </div>
           )}
         </CardContent>
