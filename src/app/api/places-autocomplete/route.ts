@@ -11,6 +11,11 @@ export async function GET(req: NextRequest) {
   const res = await fetch(url)
   const data = await res.json()
 
+  if (data.status && data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+    console.error('Places API error:', data.status, data.error_message)
+    return NextResponse.json({ predictions: [], error: data.status })
+  }
+
   const predictions = (data.predictions ?? []).map((p: any) => ({
     description: p.description,
     place_id: p.place_id,

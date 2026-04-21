@@ -12,6 +12,7 @@ export const AddressAutocomplete = forwardRef<HTMLInputElement, AddressAutocompl
     const inputRef = useRef<HTMLInputElement>(null)
     const [suggestions, setSuggestions] = useState<string[]>([])
     const [open, setOpen] = useState(false)
+    const [apiError, setApiError] = useState('')
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const wrapperRef = useRef<HTMLDivElement>(null)
 
@@ -35,6 +36,8 @@ export const AddressAutocomplete = forwardRef<HTMLInputElement, AddressAutocompl
       debounceRef.current = setTimeout(async () => {
         const res = await fetch(`/api/places-autocomplete?input=${encodeURIComponent(val)}`)
         const data = await res.json()
+        if (data.error) { setApiError(data.error); return }
+        setApiError('')
         const preds: string[] = (data.predictions ?? []).map((p: any) => p.description)
         setSuggestions(preds)
         setOpen(preds.length > 0)
@@ -61,6 +64,7 @@ export const AddressAutocomplete = forwardRef<HTMLInputElement, AddressAutocompl
           }
           autoComplete="off"
         />
+        {apiError && <p className="mt-1 text-xs text-red-400">Places API error: {apiError}</p>}
         {open && suggestions.length > 0 && (
           <ul className="absolute z-50 mt-1 w-full rounded-lg border border-white/10 bg-[#1e2433] shadow-xl overflow-hidden">
             {suggestions.map((s, i) => (
