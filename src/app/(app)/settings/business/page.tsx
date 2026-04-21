@@ -87,6 +87,9 @@ export default function BusinessSettingsPage() {
   const [reviewLink, setReviewLink] = useState('')
   const [reviewSaving, setReviewSaving] = useState(false)
   const [reviewSaved, setReviewSaved] = useState(false)
+  const [reminderLeadHours, setReminderLeadHours] = useState('48')
+  const [reminderSaving, setReminderSaving] = useState(false)
+  const [reminderSaved, setReminderSaved] = useState(false)
 
   useEffect(() => { load() }, [])
 
@@ -97,6 +100,7 @@ export default function BusinessSettingsPage() {
     setOrgName(o?.name ?? '')
     setTimezone(o?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone)
     setReviewLink(o?.review_link ?? '')
+    setReminderLeadHours(String(o?.reminder_lead_hours ?? 48))
   }
 
   async function save(e: React.FormEvent) {
@@ -109,6 +113,15 @@ export default function BusinessSettingsPage() {
     setEditing(false)
     setTimeout(() => setSaved(false), 2000)
     await load()
+  }
+
+  async function saveReminderSettings() {
+    if (!org) return
+    setReminderSaving(true)
+    await supabase.from('organizations').update({ reminder_lead_hours: parseInt(reminderLeadHours) || 48 }).eq('id', org.id)
+    setReminderSaving(false)
+    setReminderSaved(true)
+    setTimeout(() => setReminderSaved(false), 2000)
   }
 
   async function saveReviewLink() {
@@ -212,6 +225,32 @@ export default function BusinessSettingsPage() {
             </Button>
           </div>
           {tzSaved && <p className="text-sm text-green-400">Timezone saved.</p>}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Appointment Reminders</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-gray-400">Automatically email clients before their scheduled appointment. Set how far in advance to send the reminder.</p>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-300">Send reminder</label>
+            <select
+              className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={reminderLeadHours}
+              onChange={e => setReminderLeadHours(e.target.value)}
+            >
+              <option value="24">24 hours before</option>
+              <option value="48">48 hours before</option>
+              <option value="72">72 hours before (3 days)</option>
+              <option value="168">1 week before</option>
+            </select>
+          </div>
+          <div className="flex gap-2 items-center">
+            <Button onClick={saveReminderSettings} disabled={reminderSaving}>
+              {reminderSaving ? 'Saving...' : 'Save'}
+            </Button>
+            {reminderSaved && <p className="text-sm text-green-400">Saved.</p>}
+          </div>
         </CardContent>
       </Card>
 

@@ -23,9 +23,24 @@ type Job = {
   scheduled_at: string
   status: string
   notes: string | null
+  recurrence: string | null
   properties: { name: string; address: string } | null
   teams: { name: string } | null
   inspections: { id: string }[]
+}
+
+function nextScheduledAt(from: string, recurrence: string): string {
+  const d = new Date(from)
+  if (recurrence === 'weekly') d.setDate(d.getDate() + 7)
+  else if (recurrence === 'biweekly') d.setDate(d.getDate() + 14)
+  else if (recurrence === 'monthly') d.setMonth(d.getMonth() + 1)
+  return d.toISOString()
+}
+
+const RECURRENCE_LABELS: Record<string, string> = {
+  weekly: 'Weekly',
+  biweekly: 'Every 2 weeks',
+  monthly: 'Monthly',
 }
 
 function groupJobs(jobs: Job[]) {
@@ -71,6 +86,7 @@ export default function SchedulePage() {
   const [editTemplateId, setEditTemplateId] = useState('')
   const [editSaving, setEditSaving] = useState(false)
   const [editDuration, setEditDuration] = useState('')
+  const [editRecurrence, setEditRecurrence] = useState('')
   const [overlapError, setOverlapError] = useState('')
   const [editOverlapError, setEditOverlapError] = useState('')
 
@@ -85,6 +101,7 @@ export default function SchedulePage() {
   const [newItem, setNewItem] = useState('')
   const [templateId, setTemplateId] = useState('')
   const [durationMinutes, setDurationMinutes] = useState<string>('')
+  const [recurrence, setRecurrence] = useState<string>('')
 
   // Inline new property state
   const [addingProperty, setAddingProperty] = useState(false)
@@ -144,6 +161,23 @@ export default function SchedulePage() {
     return null
   }
 
+  async function spawnNextJob(job: Job) {
+    if (!job.recurrence) return
+    await supabase.from('jobs').insert({
+      org_id: orgId,
+      property_id: job.property_id,
+      team_id: job.team_id,
+      package_id: job.package_id,
+      custom_items: (job as any).custom_items ?? null,
+      duration_minutes: job.duration_minutes,
+      recurrence: job.recurrence,
+      recurrence_parent_id: job.id,
+      scheduled_at: nextScheduledAt(job.scheduled_at, job.recurrence),
+      notes: job.notes,
+      status: 'scheduled',
+    })
+  }
+
   function calcDuration(pkgId: string, propId: string): string {
     const pkg = packages.find(p => p.id === pkgId)
     if (!pkg?.base_duration_minutes) return ''
@@ -174,6 +208,7 @@ export default function SchedulePage() {
     setEditItems((job as any).custom_items ?? [])
     setEditTemplateId('')
     setEditDuration(job.duration_minutes ? String(job.duration_minutes) : '')
+    setEditRecurrence(job.recurrence ?? '')
   }
 
   function closeEdit() {
@@ -231,9 +266,16 @@ export default function SchedulePage() {
       package_id: editPackageId || null,
       custom_items: !editPackageId && editItems.length > 0 ? editItems : null,
       duration_minutes: editDuration ? parseInt(editDuration) : null,
+      recurrence: editRecurrence || null,
       scheduled_at: editScheduledAt,
       notes: editNotes || null,
     }).eq('id', editingJobId)
+
+    // If recurrence was just enabled on a done job, create the next visit now
+    const currentJob = jobs.find(j => j.id === editingJobId)
+    if (editRecurrence && !currentJob?.recurrence && currentJob?.status === 'done') {
+      await spawnNextJob({ ...currentJob, recurrence: editRecurrence, scheduled_at: editScheduledAt })
+    }
     setEditSaving(false)
     closeEdit()
     await load()
@@ -285,6 +327,7 @@ export default function SchedulePage() {
       package_id: packageId || null,
       custom_items: jobItems.length > 0 ? jobItems : null,
       duration_minutes: durationMinutes ? parseInt(durationMinutes) : null,
+      recurrence: recurrence || null,
       scheduled_at: scheduledAt,
       notes: notes || null,
       status: 'scheduled',
@@ -292,7 +335,7 @@ export default function SchedulePage() {
 
     setAdding(false); setAddingProperty(false)
     setPropertyId(''); setTeamId(''); setPackageId(''); setScheduledAt(''); setNotes('')
-    setJobItems([]); setNewItem(''); setTemplateId(''); setDurationMinutes('')
+    setJobItems([]); setNewItem(''); setTemplateId(''); setDurationMinutes(''); setRecurrence('')
     setNewOwnerName(''); setNewPhone(''); setNewEmail('')
     if (addressRef.current) addressRef.current.value = ''
     setSaving(false)
@@ -327,6 +370,7 @@ export default function SchedulePage() {
 
   async function markDone(job: Job) {
     await supabase.from('jobs').update({ status: 'done' }).eq('id', job.id)
+    await spawnNextJob(job)
     await load()
   }
 
@@ -513,6 +557,18 @@ export default function SchedulePage() {
                 </div>
               </div>
 
+              {/* Recurrence */}
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-300">Recurrence</label>
+                <select className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={recurrence} onChange={e => setRecurrence(e.target.value)}>
+                  <option value="">One-time (no recurrence)</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Every 2 weeks</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+
               {/* Notes */}
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-300">Notes (optional)</label>
@@ -578,6 +634,9 @@ export default function SchedulePage() {
                           {formatDateTime(job.scheduled_at, timezone)}
                           {job.teams && <><span className="mx-1.5 text-gray-600">·</span><span>{(job.teams as any).name}</span></>}
                         </p>
+                        {job.recurrence && (
+                          <p className="text-xs text-blue-400 mt-0.5">↻ {RECURRENCE_LABELS[job.recurrence] ?? job.recurrence}</p>
+                        )}
                         {job.notes && <p className="text-xs text-gray-500 mt-0.5 italic">{job.notes}</p>}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0 ml-4">
@@ -697,6 +756,23 @@ export default function SchedulePage() {
                                 </span>
                               )}
                             </div>
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-gray-300">Recurrence</label>
+                            <select className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              value={editRecurrence} onChange={e => setEditRecurrence(e.target.value)}>
+                              <option value="">One-time (no recurrence)</option>
+                              <option value="weekly">Weekly</option>
+                              <option value="biweekly">Every 2 weeks</option>
+                              <option value="monthly">Monthly</option>
+                            </select>
+                            {editRecurrence && (() => {
+                              const job = jobs.find(j => j.id === editingJobId)
+                              if (job?.status === 'done' && !job.recurrence) {
+                                return <p className="mt-1.5 text-xs text-blue-400">Saving will schedule the next {RECURRENCE_LABELS[editRecurrence]?.toLowerCase()} visit immediately.</p>
+                              }
+                              return null
+                            })()}
                           </div>
                           <div>
                             <label className="mb-1.5 block text-sm font-medium text-gray-300">Notes (optional)</label>
