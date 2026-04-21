@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CleanCheck
 
-## Getting Started
+Job scheduling and quality tracking software for residential cleaning companies. CleanCheck helps cleaning businesses schedule jobs, manage teams, track checklists and photos, and deliver professional client summaries.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Job Scheduling** — Schedule jobs with property, team, package, date/time, and duration. Recurring jobs (weekly, bi-weekly, monthly) auto-schedule the next visit on completion.
+- **Team Availability** — Weekly timeline showing all teams' bookings with overlap detection. Prevents double-booking.
+- **Packages & Checklists** — Pre-built cleaning packages with editable checklists per job. Size-based duration multipliers (small/medium/large/XL homes).
+- **Photo Documentation** — Before, after, and issue photos captured during the job.
+- **Client Reports** — Branded, customer-friendly summaries sent via email: after photos, completed checklist, team info, time on-site, next visit, and a review link.
+- **AI Quality Report** — Internal-only AI assessment and score for company use.
+- **Appointment Reminders** — Automated email reminders sent to clients before their scheduled appointment (configurable lead time).
+- **Team Management** — Teams with members (name, phone, email, role).
+- **Properties** — Client locations with owner info, home size, and email for report delivery.
+
+## Stack
+
+- **Framework** — Next.js (App Router)
+- **Database & Auth** — Supabase (Postgres + RLS)
+- **Email** — Resend
+- **Address Autocomplete** — Google Places API (server-side)
+- **AI Reports** — Anthropic Claude API
+- **Hosting** — Vercel (with Cron for daily reminders)
+
+## Environment Variables
+
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
+RESEND_API_KEY=
+ANTHROPIC_API_KEY=
+NEXT_PUBLIC_APP_URL=
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Database Migrations
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Run these SQL files in order in the Supabase SQL Editor:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. `supabase-schema.sql` — base schema
+2. `supabase-add-property-fields.sql` — owner name, phone on properties
+3. `supabase-packages.sql` — packages and package items
+4. `supabase-jobs.sql` — jobs table
+5. `supabase-jobs-package.sql` — package_id on jobs
+6. `supabase-jobs-items.sql` — custom_items on jobs
+7. `supabase-duration.sql` — duration and size multipliers
+8. `supabase-timezone.sql` — timezone on organizations
+9. `supabase-client-report.sql` — client_note, review_link
+10. `supabase-recurrence.sql` — recurrence and reminder tracking
+11. `supabase-team-member-phone.sql` — phone on team members
 
-## Learn More
+## Local Development
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm install
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Open [http://localhost:3000](http://localhost:3000).
