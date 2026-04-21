@@ -9,6 +9,7 @@ import { Plus, Trash2, ArrowLeft, MapPin } from 'lucide-react'
 import Link from 'next/link'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { AddressAutocomplete } from '@/components/ui/address-autocomplete'
+import { PhoneInput } from '@/components/ui/phone-input'
 
 export default function PropertiesPage() {
   const supabase = createClient()
@@ -111,12 +112,7 @@ export default function PropertiesPage() {
                 <label className="mb-1.5 block text-sm font-medium text-gray-300">
                   Phone number <span className="text-red-400">*</span>
                 </label>
-                <Input
-                  type="tel"
-                  placeholder="(555) 123-4567"
-                  value={newPhone}
-                  onChange={e => setNewPhone(e.target.value)}
-                />
+                <PhoneInput value={newPhone} onChange={setNewPhone} />
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-300">

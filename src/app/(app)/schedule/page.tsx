@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { AddressAutocomplete } from '@/components/ui/address-autocomplete'
+import { PhoneInput } from '@/components/ui/phone-input'
 import { Plus, Calendar, Trash2, ClipboardCheck, CheckCircle, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -237,7 +238,7 @@ export default function SchedulePage() {
                     </div>
                     <div>
                       <label className="mb-1 block text-xs text-gray-400">Phone <span className="text-red-400">*</span></label>
-                      <Input type="tel" placeholder="(555) 123-4567" value={newPhone} onChange={e => { setNewPhone(e.target.value); setPropError('') }} />
+                      <PhoneInput value={newPhone} onChange={v => { setNewPhone(v); setPropError('') }} />
                     </div>
                     <div>
                       <label className="mb-1 block text-xs text-gray-400">Client email <span className="text-red-400">*</span></label>
