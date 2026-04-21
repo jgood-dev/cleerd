@@ -20,7 +20,9 @@ export default function NewInspectionPage() {
   const [teamId, setTeamId] = useState('')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
-  const [newProperty, setNewProperty] = useState('')
+  const [newAddress, setNewAddress] = useState('')
+  const [newEmail, setNewEmail] = useState('')
+  const [propError, setPropError] = useState('')
   const [selectedPackageId, setSelectedPackageId] = useState('custom')
   const [customItems, setCustomItems] = useState<string[]>([])
   const [newCustomItem, setNewCustomItem] = useState('')
@@ -78,9 +80,11 @@ export default function NewInspectionPage() {
     setLoading(true)
 
     let finalPropertyId = (propertyId === '__new' || !propertyId) ? '' : propertyId
-    if (!finalPropertyId && newProperty.trim()) {
+    if (!finalPropertyId) {
+      if (!newAddress.trim()) { setPropError('Address is required.'); setLoading(false); return }
+      if (!newEmail.trim()) { setPropError('Client email is required.'); setLoading(false); return }
       const { data: prop } = await supabase.from('properties')
-        .insert({ org_id: orgId, name: newProperty.trim() })
+        .insert({ org_id: orgId, name: newAddress.trim(), address: newAddress.trim(), client_email: newEmail.trim() })
         .select().single()
       finalPropertyId = prop?.id ?? ''
     }
@@ -115,24 +119,29 @@ export default function NewInspectionPage() {
             {/* Property */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-300">Property</label>
-              {properties.length > 0 ? (
-                <>
-                  <select
-                    className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={propertyId}
-                    onChange={e => setPropertyId(e.target.value)}
-                  >
-                    <option value="">Select a property</option>
-                    {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    <option value="__new">+ Add new property</option>
-                  </select>
-                  {propertyId === '__new' && (
-                    <Input className="mt-2" placeholder="New property name" value={newProperty}
-                      onChange={e => setNewProperty(e.target.value)} />
-                  )}
-                </>
-              ) : (
-                <Input placeholder="123 Main St or Client Name" value={newProperty} onChange={e => setNewProperty(e.target.value)} />
+              {properties.length > 0 && (
+                <select
+                  className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
+                  value={propertyId}
+                  onChange={e => { setPropertyId(e.target.value); setPropError('') }}
+                >
+                  <option value="">Select a property</option>
+                  {properties.map(p => <option key={p.id} value={p.id}>{p.address ?? p.name}</option>)}
+                  <option value="__new">+ Add new property</option>
+                </select>
+              )}
+              {(propertyId === '__new' || properties.length === 0) && (
+                <div className="space-y-2 rounded-lg border border-white/10 bg-white/5 p-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-400">Address <span className="text-red-400">*</span></label>
+                    <Input placeholder="123 Oak St, Springfield, IL" value={newAddress} onChange={e => { setNewAddress(e.target.value); setPropError('') }} />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-400">Client email <span className="text-red-400">*</span></label>
+                    <Input type="email" placeholder="client@example.com" value={newEmail} onChange={e => { setNewEmail(e.target.value); setPropError('') }} />
+                  </div>
+                  {propError && <p className="text-xs text-red-400">{propError}</p>}
+                </div>
               )}
             </div>
 
