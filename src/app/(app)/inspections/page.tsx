@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, Mail, MailCheck } from 'lucide-react'
 
 export default function InspectionsPage() {
   const supabase = createClient()
@@ -63,6 +63,7 @@ export default function InspectionsPage() {
                     <th className="pb-3 font-medium hidden sm:table-cell">Date</th>
                     <th className="pb-3 font-medium">Score</th>
                     <th className="pb-3 font-medium">Status</th>
+                    <th className="pb-3 font-medium hidden sm:table-cell">Report</th>
                     <th className="pb-3 font-medium"></th>
                   </tr>
                 </thead>
@@ -82,9 +83,16 @@ export default function InspectionsPage() {
                         ) : '—'}
                       </td>
                       <td className="py-3">
-                        <Badge variant={i.status === 'completed' ? 'success' : i.status === 'report_sent' ? 'default' : 'warning'}>
-                          {i.status.replace('_', ' ')}
+                        <Badge variant={i.status === 'completed' || i.status === 'report_sent' ? 'success' : 'warning'}>
+                          {i.status === 'report_sent' ? 'completed' : i.status.replace('_', ' ')}
                         </Badge>
+                      </td>
+                      <td className="py-3 hidden sm:table-cell">
+                        {i.status === 'report_sent'
+                          ? <span className="flex items-center gap-1.5 text-xs text-green-400"><MailCheck className="h-3.5 w-3.5" />Sent</span>
+                          : i.status === 'completed'
+                          ? <span className="flex items-center gap-1.5 text-xs text-gray-500"><Mail className="h-3.5 w-3.5" />Not sent</span>
+                          : <span className="text-xs text-gray-600">—</span>}
                       </td>
                       <td className="py-3">
                         <div className="flex items-center justify-end gap-1">

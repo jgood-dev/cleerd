@@ -12,10 +12,10 @@ export default function PropertiesPage() {
   const supabase = createClient()
   const [orgId, setOrgId] = useState('')
   const [properties, setProperties] = useState<any[]>([])
-  const [newName, setNewName] = useState('')
   const [newAddress, setNewAddress] = useState('')
   const [newEmail, setNewEmail] = useState('')
   const [adding, setAdding] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => { load() }, [])
 
@@ -30,14 +30,16 @@ export default function PropertiesPage() {
 
   async function addProperty(e: React.FormEvent) {
     e.preventDefault()
-    if (!newName.trim()) return
+    setError('')
+    if (!newAddress.trim()) { setError('Address is required.'); return }
+    if (!newEmail.trim()) { setError('Client email is required.'); return }
     await supabase.from('properties').insert({
       org_id: orgId,
-      name: newName.trim(),
-      address: newAddress.trim() || null,
-      client_email: newEmail.trim() || null,
+      name: newAddress.trim(),
+      address: newAddress.trim(),
+      client_email: newEmail.trim(),
     })
-    setNewName(''); setNewAddress(''); setNewEmail(''); setAdding(false)
+    setNewAddress(''); setNewEmail(''); setAdding(false)
     await load()
   }
 
@@ -60,9 +62,11 @@ export default function PropertiesPage() {
       </div>
 
       <div className="flex justify-end">
-        <Button onClick={() => setAdding(true)} className={adding ? 'hidden' : ''}>
-          <Plus className="mr-2 h-4 w-4" /> Add Property
-        </Button>
+        {!adding && (
+          <Button onClick={() => setAdding(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Add Property
+          </Button>
+        )}
       </div>
 
       {adding && (
@@ -71,20 +75,31 @@ export default function PropertiesPage() {
           <CardContent>
             <form onSubmit={addProperty} className="space-y-3">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-300">Property name <span className="text-red-400">*</span></label>
-                <Input placeholder="e.g. 123 Oak St or Johnson Residence" value={newName} onChange={e => setNewName(e.target.value)} autoFocus />
+                <label className="mb-1.5 block text-sm font-medium text-gray-300">
+                  Address <span className="text-red-400">*</span>
+                </label>
+                <Input
+                  placeholder="123 Oak St, Springfield, IL"
+                  value={newAddress}
+                  onChange={e => setNewAddress(e.target.value)}
+                  autoFocus
+                />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-300">Address <span className="text-gray-500">(optional)</span></label>
-                <Input placeholder="123 Oak St, Springfield, IL" value={newAddress} onChange={e => setNewAddress(e.target.value)} />
+                <label className="mb-1.5 block text-sm font-medium text-gray-300">
+                  Client email <span className="text-red-400">*</span>
+                </label>
+                <Input
+                  type="email"
+                  placeholder="client@example.com"
+                  value={newEmail}
+                  onChange={e => setNewEmail(e.target.value)}
+                />
               </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-300">Client email <span className="text-gray-500">(optional — for report delivery)</span></label>
-                <Input type="email" placeholder="client@example.com" value={newEmail} onChange={e => setNewEmail(e.target.value)} />
-              </div>
+              {error && <p className="text-sm text-red-400">{error}</p>}
               <div className="flex gap-2 pt-1">
                 <Button type="submit">Save Property</Button>
-                <Button type="button" variant="outline" onClick={() => { setAdding(false); setNewName(''); setNewAddress(''); setNewEmail('') }}>
+                <Button type="button" variant="outline" onClick={() => { setAdding(false); setNewAddress(''); setNewEmail(''); setError('') }}>
                   Cancel
                 </Button>
               </div>
@@ -106,10 +121,8 @@ export default function PropertiesPage() {
           {properties.map(p => (
             <div key={p.id} className="flex items-center justify-between rounded-xl border border-white/10 bg-[#161b27] px-5 py-4">
               <div className="min-w-0">
-                <p className="font-medium text-gray-100">{p.name}</p>
-                <p className="text-sm text-gray-400 mt-0.5 truncate">
-                  {[p.address, p.client_email].filter(Boolean).join(' · ') || 'No address or email'}
-                </p>
+                <p className="font-medium text-gray-100">{p.address ?? p.name}</p>
+                <p className="text-sm text-gray-400 mt-0.5">{p.client_email ?? <span className="text-yellow-400">No email — reports cannot be sent</span>}</p>
               </div>
               <Button variant="ghost" size="icon" onClick={() => deleteProperty(p.id)} className="text-gray-500 hover:text-red-400 flex-shrink-0 ml-4">
                 <Trash2 className="h-4 w-4" />
