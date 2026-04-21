@@ -65,6 +65,8 @@ export default function SchedulePage() {
   const [scheduledAt, setScheduledAt] = useState('')
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
+  const [jobItems, setJobItems] = useState<string[]>([])
+  const [newItem, setNewItem] = useState('')
 
   // Inline new property state
   const [addingProperty, setAddingProperty] = useState(false)
@@ -94,6 +96,23 @@ export default function SchedulePage() {
       ...p,
       package_items: [...(p.package_items ?? [])].sort((a: any, b: any) => a.sort_order - b.sort_order),
     })))
+  }
+
+  function handlePackageChange(id: string) {
+    setPackageId(id)
+    const pkg = packages.find(p => p.id === id)
+    setJobItems(pkg?.package_items?.map((i: any) => i.label) ?? [])
+  }
+
+  function addItem() {
+    const label = newItem.trim()
+    if (!label) return
+    setJobItems(prev => [...prev, label])
+    setNewItem('')
+  }
+
+  function removeItem(idx: number) {
+    setJobItems(prev => prev.filter((_, i) => i !== idx))
   }
 
   async function saveNewProperty(): Promise<string | null> {
@@ -128,6 +147,7 @@ export default function SchedulePage() {
       property_id: finalPropertyId,
       team_id: teamId || null,
       package_id: packageId || null,
+      custom_items: jobItems.length > 0 ? jobItems : null,
       scheduled_at: scheduledAt,
       notes: notes || null,
       status: 'scheduled',
@@ -135,6 +155,7 @@ export default function SchedulePage() {
 
     setAdding(false); setAddingProperty(false)
     setPropertyId(''); setTeamId(''); setPackageId(''); setScheduledAt(''); setNotes('')
+    setJobItems([]); setNewItem('')
     setNewOwnerName(''); setNewPhone(''); setNewEmail('')
     if (addressRef.current) addressRef.current.value = ''
     setSaving(false)
@@ -143,8 +164,9 @@ export default function SchedulePage() {
 
   async function startInspection(job: Job) {
     setStartingJobId(job.id)
-    const pkg = packages.find(p => p.id === job.package_id)
-    const items: string[] = pkg?.package_items?.map((i: any) => i.label) ?? []
+    const items: string[] = (job as any).custom_items
+      ?? packages.find(p => p.id === job.package_id)?.package_items?.map((i: any) => i.label)
+      ?? []
 
     const { data: inspection } = await supabase.from('inspections').insert({
       org_id: orgId,
@@ -259,14 +281,45 @@ export default function SchedulePage() {
                 </select>
               </div>
 
-              {/* Package */}
+              {/* Checklist */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-300">Checklist package (optional)</label>
-                <select className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={packageId} onChange={e => setPackageId(e.target.value)}>
-                  <option value="">No package / custom</option>
-                  {packages.map(p => <option key={p.id} value={p.id}>{p.name} ({p.package_items?.length ?? 0} items)</option>)}
-                </select>
+                <label className="mb-1.5 block text-sm font-medium text-gray-300">Checklist</label>
+                {packages.length > 0 && (
+                  <select
+                    className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
+                    value={packageId}
+                    onChange={e => handlePackageChange(e.target.value)}
+                  >
+                    <option value="">Custom (start blank)</option>
+                    {packages.map(p => <option key={p.id} value={p.id}>{p.name} ({p.package_items?.length ?? 0} items)</option>)}
+                  </select>
+                )}
+                <div className="rounded-lg border border-white/10 bg-[#1e2433] p-3 space-y-2">
+                  {jobItems.length === 0 && (
+                    <p className="text-xs text-gray-500 text-center py-1">No items yet — add below.</p>
+                  )}
+                  {jobItems.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-2 group">
+                      <span className="flex-1 text-sm text-gray-200">{item}</span>
+                      <button type="button" onClick={() => removeItem(idx)}
+                        className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                  <div className="flex gap-2 pt-1">
+                    <Input
+                      placeholder="Add checklist item..."
+                      value={newItem}
+                      onChange={e => setNewItem(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addItem() } }}
+                      className="text-sm h-8"
+                    />
+                    <Button type="button" size="sm" variant="outline" onClick={addItem} className="h-8 px-2">
+                      <Plus className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
               </div>
 
               {/* Date & Time */}
