@@ -32,7 +32,7 @@ export default function ReportsPage() {
   function confirmDeleteReport(id: string) {
     setDialog({
       title: 'Delete report?',
-      message: 'The AI report and score will be cleared. The inspection will remain and you can regenerate the report.',
+      message: 'The AI report and score will be cleared. The job will remain and you can regenerate the report.',
       onConfirm: async () => {
         await supabase.from('inspections').update({
           ai_report: null, overall_score: null, status: 'in_progress', completed_at: null,

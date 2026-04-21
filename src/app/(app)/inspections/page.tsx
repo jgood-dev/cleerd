@@ -32,8 +32,8 @@ export default function InspectionsPage() {
 
   function deleteInspection(id: string) {
     setDialog({
-      title: 'Delete inspection?',
-      message: 'This inspection and all its photos and checklist items will be permanently deleted.',
+      title: 'Delete job?',
+      message: 'This job and all its photos and checklist items will be permanently deleted.',
       onConfirm: async () => {
         await supabase.from('inspections').delete().eq('id', id)
         setInspections(prev => prev.filter(i => i.id !== id))
@@ -45,18 +45,18 @@ export default function InspectionsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Inspections</h1>
+        <h1 className="text-2xl font-bold text-white">Jobs</h1>
         <Link href="/schedule">
           <Button><Plus className="mr-2 h-4 w-4" />Schedule Job</Button>
         </Link>
       </div>
 
       <Card>
-        <CardHeader><CardTitle>All Inspections</CardTitle></CardHeader>
+        <CardHeader><CardTitle>All Jobs</CardTitle></CardHeader>
         <CardContent>
           {!inspections.length ? (
             <div className="py-12 text-center">
-              <p className="text-gray-500">No inspections yet. Start one to begin tracking quality.</p>
+              <p className="text-gray-500">No jobs yet. Schedule one to begin tracking quality.</p>
               <Link href="/schedule">
                 <Button className="mt-4">Schedule first job</Button>
               </Link>

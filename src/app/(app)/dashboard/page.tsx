@@ -37,14 +37,14 @@ export default async function DashboardPage() {
           <h1 className="text-2xl font-bold text-white">Dashboard</h1>
           <p className="text-gray-400">{org?.name}</p>
         </div>
-        <Link href="/inspections/new">
-          <Button><ClipboardCheck className="mr-2 h-4 w-4" />New Inspection</Button>
+        <Link href="/schedule?new=1">
+          <Button><ClipboardCheck className="mr-2 h-4 w-4" />Schedule Job</Button>
         </Link>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[
-          { icon: ClipboardCheck, label: 'Total Inspections', value: totalInspections ?? 0, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+          { icon: ClipboardCheck, label: 'Total Jobs', value: totalInspections ?? 0, color: 'text-blue-400', bg: 'bg-blue-500/10' },
           { icon: CheckCircle, label: 'Completed This Month', value: completedThisMonth ?? 0, color: 'text-green-400', bg: 'bg-green-500/10' },
           { icon: AlertTriangle, label: 'In Progress', value: pendingCount ?? 0, color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
         ].map(({ icon: Icon, label, value, color, bg }) => (
@@ -63,14 +63,14 @@ export default async function DashboardPage() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Recent Inspections</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Recent Jobs</CardTitle></CardHeader>
         <CardContent>
           {!inspections?.length ? (
             <div className="py-8 text-center">
               <TrendingUp className="mx-auto mb-3 h-10 w-10 text-gray-600" />
-              <p className="text-gray-400">No inspections yet.</p>
-              <Link href="/inspections/new">
-                <Button className="mt-4" variant="outline">Start your first inspection</Button>
+              <p className="text-gray-400">No jobs yet.</p>
+              <Link href="/schedule?new=1">
+                <Button className="mt-4" variant="outline">Schedule your first job</Button>
               </Link>
             </div>
           ) : (

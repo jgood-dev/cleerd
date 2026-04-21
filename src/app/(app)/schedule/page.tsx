@@ -10,7 +10,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { AddressAutocomplete } from '@/components/ui/address-autocomplete'
 import { Plus, Calendar, Trash2, ClipboardCheck, CheckCircle, Loader2 } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 type Job = {
   id: string
@@ -47,12 +47,13 @@ function formatDateTime(iso: string) {
 export default function SchedulePage() {
   const supabase = createClient()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [orgId, setOrgId] = useState('')
   const [jobs, setJobs] = useState<Job[]>([])
   const [properties, setProperties] = useState<any[]>([])
   const [teams, setTeams] = useState<any[]>([])
   const [packages, setPackages] = useState<any[]>([])
-  const [adding, setAdding] = useState(false)
+  const [adding, setAdding] = useState(searchParams.get('new') === '1')
   const [startingJobId, setStartingJobId] = useState<string | null>(null)
   const [dialog, setDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
 

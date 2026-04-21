@@ -10,7 +10,7 @@ import { LayoutDashboard, ClipboardCheck, Users, FileText, Settings, CheckSquare
 const nav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/schedule', label: 'Schedule', icon: CalendarDays },
-  { href: '/inspections', label: 'Inspections', icon: ClipboardCheck },
+  { href: '/inspections', label: 'Jobs', icon: ClipboardCheck },
   { href: '/teams', label: 'Teams', icon: Users },
   { href: '/reports', label: 'Reports', icon: FileText },
   { href: '/settings', label: 'Settings', icon: Settings },

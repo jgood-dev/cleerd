@@ -73,8 +73,8 @@ export default function InspectionDetailPage() {
 
   function completeInspection() {
     setDialog({
-      title: 'Mark as complete?',
-      message: 'The inspection will be marked complete. You can still add photos and generate a report.',
+      title: 'Mark job as complete?',
+      message: 'The job will be marked complete. You can still add photos and generate a report.',
       confirmLabel: 'Complete',
       destructive: false,
       onConfirm: async () => {
@@ -163,7 +163,7 @@ export default function InspectionDetailPage() {
           </Badge>
           {isInProgress && (
             <Button size="sm" variant="outline" onClick={completeInspection} className="border-green-500/30 text-green-400 hover:bg-green-500/10">
-              <CheckCircle className="mr-2 h-4 w-4" /> Complete
+              <CheckCircle className="mr-2 h-4 w-4" /> Mark Complete
             </Button>
           )}
         </div>
