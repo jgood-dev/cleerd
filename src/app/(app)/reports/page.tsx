@@ -5,12 +5,14 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import Link from 'next/link'
 import { FileText, Trash2 } from 'lucide-react'
 
 export default function ReportsPage() {
   const supabase = createClient()
   const [inspections, setInspections] = useState<any[]>([])
+  const [dialog, setDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
 
   useEffect(() => { load() }, [])
 
@@ -27,15 +29,18 @@ export default function ReportsPage() {
     setInspections(data ?? [])
   }
 
-  async function deleteReport(id: string) {
-    if (!confirm('Delete this report? The AI report and score will be cleared. The inspection will remain.')) return
-    await supabase.from('inspections').update({
-      ai_report: null,
-      overall_score: null,
-      status: 'in_progress',
-      completed_at: null,
-    }).eq('id', id)
-    setInspections(prev => prev.filter(i => i.id !== id))
+  function confirmDeleteReport(id: string) {
+    setDialog({
+      title: 'Delete report?',
+      message: 'The AI report and score will be cleared. The inspection will remain and you can regenerate the report.',
+      onConfirm: async () => {
+        await supabase.from('inspections').update({
+          ai_report: null, overall_score: null, status: 'in_progress', completed_at: null,
+        }).eq('id', id)
+        setInspections(prev => prev.filter(i => i.id !== id))
+        setDialog(null)
+      },
+    })
   }
 
   return (
@@ -69,12 +74,8 @@ export default function ReportsPage() {
                       <Badge variant={i.status === 'report_sent' ? 'success' : 'secondary'}>
                         {i.status === 'report_sent' ? 'Sent' : 'Not sent'}
                       </Badge>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deleteReport(i.id)}
-                        className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
+                      <Button variant="ghost" size="icon" onClick={() => confirmDeleteReport(i.id)}
+                        className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -85,6 +86,14 @@ export default function ReportsPage() {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={!!dialog}
+        title={dialog?.title ?? ''}
+        message={dialog?.message ?? ''}
+        onConfirm={dialog?.onConfirm ?? (() => {})}
+        onCancel={() => setDialog(null)}
+      />
     </div>
   )
 }
