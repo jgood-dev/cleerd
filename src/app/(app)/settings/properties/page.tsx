@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Plus, Trash2, ArrowLeft, MapPin } from 'lucide-react'
 import Link from 'next/link'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 export default function PropertiesPage() {
   const supabase = createClient()
@@ -16,6 +17,7 @@ export default function PropertiesPage() {
   const [newEmail, setNewEmail] = useState('')
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState('')
+  const [dialog, setDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
 
   useEffect(() => { load() }, [])
 
@@ -43,10 +45,16 @@ export default function PropertiesPage() {
     await load()
   }
 
-  async function deleteProperty(id: string) {
-    if (!confirm('Delete this property? This cannot be undone.')) return
-    await supabase.from('properties').delete().eq('id', id)
-    await load()
+  function deleteProperty(id: string) {
+    setDialog({
+      title: 'Delete property?',
+      message: 'This property will be permanently removed. Past inspections will remain.',
+      onConfirm: async () => {
+        await supabase.from('properties').delete().eq('id', id)
+        setDialog(null)
+        await load()
+      },
+    })
   }
 
   return (
@@ -131,6 +139,13 @@ export default function PropertiesPage() {
           ))}
         </div>
       )}
+      <ConfirmDialog
+        open={!!dialog}
+        title={dialog?.title ?? ''}
+        message={dialog?.message ?? ''}
+        onConfirm={dialog?.onConfirm ?? (() => {})}
+        onCancel={() => setDialog(null)}
+      />
     </div>
   )
 }

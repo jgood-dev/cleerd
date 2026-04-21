@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Plus, Trash2, Users } from 'lucide-react'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 export default function TeamsPage() {
   const supabase = createClient()
@@ -14,6 +15,7 @@ export default function TeamsPage() {
   const [newTeamName, setNewTeamName] = useState('')
   const [loading, setLoading] = useState(false)
   const [debugInfo, setDebugInfo] = useState<string>('')
+  const [dialog, setDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
 
   useEffect(() => { load() }, [])
 
@@ -42,16 +44,21 @@ export default function TeamsPage() {
     await load()
   }
 
-  async function deleteTeam(id: string) {
-    if (!confirm('Delete this team?')) return
-    await supabase.from('teams').delete().eq('id', id)
-    await load()
+  function deleteTeam(id: string) {
+    setDialog({
+      title: 'Delete team?',
+      message: 'This team will be permanently removed.',
+      onConfirm: async () => {
+        await supabase.from('teams').delete().eq('id', id)
+        setDialog(null)
+        await load()
+      },
+    })
   }
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-white">Teams</h1>
-      {debugInfo && <p className="text-xs text-yellow-400 font-mono bg-yellow-500/10 border border-yellow-500/20 rounded p-2">{debugInfo}</p>}
 
       <Card>
         <CardHeader><CardTitle>Add Team</CardTitle></CardHeader>
@@ -87,6 +94,14 @@ export default function TeamsPage() {
           </Card>
         ))}
       </div>
+
+      <ConfirmDialog
+        open={!!dialog}
+        title={dialog?.title ?? ''}
+        message={dialog?.message ?? ''}
+        onConfirm={dialog?.onConfirm ?? (() => {})}
+        onCancel={() => setDialog(null)}
+      />
     </div>
   )
 }

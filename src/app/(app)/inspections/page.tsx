@@ -7,11 +7,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { Plus, Trash2, Mail, MailCheck } from 'lucide-react'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 export default function InspectionsPage() {
   const supabase = createClient()
   const [inspections, setInspections] = useState<any[]>([])
   const [orgId, setOrgId] = useState('')
+  const [dialog, setDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
 
   useEffect(() => { load() }, [])
 
@@ -28,10 +30,16 @@ export default function InspectionsPage() {
     setInspections(data ?? [])
   }
 
-  async function deleteInspection(id: string) {
-    if (!confirm('Delete this inspection? This cannot be undone.')) return
-    await supabase.from('inspections').delete().eq('id', id)
-    setInspections(prev => prev.filter(i => i.id !== id))
+  function deleteInspection(id: string) {
+    setDialog({
+      title: 'Delete inspection?',
+      message: 'This inspection and all its photos and checklist items will be permanently deleted.',
+      onConfirm: async () => {
+        await supabase.from('inspections').delete().eq('id', id)
+        setInspections(prev => prev.filter(i => i.id !== id))
+        setDialog(null)
+      },
+    })
   }
 
   return (
@@ -117,6 +125,14 @@ export default function InspectionsPage() {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={!!dialog}
+        title={dialog?.title ?? ''}
+        message={dialog?.message ?? ''}
+        onConfirm={dialog?.onConfirm ?? (() => {})}
+        onCancel={() => setDialog(null)}
+      />
     </div>
   )
 }

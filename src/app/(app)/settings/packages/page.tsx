@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Plus, Trash2, ChevronDown, ChevronUp, GripVertical, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 export default function PackagesPage() {
   const supabase = createClient()
@@ -16,6 +17,7 @@ export default function PackagesPage() {
   const [copyFromId, setCopyFromId] = useState('')
   const [expandedPackage, setExpandedPackage] = useState<string | null>(null)
   const [newItemLabel, setNewItemLabel] = useState<Record<string, string>>({})
+  const [dialog, setDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
 
   useEffect(() => { load() }, [])
 
@@ -53,10 +55,16 @@ export default function PackagesPage() {
     await load()
   }
 
-  async function deletePackage(id: string) {
-    if (!confirm('Delete this package and all its checklist items?')) return
-    await supabase.from('packages').delete().eq('id', id)
-    await load()
+  function deletePackage(id: string) {
+    setDialog({
+      title: 'Delete package?',
+      message: 'This package and all its checklist items will be permanently deleted.',
+      onConfirm: async () => {
+        await supabase.from('packages').delete().eq('id', id)
+        setDialog(null)
+        await load()
+      },
+    })
   }
 
   async function addItem(packageId: string) {
@@ -206,6 +214,14 @@ export default function PackagesPage() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!dialog}
+        title={dialog?.title ?? ''}
+        message={dialog?.message ?? ''}
+        onConfirm={dialog?.onConfirm ?? (() => {})}
+        onCancel={() => setDialog(null)}
+      />
     </div>
   )
 }

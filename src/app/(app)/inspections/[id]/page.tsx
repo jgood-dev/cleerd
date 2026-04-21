@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Camera, Sparkles, Send, CheckSquare, Square, Loader2, CheckCircle, Trash2 } from 'lucide-react'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 export default function InspectionDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -23,6 +24,7 @@ export default function InspectionDetailPage() {
   const [generatingReport, setGeneratingReport] = useState(false)
   const [uploadingType, setUploadingType] = useState<string | null>(null)
   const [reportSent, setReportSent] = useState(false)
+  const [dialog, setDialog] = useState<{ title: string; message: string; confirmLabel?: string; destructive?: boolean; onConfirm: () => void } | null>(null)
 
   useEffect(() => { load() }, [id])
 
@@ -56,17 +58,31 @@ export default function InspectionDetailPage() {
     e.target.value = ''
   }
 
-  async function deletePhoto(photo: any) {
-    if (!confirm('Delete this photo?')) return
-    await supabase.storage.from('inspection-photos').remove([photo.storage_path])
-    await supabase.from('inspection_photos').delete().eq('id', photo.id)
-    setPhotos(prev => prev.filter(p => p.id !== photo.id))
+  function deletePhoto(photo: any) {
+    setDialog({
+      title: 'Delete photo?',
+      message: 'This photo will be permanently removed.',
+      onConfirm: async () => {
+        await supabase.storage.from('inspection-photos').remove([photo.storage_path])
+        await supabase.from('inspection_photos').delete().eq('id', photo.id)
+        setPhotos(prev => prev.filter(p => p.id !== photo.id))
+        setDialog(null)
+      },
+    })
   }
 
-  async function completeInspection() {
-    if (!confirm('Mark this inspection as complete?')) return
-    await supabase.from('inspections').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id)
-    await load()
+  function completeInspection() {
+    setDialog({
+      title: 'Mark as complete?',
+      message: 'The inspection will be marked complete. You can still add photos and generate a report.',
+      confirmLabel: 'Complete',
+      destructive: false,
+      onConfirm: async () => {
+        await supabase.from('inspections').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id)
+        setDialog(null)
+        await load()
+      },
+    })
   }
 
   async function generateReport() {
@@ -269,12 +285,16 @@ export default function InspectionDetailPage() {
               {generatingReport ? 'Generating...' : inspection.ai_report ? 'Regenerate Report' : 'Generate AI Report'}
             </Button>
             {inspection.ai_report && (
-              <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-400" onClick={async () => {
-                if (!confirm('Delete this report? The inspection will remain but the AI report and score will be cleared.')) return
-                await supabase.from('inspections').update({ ai_report: null, overall_score: null, status: 'in_progress', completed_at: null }).eq('id', id)
-                setReportSent(false)
-                await load()
-              }}>
+              <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-400" onClick={() => setDialog({
+                title: 'Delete report?',
+                message: 'The AI report and score will be cleared. The inspection will remain and you can regenerate.',
+                onConfirm: async () => {
+                  await supabase.from('inspections').update({ ai_report: null, overall_score: null, status: 'in_progress', completed_at: null }).eq('id', id)
+                  setReportSent(false)
+                  setDialog(null)
+                  await load()
+                },
+              })}>
                 <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete report
               </Button>
             )}
@@ -294,6 +314,15 @@ export default function InspectionDetailPage() {
           </div>
         </CardContent>
       </Card>
+      <ConfirmDialog
+        open={!!dialog}
+        title={dialog?.title ?? ''}
+        message={dialog?.message ?? ''}
+        confirmLabel={dialog?.confirmLabel}
+        destructive={dialog?.destructive}
+        onConfirm={dialog?.onConfirm ?? (() => {})}
+        onCancel={() => setDialog(null)}
+      />
     </div>
   )
 }
