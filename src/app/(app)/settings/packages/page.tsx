@@ -13,6 +13,7 @@ export default function PackagesPage() {
   const [orgId, setOrgId] = useState('')
   const [packages, setPackages] = useState<any[]>([])
   const [newPackageName, setNewPackageName] = useState('')
+  const [copyFromId, setCopyFromId] = useState('')
   const [expandedPackage, setExpandedPackage] = useState<string | null>(null)
   const [newItemLabel, setNewItemLabel] = useState<Record<string, string>>({})
 
@@ -34,7 +35,20 @@ export default function PackagesPage() {
     e.preventDefault()
     if (!newPackageName.trim()) return
     const { data } = await supabase.from('packages').insert({ org_id: orgId, name: newPackageName.trim() }).select().single()
+    if (data && copyFromId) {
+      const source = packages.find(p => p.id === copyFromId)
+      if (source?.package_items?.length) {
+        await supabase.from('package_items').insert(
+          source.package_items.map((item: any) => ({
+            package_id: data.id,
+            label: item.label,
+            sort_order: item.sort_order,
+          }))
+        )
+      }
+    }
     setNewPackageName('')
+    setCopyFromId('')
     if (data) setExpandedPackage(data.id)
     await load()
   }
@@ -94,13 +108,28 @@ export default function PackagesPage() {
       <Card>
         <CardHeader><CardTitle>Create Package</CardTitle></CardHeader>
         <CardContent>
-          <form onSubmit={addPackage} className="flex gap-3">
+          <form onSubmit={addPackage} className="space-y-3">
             <Input
               placeholder="e.g. Standard Clean, Deep Clean, Move-Out"
               value={newPackageName}
               onChange={e => setNewPackageName(e.target.value)}
             />
-            <Button type="submit"><Plus className="mr-2 h-4 w-4" />Add</Button>
+            {packages.length > 0 && (
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-400">Start from existing package <span className="text-gray-600">(optional)</span></label>
+                <select
+                  className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={copyFromId}
+                  onChange={e => setCopyFromId(e.target.value)}
+                >
+                  <option value="">Start blank</option>
+                  {packages.map(p => (
+                    <option key={p.id} value={p.id}>Copy from: {p.name} ({p.package_items?.length ?? 0} items)</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <Button type="submit"><Plus className="mr-2 h-4 w-4" />Create Package</Button>
           </form>
         </CardContent>
       </Card>
