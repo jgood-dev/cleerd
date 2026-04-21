@@ -13,6 +13,7 @@ import { getOrgForUser } from '@/lib/get-org'
 export default function TeamsPage() {
   const supabase = createClient()
   const [orgId, setOrgId] = useState<string>('')
+  const [isOwner, setIsOwner] = useState(false)
   const [teams, setTeams] = useState<any[]>([])
   const [newTeamName, setNewTeamName] = useState('')
   const [loading, setLoading] = useState(false)
@@ -38,9 +39,10 @@ export default function TeamsPage() {
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const { org } = await getOrgForUser(supabase, user.id)
+    const { org, isOwner: owner } = await getOrgForUser(supabase, user.id)
     if (!org) return
     setOrgId(org.id)
+    setIsOwner(owner)
     const { data } = await supabase.from('teams').select('*, team_members(*)').eq('org_id', org.id).order('created_at')
     setTeams(data ?? [])
   }
@@ -123,17 +125,19 @@ export default function TeamsPage() {
     <div className="space-y-6 max-w-2xl">
       <h1 className="text-2xl font-bold text-white">Teams</h1>
 
-      <Card>
-        <CardHeader><CardTitle>Add Team</CardTitle></CardHeader>
-        <CardContent>
-          <form onSubmit={addTeam} className="flex gap-3">
-            <Input placeholder="Team name (e.g. Morning Crew)" value={newTeamName} onChange={e => setNewTeamName(e.target.value)} />
-            <Button type="submit" disabled={loading}>
-              <Plus className="mr-2 h-4 w-4" /> Add
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      {isOwner && (
+        <Card>
+          <CardHeader><CardTitle>Add Team</CardTitle></CardHeader>
+          <CardContent>
+            <form onSubmit={addTeam} className="flex gap-3">
+              <Input placeholder="Team name (e.g. Morning Crew)" value={newTeamName} onChange={e => setNewTeamName(e.target.value)} />
+              <Button type="submit" disabled={loading}>
+                <Plus className="mr-2 h-4 w-4" /> Add
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="space-y-3">
         {teams.length === 0 ? (
@@ -162,9 +166,11 @@ export default function TeamsPage() {
                     ? <ChevronUp className="h-4 w-4 text-gray-500 flex-shrink-0" />
                     : <ChevronDown className="h-4 w-4 text-gray-500 flex-shrink-0" />}
                 </button>
-                <Button variant="ghost" size="icon" onClick={() => deleteTeam(team.id)} className="text-gray-500 hover:text-red-400 flex-shrink-0">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                {isOwner && (
+                  <Button variant="ghost" size="icon" onClick={() => deleteTeam(team.id)} className="text-gray-500 hover:text-red-400 flex-shrink-0">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
 
               {/* Members */}
@@ -177,7 +183,7 @@ export default function TeamsPage() {
                     <ul className="space-y-1">
                       {members.map((m: any) => (
                         <li key={m.id} className="rounded-lg px-2 py-2 group hover:bg-white/5">
-                          {editingMemberId === m.id ? (
+                          {isOwner && editingMemberId === m.id ? (
                             <div className="space-y-2">
                               <div className="flex gap-2">
                                 <Input className="text-sm flex-1" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Full name *" />
@@ -209,14 +215,16 @@ export default function TeamsPage() {
                                 {m.email && <span className="ml-2 text-xs text-gray-500">{m.email}</span>}
                               </div>
                               <span className="text-xs text-gray-500 capitalize flex-shrink-0">{m.role}</span>
-                              <button onClick={() => openEditMember(m)}
-                                className="text-gray-600 hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                                <Pencil className="h-3.5 w-3.5" />
-                              </button>
-                              <button onClick={() => deleteMember(m.id)}
-                                className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
+                              {isOwner && <>
+                                <button onClick={() => openEditMember(m)}
+                                  className="text-gray-600 hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                                <button onClick={() => deleteMember(m.id)}
+                                  className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </>}
                             </div>
                           )}
                         </li>
@@ -224,8 +232,8 @@ export default function TeamsPage() {
                     </ul>
                   )}
 
-                  {/* Add member form */}
-                  <div className="space-y-2 pt-1">
+                  {/* Add member form — owner only */}
+                  {isOwner && <div className="space-y-2 pt-1">
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Add Member</p>
                     <div className="flex gap-2">
                       <Input
@@ -268,7 +276,7 @@ export default function TeamsPage() {
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
-                  </div>
+                  </div>}
                 </div>
               )}
             </div>

@@ -8,11 +8,13 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, UserPlus, Trash2, Mail } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { getOrgForUser } from '@/lib/get-org'
 
 export default function MembersPage() {
   const supabase = createClient()
+  const router = useRouter()
   const [orgId, setOrgId] = useState('')
   const [members, setMembers] = useState<any[]>([])
   const [inviteEmail, setInviteEmail] = useState('')
@@ -25,7 +27,8 @@ export default function MembersPage() {
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
-    const { org } = await getOrgForUser(supabase, user!.id)
+    const { org, isOwner } = await getOrgForUser(supabase, user!.id)
+    if (!isOwner) { router.replace('/settings'); return }
     if (!org) return
     setOrgId(org.id)
     const { data } = await supabase.from('org_members').select('*').eq('org_id', org.id).order('created_at')

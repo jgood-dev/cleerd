@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
+import { getOrgForUser } from '@/lib/get-org'
+import { redirect } from 'next/navigation'
 
 const plans = [
   { id: 'solo', name: 'Solo', price: 49, features: ['1 team', 'Up to 30 jobs/month', 'AI reports', 'Photo uploads'] },
@@ -13,7 +15,8 @@ const plans = [
 export default async function BillingPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const { data: org } = await supabase.from('organizations').select('plan, created_at').eq('owner_id', user!.id).single()
+  const { org, isOwner } = await getOrgForUser(supabase, user!.id)
+  if (!isOwner) redirect('/settings')
   const currentPlan = plans.find(p => p.id === org?.plan) ?? plans[0]
 
   return (

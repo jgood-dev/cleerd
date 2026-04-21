@@ -78,6 +78,7 @@ const TIMEZONE_GROUPS = [
 export default function BusinessSettingsPage() {
   const supabase = createClient()
   const [org, setOrg] = useState<any>(null)
+  const [isOwner, setIsOwner] = useState(false)
   const [orgName, setOrgName] = useState('')
   const [timezone, setTimezone] = useState('')
   const [editing, setEditing] = useState(false)
@@ -96,8 +97,9 @@ export default function BusinessSettingsPage() {
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
-    const { org: o } = await getOrgForUser(supabase, user!.id)
+    const { org: o, isOwner: owner } = await getOrgForUser(supabase, user!.id)
     setOrg(o)
+    setIsOwner(owner)
     setOrgName(o?.name ?? '')
     setTimezone(o?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone)
     setReviewLink(o?.review_link ?? '')
@@ -167,7 +169,7 @@ export default function BusinessSettingsPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Business Name</CardTitle>
-            {!editing && (
+            {isOwner && !editing && (
               <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="text-gray-400 hover:text-white">
                 <Pencil className="mr-2 h-4 w-4" /> Edit
               </Button>
@@ -175,7 +177,7 @@ export default function BusinessSettingsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {editing ? (
+          {isOwner && editing ? (
             <form onSubmit={save} className="space-y-3">
               <Input value={orgName} onChange={e => setOrgName(e.target.value)} autoFocus />
               <div className="flex gap-2">
@@ -201,82 +203,92 @@ export default function BusinessSettingsPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-gray-400">Used for scheduling, the team availability calendar, and all time displays across the app.</p>
-          <select
-            className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={timezone}
-            onChange={e => setTimezone(e.target.value)}
-          >
-            {TIMEZONE_GROUPS.map(group => (
-              <optgroup key={group.label} label={group.label}>
-                {group.zones.map(z => (
-                  <option key={z.value} value={z.value}>{z.label}</option>
+          {isOwner ? (
+            <>
+              <select
+                className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={timezone}
+                onChange={e => setTimezone(e.target.value)}
+              >
+                {TIMEZONE_GROUPS.map(group => (
+                  <optgroup key={group.label} label={group.label}>
+                    {group.zones.map(z => (
+                      <option key={z.value} value={z.value}>{z.label}</option>
+                    ))}
+                  </optgroup>
                 ))}
-              </optgroup>
-            ))}
-          </select>
-          {timezone && !currentTzLabel && (
-            <p className="text-xs text-gray-500">Current: {timezone}</p>
+              </select>
+              {timezone && !currentTzLabel && (
+                <p className="text-xs text-gray-500">Current: {timezone}</p>
+              )}
+              <div className="flex gap-2">
+                <Button onClick={saveTimezone} disabled={tzSaving}>
+                  {tzSaving ? 'Saving...' : 'Save timezone'}
+                </Button>
+                <Button type="button" variant="outline" onClick={detectTimezone}>
+                  Detect from browser
+                </Button>
+              </div>
+              {tzSaved && <p className="text-sm text-green-400">Timezone saved.</p>}
+            </>
+          ) : (
+            <p className="text-gray-100 font-medium">{currentTzLabel ?? timezone ?? '—'}</p>
           )}
-          <div className="flex gap-2">
-            <Button onClick={saveTimezone} disabled={tzSaving}>
-              {tzSaving ? 'Saving...' : 'Save timezone'}
-            </Button>
-            <Button type="button" variant="outline" onClick={detectTimezone}>
-              Detect from browser
-            </Button>
-          </div>
-          {tzSaved && <p className="text-sm text-green-400">Timezone saved.</p>}
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle>Appointment Reminders</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-gray-400">Automatically email clients before their scheduled appointment. Set how far in advance to send the reminder.</p>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-300">Send reminder</label>
-            <select
-              className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={reminderLeadHours}
-              onChange={e => setReminderLeadHours(e.target.value)}
-            >
-              <option value="24">24 hours before</option>
-              <option value="48">48 hours before</option>
-              <option value="72">72 hours before (3 days)</option>
-              <option value="168">1 week before</option>
-            </select>
-          </div>
-          <div className="flex gap-2 items-center">
-            <Button onClick={saveReminderSettings} disabled={reminderSaving}>
-              {reminderSaving ? 'Saving...' : 'Save'}
-            </Button>
-            {reminderSaved && <p className="text-sm text-green-400">Saved.</p>}
-          </div>
-        </CardContent>
-      </Card>
+      {isOwner && (
+        <Card>
+          <CardHeader><CardTitle>Appointment Reminders</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-gray-400">Automatically email clients before their scheduled appointment. Set how far in advance to send the reminder.</p>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-300">Send reminder</label>
+              <select
+                className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={reminderLeadHours}
+                onChange={e => setReminderLeadHours(e.target.value)}
+              >
+                <option value="24">24 hours before</option>
+                <option value="48">48 hours before</option>
+                <option value="72">72 hours before (3 days)</option>
+                <option value="168">1 week before</option>
+              </select>
+            </div>
+            <div className="flex gap-2 items-center">
+              <Button onClick={saveReminderSettings} disabled={reminderSaving}>
+                {reminderSaving ? 'Saving...' : 'Save'}
+              </Button>
+              {reminderSaved && <p className="text-sm text-green-400">Saved.</p>}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Star className="h-4 w-4 text-yellow-400" />
-            <CardTitle>Review Link</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-gray-400">Paste your Google, Yelp, or other review page URL. It will appear as a "Leave a Review" button at the bottom of every client report.</p>
-          <Input
-            placeholder="https://g.page/r/your-business/review"
-            value={reviewLink}
-            onChange={e => setReviewLink(e.target.value)}
-          />
-          <div className="flex gap-2 items-center">
-            <Button onClick={saveReviewLink} disabled={reviewSaving}>
-              {reviewSaving ? 'Saving...' : 'Save review link'}
-            </Button>
-            {reviewSaved && <p className="text-sm text-green-400">Saved.</p>}
-          </div>
-        </CardContent>
-      </Card>
+      {isOwner && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Star className="h-4 w-4 text-yellow-400" />
+              <CardTitle>Review Link</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-gray-400">Paste your Google, Yelp, or other review page URL. It will appear as a "Leave a Review" button at the bottom of every client report.</p>
+            <Input
+              placeholder="https://g.page/r/your-business/review"
+              value={reviewLink}
+              onChange={e => setReviewLink(e.target.value)}
+            />
+            <div className="flex gap-2 items-center">
+              <Button onClick={saveReviewLink} disabled={reviewSaving}>
+                {reviewSaving ? 'Saving...' : 'Save review link'}
+              </Button>
+              {reviewSaved && <p className="text-sm text-green-400">Saved.</p>}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader><CardTitle>Account</CardTitle></CardHeader>

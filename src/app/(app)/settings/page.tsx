@@ -3,43 +3,48 @@ import { createClient } from '@/lib/supabase/server'
 import { Building2, ClipboardList, MapPin, CreditCard, ChevronRight, Users } from 'lucide-react'
 import { getOrgForUser } from '@/lib/get-org'
 
-const sections = [
-  {
-    href: '/settings/business',
-    icon: Building2,
-    title: 'Business Info',
-    description: 'Update your business name and account details.',
-  },
-  {
-    href: '/settings/packages',
-    icon: ClipboardList,
-    title: 'Packages',
-    description: 'Create and manage checklist packages for different types of cleans.',
-  },
-  {
-    href: '/settings/properties',
-    icon: MapPin,
-    title: 'Properties',
-    description: 'Manage client locations and their contact emails.',
-  },
-  {
-    href: '/settings/members',
-    icon: Users,
-    title: 'Team Logins',
-    description: 'Invite team members to access your CleanCheck account.',
-  },
-  {
-    href: '/settings/billing',
-    icon: CreditCard,
-    title: 'Billing & Plan',
-    description: 'View your current plan and manage your subscription.',
-  },
-]
-
 export default async function SettingsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const { org } = await getOrgForUser(supabase, user!.id)
+  const { org, isOwner } = await getOrgForUser(supabase, user!.id)
+
+  const sections = [
+    {
+      href: '/settings/business',
+      icon: Building2,
+      title: 'Business Info',
+      description: isOwner ? 'Update your business name and account details.' : 'View business details.',
+      ownerOnly: false,
+    },
+    {
+      href: '/settings/packages',
+      icon: ClipboardList,
+      title: 'Packages',
+      description: 'Create and manage checklist packages for different types of cleans.',
+      ownerOnly: false,
+    },
+    {
+      href: '/settings/properties',
+      icon: MapPin,
+      title: 'Properties',
+      description: 'Manage client locations and their contact emails.',
+      ownerOnly: false,
+    },
+    {
+      href: '/settings/members',
+      icon: Users,
+      title: 'Team Logins',
+      description: 'Invite team members to access your CleanCheck account.',
+      ownerOnly: true,
+    },
+    {
+      href: '/settings/billing',
+      icon: CreditCard,
+      title: 'Billing & Plan',
+      description: 'View your current plan and manage your subscription.',
+      ownerOnly: true,
+    },
+  ].filter(s => !s.ownerOnly || isOwner)
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
