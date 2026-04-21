@@ -6,28 +6,47 @@ import Script from 'next/script'
 interface AddressAutocompleteProps {
   onPlaceSelected?: (address: string) => void
   placeholder?: string
-  className?: string
 }
 
 export const AddressAutocomplete = forwardRef<HTMLInputElement, AddressAutocompleteProps>(
-  function AddressAutocomplete({ onPlaceSelected, placeholder = '123 Oak St, Springfield, IL', className }, ref) {
-    const inputRef = useRef<HTMLInputElement>(null)
+  function AddressAutocomplete({ onPlaceSelected, placeholder = '123 Oak St, Springfield, IL' }, ref) {
+    const containerRef = useRef<HTMLDivElement>(null)
+    const hiddenRef = useRef<HTMLInputElement>(null)
     const [scriptLoaded, setScriptLoaded] = useState(false)
-    useImperativeHandle(ref, () => inputRef.current!)
+
+    // Expose hidden input value to parent via ref
+    useImperativeHandle(ref, () => hiddenRef.current!)
 
     useEffect(() => {
-      if (!scriptLoaded || !inputRef.current) return
-      if (!(window as any).google?.maps?.places) return
-      const ac = new (window as any).google.maps.places.Autocomplete(inputRef.current, {
-        types: ['address'],
-        componentRestrictions: { country: 'us' },
-      })
-      ac.addListener('place_changed', () => {
-        const place = ac.getPlace()
-        if (place?.formatted_address && onPlaceSelected) {
-          onPlaceSelected(place.formatted_address)
-        }
-      })
+      if (!scriptLoaded || !containerRef.current) return
+
+      async function init() {
+        const { PlaceAutocompleteElement } = await (window as any).google.maps.importLibrary('places') as any
+        if (!containerRef.current) return
+        containerRef.current.innerHTML = ''
+
+        const el = new PlaceAutocompleteElement({
+          types: ['address'],
+          componentRestrictions: { country: 'us' },
+        })
+        el.setAttribute('placeholder', placeholder)
+        containerRef.current.appendChild(el)
+
+        // When user selects a suggestion
+        el.addEventListener('gmp-placeselect', async ({ place }: any) => {
+          await place.fetchFields({ fields: ['formattedAddress'] })
+          const addr = place.formattedAddress ?? ''
+          if (hiddenRef.current) hiddenRef.current.value = addr
+          if (onPlaceSelected) onPlaceSelected(addr)
+        })
+
+        // Sync manual typing so validation works even without selecting
+        el.addEventListener('input', (e: any) => {
+          if (hiddenRef.current) hiddenRef.current.value = e.target?.value ?? ''
+        })
+      }
+
+      init()
     }, [scriptLoaded])
 
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
@@ -36,21 +55,13 @@ export const AddressAutocomplete = forwardRef<HTMLInputElement, AddressAutocompl
       <>
         {apiKey && (
           <Script
-            src={`https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`}
+            src={`https://maps.googleapis.com/maps/api/js?key=${apiKey}&loading=async`}
             strategy="afterInteractive"
             onLoad={() => setScriptLoaded(true)}
           />
         )}
-        <input
-          ref={inputRef}
-          type="text"
-          placeholder={placeholder}
-          className={
-            className ??
-            'flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500'
-          }
-          autoComplete="off"
-        />
+        <div ref={containerRef} className="gmp-autocomplete-wrapper w-full" />
+        <input ref={hiddenRef} type="hidden" />
       </>
     )
   }

@@ -18,7 +18,29 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Google Places autocomplete dropdown */
+/* New PlaceAutocompleteElement (gmp-place-autocomplete) */
+.gmp-autocomplete-wrapper gmp-place-autocomplete {
+  width: 100%;
+}
+.gmp-autocomplete-wrapper gmp-place-autocomplete::part(input) {
+  height: 40px;
+  width: 100%;
+  background-color: #1e2433;
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  box-sizing: border-box;
+  outline: none;
+  font-family: inherit;
+}
+.gmp-autocomplete-wrapper gmp-place-autocomplete::part(input):focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+/* Legacy Google Places autocomplete dropdown */
 .pac-container {
   z-index: 9999 !important;
   background-color: #1e2433;
