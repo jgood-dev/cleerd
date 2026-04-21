@@ -420,7 +420,7 @@ export default function SchedulePage() {
                       {!isDone && inspection && (
                         <Link href={`/inspections/${inspection.id}`}>
                           <Button size="sm" variant="outline" className="text-xs">
-                            <ClipboardCheck className="mr-1.5 h-3.5 w-3.5" /> View Inspection
+                            <ClipboardCheck className="mr-1.5 h-3.5 w-3.5" /> View Checklist
                           </Button>
                         </Link>
                       )}
@@ -428,7 +428,7 @@ export default function SchedulePage() {
                         <Button size="sm" variant="outline" className="text-xs" onClick={() => startInspection(job)} disabled={isStarting}>
                           {isStarting
                             ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Starting...</>
-                            : <><ClipboardCheck className="mr-1.5 h-3.5 w-3.5" /> Start Inspection</>}
+                            : <><ClipboardCheck className="mr-1.5 h-3.5 w-3.5" /> Start Job</>}
                         </Button>
                       )}
                       {!isDone && (
