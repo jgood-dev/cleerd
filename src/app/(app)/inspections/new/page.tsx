@@ -77,10 +77,10 @@ export default function NewInspectionPage() {
     if (customItems.length === 0) return
     setLoading(true)
 
-    let finalPropertyId = propertyId
-    if (!propertyId && newProperty) {
+    let finalPropertyId = (propertyId === '__new' || !propertyId) ? '' : propertyId
+    if (!finalPropertyId && newProperty.trim()) {
       const { data: prop } = await supabase.from('properties')
-        .insert({ org_id: orgId, name: newProperty })
+        .insert({ org_id: orgId, name: newProperty.trim() })
         .select().single()
       finalPropertyId = prop?.id ?? ''
     }
@@ -128,7 +128,7 @@ export default function NewInspectionPage() {
                   </select>
                   {propertyId === '__new' && (
                     <Input className="mt-2" placeholder="New property name" value={newProperty}
-                      onChange={e => { setNewProperty(e.target.value); setPropertyId('') }} />
+                      onChange={e => setNewProperty(e.target.value)} />
                   )}
                 </>
               ) : (
