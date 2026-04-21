@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Plus, Trash2, Users, ChevronDown, ChevronUp } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { PhoneInput } from '@/components/ui/phone-input'
 
 export default function TeamsPage() {
   const supabase = createClient()
@@ -20,6 +21,7 @@ export default function TeamsPage() {
   // Per-team add-member form state
   const [memberName, setMemberName] = useState<Record<string, string>>({})
   const [memberEmail, setMemberEmail] = useState<Record<string, string>>({})
+  const [memberPhone, setMemberPhone] = useState<Record<string, string>>({})
   const [memberRole, setMemberRole] = useState<Record<string, string>>({})
   const [memberAdding, setMemberAdding] = useState<Record<string, boolean>>({})
 
@@ -66,10 +68,12 @@ export default function TeamsPage() {
       team_id: teamId,
       name,
       email: memberEmail[teamId]?.trim() || null,
+      phone: memberPhone[teamId]?.trim() || null,
       role: memberRole[teamId] || 'cleaner',
     })
     setMemberName(prev => ({ ...prev, [teamId]: '' }))
     setMemberEmail(prev => ({ ...prev, [teamId]: '' }))
+    setMemberPhone(prev => ({ ...prev, [teamId]: '' }))
     setMemberRole(prev => ({ ...prev, [teamId]: 'cleaner' }))
     setMemberAdding(prev => ({ ...prev, [teamId]: false }))
     await load()
@@ -147,6 +151,7 @@ export default function TeamsPage() {
                         <li key={m.id} className="flex items-center gap-3 rounded-lg px-2 py-2 group hover:bg-white/5">
                           <div className="flex-1 min-w-0">
                             <span className="text-sm font-medium text-gray-200">{m.name}</span>
+                            {m.phone && <span className="ml-2 text-xs text-gray-500">{m.phone}</span>}
                             {m.email && <span className="ml-2 text-xs text-gray-500">{m.email}</span>}
                           </div>
                           <span className="text-xs text-gray-500 capitalize flex-shrink-0">{m.role}</span>
@@ -167,17 +172,9 @@ export default function TeamsPage() {
                     <div className="flex gap-2">
                       <Input
                         placeholder="Full name *"
-                        className="text-sm"
+                        className="text-sm flex-1"
                         value={memberName[team.id] ?? ''}
                         onChange={e => setMemberName(prev => ({ ...prev, [team.id]: e.target.value }))}
-                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addMember(team.id) } }}
-                      />
-                      <Input
-                        placeholder="Email (optional)"
-                        type="email"
-                        className="text-sm"
-                        value={memberEmail[team.id] ?? ''}
-                        onChange={e => setMemberEmail(prev => ({ ...prev, [team.id]: e.target.value }))}
                         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addMember(team.id) } }}
                       />
                       <select
@@ -188,6 +185,22 @@ export default function TeamsPage() {
                         <option value="cleaner">Cleaner</option>
                         <option value="supervisor">Supervisor</option>
                       </select>
+                    </div>
+                    <div className="flex gap-2">
+                      <PhoneInput
+                        className="flex-1 text-sm"
+                        placeholder="Phone (optional)"
+                        value={memberPhone[team.id] ?? ''}
+                        onChange={v => setMemberPhone(prev => ({ ...prev, [team.id]: v }))}
+                      />
+                      <Input
+                        placeholder="Email (optional)"
+                        type="email"
+                        className="text-sm flex-1"
+                        value={memberEmail[team.id] ?? ''}
+                        onChange={e => setMemberEmail(prev => ({ ...prev, [team.id]: e.target.value }))}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addMember(team.id) } }}
+                      />
                       <Button
                         size="sm"
                         onClick={() => addMember(team.id)}
