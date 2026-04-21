@@ -8,16 +8,16 @@ export async function POST(request: NextRequest) {
   const { inspectionId } = await request.json()
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (!user) return Response.json({ error: `Auth failed: ${authError?.message ?? 'no session'}` }, { status: 401 })
 
-  const [{ data: inspection }, { data: photos }, { data: checklist }] = await Promise.all([
+  const [{ data: inspection, error: inspErr }, { data: photos }, { data: checklist }] = await Promise.all([
     supabase.from('inspections').select('*, properties(name, address), teams(name)').eq('id', inspectionId).single(),
     supabase.from('inspection_photos').select('*').eq('inspection_id', inspectionId),
     supabase.from('checklist_items').select('*').eq('inspection_id', inspectionId),
   ])
 
-  if (!inspection) return Response.json({ error: 'Not found' }, { status: 404 })
+  if (!inspection) return Response.json({ error: `Inspection not found: ${inspErr?.message}` }, { status: 404 })
 
   const completedItems = checklist?.filter(c => c.completed) ?? []
   const totalItems = checklist?.length ?? 0
@@ -79,6 +79,8 @@ REPORT:
 [your report text]`,
   })
 
+  if (!process.env.ANTHROPIC_API_KEY) return Response.json({ error: 'ANTHROPIC_API_KEY not set in environment' }, { status: 500 })
+
   const message = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 1024,
@@ -93,4 +95,11 @@ REPORT:
   const report = reportMatch ? reportMatch[1].trim() : responseText
 
   return Response.json({ report, score })
+}
+
+export async function GET() {
+  return Response.json({
+    ok: true,
+    hasKey: !!process.env.ANTHROPIC_API_KEY,
+  })
 }
