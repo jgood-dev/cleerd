@@ -61,12 +61,18 @@ export default function MembersPage() {
     }
   }
 
-  function removeMember(id: string, email: string) {
+  function removeMember(id: string, email: string, accepted: boolean) {
     setDialog({
       title: 'Remove member?',
-      message: `${email} will lose access to your account.`,
+      message: accepted
+        ? `${email}'s account will be permanently deleted and they will lose all access.`
+        : `The invitation for ${email} will be cancelled.`,
       onConfirm: async () => {
-        await supabase.from('org_members').delete().eq('id', id)
+        await fetch('/api/remove-member', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ memberId: id }),
+        })
         setDialog(null)
         await load()
       },
@@ -130,7 +136,7 @@ export default function MembersPage() {
                     <Badge variant={m.invite_accepted_at ? 'success' : 'secondary'}>
                       {m.invite_accepted_at ? 'Active' : 'Pending'}
                     </Badge>
-                    <Button variant="ghost" size="icon" onClick={() => removeMember(m.id, m.email)} className="text-gray-500 hover:text-red-400 h-8 w-8">
+                    <Button variant="ghost" size="icon" onClick={() => removeMember(m.id, m.email, !!m.invite_accepted_at)} className="text-gray-500 hover:text-red-400 h-8 w-8">
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
