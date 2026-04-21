@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 
 interface AddressAutocompleteProps {
   value: string
@@ -12,63 +12,77 @@ interface AddressAutocompleteProps {
 declare global {
   interface Window {
     google: any
-    initGooglePlaces: () => void
+    _initGooglePlaces: () => void
   }
 }
 
 let scriptLoaded = false
 let scriptLoading = false
-const callbacks: (() => void)[] = []
+const pendingCallbacks: (() => void)[] = []
 
-function loadGoogleScript(apiKey: string, onLoad: () => void) {
-  if (scriptLoaded) { onLoad(); return }
-  callbacks.push(onLoad)
+function loadGoogleScript(apiKey: string, onReady: () => void) {
+  if (scriptLoaded) { onReady(); return }
+  pendingCallbacks.push(onReady)
   if (scriptLoading) return
   scriptLoading = true
-  window.initGooglePlaces = () => {
+  window._initGooglePlaces = () => {
     scriptLoaded = true
-    callbacks.forEach(cb => cb())
-    callbacks.length = 0
+    pendingCallbacks.forEach(cb => cb())
+    pendingCallbacks.length = 0
   }
   const script = document.createElement('script')
-  script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGooglePlaces`
+  script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=_initGooglePlaces`
   script.async = true
   script.defer = true
   document.head.appendChild(script)
 }
 
-export function AddressAutocomplete({ value, onChange, placeholder = '123 Oak St, Springfield, IL', className }: AddressAutocompleteProps) {
+export function AddressAutocomplete({
+  value,
+  onChange,
+  placeholder = '123 Oak St, Springfield, IL',
+  className,
+}: AddressAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const autocompleteRef = useRef<any>(null)
-  const [ready, setReady] = useState(false)
 
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-    if (!apiKey) { setReady(true); return }
-    loadGoogleScript(apiKey, () => setReady(true))
+    if (!apiKey || !inputRef.current) return
+
+    loadGoogleScript(apiKey, () => {
+      if (autocompleteRef.current || !inputRef.current) return
+      autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
+        types: ['address'],
+        componentRestrictions: { country: 'us' },
+      })
+      autocompleteRef.current.addListener('place_changed', () => {
+        const place = autocompleteRef.current.getPlace()
+        if (place?.formatted_address) {
+          onChange(place.formatted_address)
+        }
+      })
+    })
   }, [])
 
+  // Only sync value into DOM when the input isn't focused (avoids fighting autocomplete)
   useEffect(() => {
-    if (!ready || !inputRef.current || autocompleteRef.current) return
-    if (!window.google?.maps?.places) return
-    autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
-      types: ['address'],
-      componentRestrictions: { country: 'us' },
-    })
-    autocompleteRef.current.addListener('place_changed', () => {
-      const place = autocompleteRef.current.getPlace()
-      if (place?.formatted_address) onChange(place.formatted_address)
-    })
-  }, [ready])
+    if (inputRef.current && document.activeElement !== inputRef.current) {
+      inputRef.current.value = value
+    }
+  }, [value])
 
   return (
     <input
       ref={inputRef}
       type="text"
-      value={value}
+      defaultValue={value}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
-      className={className ?? 'flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500'}
+      className={
+        className ??
+        'flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500'
+      }
       autoComplete="off"
     />
   )
