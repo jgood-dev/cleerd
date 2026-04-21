@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, ClipboardCheck, Users, FileText, Settings, CheckSquare, Menu, X } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { LayoutDashboard, ClipboardCheck, Users, FileText, Settings, CheckSquare, Menu, X, LogOut } from 'lucide-react'
 
 const nav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -38,6 +39,26 @@ function NavLinks({ onClick }: { onClick?: () => void }) {
   )
 }
 
+function SignOutButton({ className }: { className?: string }) {
+  const router = useRouter()
+  const supabase = createClient()
+
+  async function signOut() {
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
+
+  return (
+    <button
+      onClick={signOut}
+      className={cn('flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-400 hover:bg-white/5 hover:text-gray-100 transition-colors w-full', className)}
+    >
+      <LogOut className="h-4 w-4" />
+      Sign out
+    </button>
+  )
+}
+
 export function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -50,6 +71,9 @@ export function Sidebar() {
           <span className="text-lg font-bold text-white">CleanCheck</span>
         </div>
         <NavLinks />
+        <div className="border-t border-white/10 p-4">
+          <SignOutButton />
+        </div>
       </aside>
 
       {/* Mobile top bar */}
@@ -78,6 +102,9 @@ export function Sidebar() {
               </button>
             </div>
             <NavLinks onClick={() => setMobileOpen(false)} />
+            <div className="border-t border-white/10 p-4">
+              <SignOutButton />
+            </div>
           </aside>
         </div>
       )}
