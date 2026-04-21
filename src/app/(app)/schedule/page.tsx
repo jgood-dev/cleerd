@@ -10,6 +10,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { AddressAutocomplete } from '@/components/ui/address-autocomplete'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { Plus, Calendar, Trash2, ClipboardCheck, CheckCircle, Loader2, Pencil } from 'lucide-react'
+import { TeamTimeline } from '@/components/ui/team-timeline'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -18,6 +19,7 @@ type Job = {
   property_id: string | null
   team_id: string | null
   package_id: string | null
+  duration_minutes: number | null
   scheduled_at: string
   status: string
   notes: string | null
@@ -67,6 +69,7 @@ export default function SchedulePage() {
   const [editNewItem, setEditNewItem] = useState('')
   const [editTemplateId, setEditTemplateId] = useState('')
   const [editSaving, setEditSaving] = useState(false)
+  const [editDuration, setEditDuration] = useState('')
 
   // New job form state
   const [propertyId, setPropertyId] = useState('')
@@ -78,6 +81,7 @@ export default function SchedulePage() {
   const [jobItems, setJobItems] = useState<string[]>([])
   const [newItem, setNewItem] = useState('')
   const [templateId, setTemplateId] = useState('')
+  const [durationMinutes, setDurationMinutes] = useState<string>('')
 
   // Inline new property state
   const [addingProperty, setAddingProperty] = useState(false)
@@ -111,15 +115,24 @@ export default function SchedulePage() {
 
   function handlePackageChange(id: string) {
     setPackageId(id)
-    // When switching to a named package, clear custom items; when switching to custom, keep items
     if (id) setJobItems([])
     setTemplateId('')
+    setDurationMinutes(calcDuration(id, propertyId))
   }
 
   function handleTemplateChange(id: string) {
     setTemplateId(id)
     const pkg = packages.find(p => p.id === id)
     setJobItems(pkg?.package_items?.map((i: any) => i.label) ?? [])
+  }
+
+  function calcDuration(pkgId: string, propId: string): string {
+    const pkg = packages.find(p => p.id === pkgId)
+    if (!pkg?.base_duration_minutes) return ''
+    const prop = properties.find(p => p.id === propId)
+    const size: string = prop?.size ?? 'medium'
+    const multiplier = (pkg.size_multipliers ?? {})[size] ?? 1.0
+    return String(Math.round(pkg.base_duration_minutes * multiplier))
   }
 
   function addItem() {
@@ -142,6 +155,7 @@ export default function SchedulePage() {
     setEditNotes(job.notes ?? '')
     setEditItems((job as any).custom_items ?? [])
     setEditTemplateId('')
+    setEditDuration(job.duration_minutes ? String(job.duration_minutes) : '')
   }
 
   function closeEdit() {
@@ -177,6 +191,7 @@ export default function SchedulePage() {
       team_id: editTeamId || null,
       package_id: editPackageId || null,
       custom_items: !editPackageId && editItems.length > 0 ? editItems : null,
+      duration_minutes: editDuration ? parseInt(editDuration) : null,
       scheduled_at: editScheduledAt,
       notes: editNotes || null,
     }).eq('id', editingJobId)
@@ -218,6 +233,7 @@ export default function SchedulePage() {
       team_id: teamId || null,
       package_id: packageId || null,
       custom_items: jobItems.length > 0 ? jobItems : null,
+      duration_minutes: durationMinutes ? parseInt(durationMinutes) : null,
       scheduled_at: scheduledAt,
       notes: notes || null,
       status: 'scheduled',
@@ -225,7 +241,7 @@ export default function SchedulePage() {
 
     setAdding(false); setAddingProperty(false)
     setPropertyId(''); setTeamId(''); setPackageId(''); setScheduledAt(''); setNotes('')
-    setJobItems([]); setNewItem(''); setTemplateId('')
+    setJobItems([]); setNewItem(''); setTemplateId(''); setDurationMinutes('')
     setNewOwnerName(''); setNewPhone(''); setNewEmail('')
     if (addressRef.current) addressRef.current.value = ''
     setSaving(false)
@@ -305,7 +321,7 @@ export default function SchedulePage() {
                   <div className="flex gap-2">
                     <select
                       className="flex h-10 flex-1 rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      value={propertyId} onChange={e => setPropertyId(e.target.value)}
+                      value={propertyId} onChange={e => { setPropertyId(e.target.value); setDurationMinutes(calcDuration(packageId, e.target.value)) }}
                     >
                       <option value="">Select property</option>
                       {properties.map(p => <option key={p.id} value={p.id}>{p.address ?? p.name}</option>)}
@@ -429,6 +445,23 @@ export default function SchedulePage() {
                 <Input type="datetime-local" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} required />
               </div>
 
+              {/* Duration */}
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-300">
+                  Duration (minutes)
+                  {durationMinutes && <span className="ml-2 text-xs text-gray-500 font-normal">auto-calculated — override if needed</span>}
+                </label>
+                <div className="flex items-center gap-2">
+                  <Input type="number" min="15" step="15" placeholder="e.g. 120" className="w-36"
+                    value={durationMinutes} onChange={e => setDurationMinutes(e.target.value)} />
+                  {durationMinutes && (
+                    <span className="text-sm text-gray-400">
+                      = {Math.floor(parseInt(durationMinutes) / 60)}h {parseInt(durationMinutes) % 60 > 0 ? `${parseInt(durationMinutes) % 60}m` : ''}
+                    </span>
+                  )}
+                </div>
+              </div>
+
               {/* Notes */}
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-300">Notes (optional)</label>
@@ -449,6 +482,18 @@ export default function SchedulePage() {
           </CardContent>
         </Card>
       )}
+
+      <TeamTimeline
+        jobs={jobs.map(j => ({
+          id: j.id,
+          scheduled_at: j.scheduled_at,
+          duration_minutes: j.duration_minutes,
+          team_id: j.team_id,
+          property_name: j.properties?.address ?? j.properties?.name ?? 'Unknown',
+          status: j.status,
+        }))}
+        teams={teams}
+      />
 
       {sections.map(({ label, jobs: sectionJobs, showEmpty }) => (
         <div key={label}>
@@ -582,6 +627,18 @@ export default function SchedulePage() {
                           <div>
                             <label className="mb-1.5 block text-sm font-medium text-gray-300">Date & Time <span className="text-red-400">*</span></label>
                             <Input type="datetime-local" value={editScheduledAt} onChange={e => setEditScheduledAt(e.target.value)} required />
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-gray-300">Duration (minutes)</label>
+                            <div className="flex items-center gap-2">
+                              <Input type="number" min="15" step="15" placeholder="e.g. 120" className="w-36"
+                                value={editDuration} onChange={e => setEditDuration(e.target.value)} />
+                              {editDuration && (
+                                <span className="text-sm text-gray-400">
+                                  = {Math.floor(parseInt(editDuration) / 60)}h {parseInt(editDuration) % 60 > 0 ? `${parseInt(editDuration) % 60}m` : ''}
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <div>
                             <label className="mb-1.5 block text-sm font-medium text-gray-300">Notes (optional)</label>

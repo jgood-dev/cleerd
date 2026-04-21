@@ -18,6 +18,7 @@ export default function PropertiesPage() {
   const [newEmail, setNewEmail] = useState('')
   const [newOwnerName, setNewOwnerName] = useState('')
   const [newPhone, setNewPhone] = useState('')
+  const [newSize, setNewSize] = useState('medium')
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState('')
   const [dialog, setDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
@@ -49,9 +50,10 @@ export default function PropertiesPage() {
       owner_name: newOwnerName.trim(),
       phone: newPhone.trim(),
       client_email: newEmail.trim(),
+      size: newSize,
     })
     if (addressRef.current) addressRef.current.value = ''
-    setNewEmail(''); setNewOwnerName(''); setNewPhone(''); setAdding(false)
+    setNewEmail(''); setNewOwnerName(''); setNewPhone(''); setNewSize('medium'); setAdding(false)
     await load()
   }
 
@@ -115,6 +117,18 @@ export default function PropertiesPage() {
                 <PhoneInput value={newPhone} onChange={setNewPhone} />
               </div>
               <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-300">Home size</label>
+                <select
+                  className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={newSize} onChange={e => setNewSize(e.target.value)}
+                >
+                  <option value="small">Small (studio / 1BR, under 800 sq ft)</option>
+                  <option value="medium">Medium (2–3BR, 800–2,000 sq ft)</option>
+                  <option value="large">Large (4BR, 2,000–3,500 sq ft)</option>
+                  <option value="xl">XL (5BR+, over 3,500 sq ft)</option>
+                </select>
+              </div>
+              <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-300">
                   Client email <span className="text-red-400">*</span>
                 </label>
@@ -160,7 +174,10 @@ export default function PropertiesPage() {
                   {p.owner_name && p.phone && <span className="mx-1.5 text-gray-600">·</span>}
                   {p.phone && <span>{p.phone}</span>}
                 </p>
-                <p className="text-sm text-gray-500 mt-0.5">{p.client_email ?? <span className="text-yellow-400">No email — reports cannot be sent</span>}</p>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {p.size && <span className="capitalize mr-2">{p.size}</span>}
+                  {p.client_email ?? <span className="text-yellow-400">No email — reports cannot be sent</span>}
+                </p>
               </div>
               <Button variant="ghost" size="icon" onClick={() => deleteProperty(p.id)} className="text-gray-500 hover:text-red-400 flex-shrink-0 ml-4">
                 <Trash2 className="h-4 w-4" />

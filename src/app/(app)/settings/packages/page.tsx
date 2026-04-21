@@ -18,6 +18,8 @@ export default function PackagesPage() {
   const [expandedPackage, setExpandedPackage] = useState<string | null>(null)
   const [newItemLabel, setNewItemLabel] = useState<Record<string, string>>({})
   const [dialog, setDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
+  const [durationDraft, setDurationDraft] = useState<Record<string, { base: string; small: string; large: string; xl: string }>>({})
+  const [durationSaving, setDurationSaving] = useState<string | null>(null)
 
   useEffect(() => { load() }, [])
 
@@ -101,6 +103,37 @@ export default function PackagesPage() {
     await load()
   }
 
+  function openDuration(pkg: any) {
+    const m = pkg.size_multipliers ?? {}
+    setDurationDraft(prev => ({
+      ...prev,
+      [pkg.id]: {
+        base: pkg.base_duration_minutes != null ? String(Math.round(pkg.base_duration_minutes / 60 * 10) / 10) : '2',
+        small: String(m.small ?? 0.75),
+        large: String(m.large ?? 1.5),
+        xl: String(m.xl ?? 2.0),
+      },
+    }))
+  }
+
+  async function saveDuration(pkgId: string) {
+    const d = durationDraft[pkgId]
+    if (!d) return
+    setDurationSaving(pkgId)
+    const base = Math.round(parseFloat(d.base) * 60)
+    await supabase.from('packages').update({
+      base_duration_minutes: isNaN(base) ? null : base,
+      size_multipliers: {
+        small: parseFloat(d.small) || 0.75,
+        medium: 1.0,
+        large: parseFloat(d.large) || 1.5,
+        xl: parseFloat(d.xl) || 2.0,
+      },
+    }).eq('id', pkgId)
+    setDurationSaving(null)
+    await load()
+  }
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center gap-3">
@@ -156,7 +189,11 @@ export default function PackagesPage() {
               <div className="flex items-center gap-2 px-4 py-3">
                 <button
                   className="flex items-center gap-2 flex-1 text-left min-w-0"
-                  onClick={() => setExpandedPackage(expandedPackage === pkg.id ? null : pkg.id)}
+                  onClick={() => {
+                    const next = expandedPackage === pkg.id ? null : pkg.id
+                    setExpandedPackage(next)
+                    if (next) openDuration(pkg)
+                  }}
                 >
                   <span className="font-medium text-gray-100 truncate">{pkg.name}</span>
                   <span className="text-xs text-gray-500 flex-shrink-0">{pkg.package_items?.length ?? 0} items</span>
@@ -206,6 +243,45 @@ export default function PackagesPage() {
                     />
                     <Button size="sm" onClick={() => addItem(pkg.id)}>
                       <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {/* Duration settings */}
+                  <div className="pt-2 border-t border-white/10 space-y-3">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Job Duration</p>
+                    <div>
+                      <label className="mb-1 block text-xs text-gray-400">Base duration — Medium home <span className="text-gray-600">(hours)</span></label>
+                      <Input
+                        type="number" min="0.5" max="24" step="0.5" className="text-sm w-32"
+                        placeholder="2"
+                        value={durationDraft[pkg.id]?.base ?? ''}
+                        onChange={e => setDurationDraft(prev => ({ ...prev, [pkg.id]: { ...prev[pkg.id], base: e.target.value } }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs text-gray-400">Size multipliers <span className="text-gray-600">(relative to medium = 1.0×)</span></label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {[
+                          { key: 'small', label: 'Small' },
+                          { key: 'medium', label: 'Medium' },
+                          { key: 'large', label: 'Large' },
+                          { key: 'xl', label: 'XL' },
+                        ].map(({ key, label }) => (
+                          <div key={key}>
+                            <label className="mb-1 block text-[11px] text-gray-500">{label}</label>
+                            <Input
+                              type="number" min="0.1" max="5" step="0.05" className="text-sm"
+                              placeholder={key === 'small' ? '0.75' : key === 'medium' ? '1.0' : key === 'large' ? '1.5' : '2.0'}
+                              disabled={key === 'medium'}
+                              value={key === 'medium' ? '1.0' : (durationDraft[pkg.id] as any)?.[key] ?? ''}
+                              onChange={e => setDurationDraft(prev => ({ ...prev, [pkg.id]: { ...prev[pkg.id], [key]: e.target.value } }))}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => saveDuration(pkg.id)} disabled={durationSaving === pkg.id}>
+                      {durationSaving === pkg.id ? 'Saving…' : 'Save Duration Settings'}
                     </Button>
                   </div>
                 </div>
