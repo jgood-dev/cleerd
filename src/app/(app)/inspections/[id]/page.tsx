@@ -22,6 +22,7 @@ export default function InspectionDetailPage() {
   const [checklist, setChecklist] = useState<any[]>([])
   const [generatingReport, setGeneratingReport] = useState(false)
   const [uploadingType, setUploadingType] = useState<string | null>(null)
+  const [reportSent, setReportSent] = useState(false)
 
   useEffect(() => { load() }, [id])
 
@@ -103,6 +104,7 @@ export default function InspectionDetailPage() {
     })
     if (res.ok) {
       await supabase.from('inspections').update({ status: 'report_sent' }).eq('id', id)
+      setReportSent(true)
       await load()
     } else {
       alert('Failed to send report. Check that your Resend API key is set in Vercel.')
@@ -260,10 +262,17 @@ export default function InspectionDetailPage() {
               {generatingReport ? 'Generating...' : inspection.ai_report ? 'Regenerate Report' : 'Generate AI Report'}
             </Button>
             {inspection.ai_report && (
-              <Button variant="outline" onClick={sendReport}>
-                <Send className="mr-2 h-4 w-4" />
-                Send to Client
-              </Button>
+              <div className="flex items-center gap-3">
+                <Button variant="outline" onClick={sendReport} disabled={reportSent}>
+                  <Send className="mr-2 h-4 w-4" />
+                  {reportSent ? 'Sent' : inspection.status === 'report_sent' ? 'Resend to Client' : 'Send to Client'}
+                </Button>
+                {reportSent && (
+                  <span className="flex items-center gap-1.5 text-sm text-green-400">
+                    <CheckCircle className="h-4 w-4" /> Report sent successfully
+                  </span>
+                )}
+              </div>
             )}
           </div>
         </CardContent>
