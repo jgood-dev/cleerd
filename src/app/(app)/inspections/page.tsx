@@ -6,13 +6,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { Plus, Trash2, Mail, MailCheck } from 'lucide-react'
+import { Plus, Trash2, RefreshCw } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
-export default function InspectionsPage() {
+const RECURRENCE_OPTIONS = [
+  { value: '', label: 'One-time' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'biweekly', label: 'Every 2 weeks' },
+  { value: 'monthly', label: 'Monthly' },
+]
+
+export default function JobsPage() {
   const supabase = createClient()
-  const [inspections, setInspections] = useState<any[]>([])
+  const [jobs, setJobs] = useState<any[]>([])
   const [orgId, setOrgId] = useState('')
+  const [filter, setFilter] = useState<'all' | 'scheduled' | 'in_progress' | 'done'>('all')
   const [dialog, setDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
 
   useEffect(() => { load() }, [])
@@ -23,23 +31,37 @@ export default function InspectionsPage() {
     if (!org) return
     setOrgId(org.id)
     const { data } = await supabase
-      .from('inspections')
-      .select('*, properties(name), teams(name)')
+      .from('jobs')
+      .select('*, properties(name, address), teams(name), inspections(id, overall_score, status, ai_report)')
       .eq('org_id', org.id)
-      .order('created_at', { ascending: false })
-    setInspections(data ?? [])
+      .order('scheduled_at', { ascending: false })
+    setJobs(data ?? [])
   }
 
-  function deleteInspection(id: string) {
+  async function setRecurrence(jobId: string, recurrence: string) {
+    setJobs(prev => prev.map(j => j.id === jobId ? { ...j, recurrence: recurrence || null } : j))
+    await supabase.from('jobs').update({ recurrence: recurrence || null }).eq('id', jobId)
+  }
+
+  function deleteJob(id: string) {
     setDialog({
       title: 'Delete job?',
-      message: 'This job and all its photos and checklist items will be permanently deleted.',
+      message: 'This job and any linked checklist will be permanently deleted.',
       onConfirm: async () => {
-        await supabase.from('inspections').delete().eq('id', id)
-        setInspections(prev => prev.filter(i => i.id !== id))
+        await supabase.from('jobs').delete().eq('id', id)
+        setJobs(prev => prev.filter(j => j.id !== id))
         setDialog(null)
       },
     })
+  }
+
+  const filtered = filter === 'all' ? jobs : jobs.filter(j => j.status === filter)
+
+  const counts = {
+    all: jobs.length,
+    scheduled: jobs.filter(j => j.status === 'scheduled').length,
+    in_progress: jobs.filter(j => j.status === 'in_progress').length,
+    done: jobs.filter(j => j.status === 'done').length,
   }
 
   return (
@@ -51,14 +73,32 @@ export default function InspectionsPage() {
         </Link>
       </div>
 
+      {/* Filter tabs */}
+      <div className="flex gap-1 rounded-lg bg-white/5 p-1 w-fit">
+        {(['all', 'scheduled', 'in_progress', 'done'] as const).map(f => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              filter === f ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            {f === 'all' ? 'All' : f === 'in_progress' ? 'In Progress' : f.charAt(0).toUpperCase() + f.slice(1)}
+            <span className="ml-1.5 text-xs text-gray-500">{counts[f]}</span>
+          </button>
+        ))}
+      </div>
+
       <Card>
-        <CardHeader><CardTitle>All Jobs</CardTitle></CardHeader>
+        <CardHeader><CardTitle>
+          {filter === 'all' ? 'All Jobs' : filter === 'in_progress' ? 'In Progress' : filter.charAt(0).toUpperCase() + filter.slice(1)}
+        </CardTitle></CardHeader>
         <CardContent>
-          {!inspections.length ? (
+          {!filtered.length ? (
             <div className="py-12 text-center">
-              <p className="text-gray-500">No jobs yet. Schedule one to begin tracking quality.</p>
+              <p className="text-gray-500">No {filter === 'all' ? '' : filter.replace('_', ' ')} jobs found.</p>
               <Link href="/schedule">
-                <Button className="mt-4">Schedule first job</Button>
+                <Button className="mt-4">Schedule a job</Button>
               </Link>
             </div>
           ) : (
@@ -67,58 +107,74 @@ export default function InspectionsPage() {
                 <thead>
                   <tr className="border-b border-white/10 text-left text-gray-500">
                     <th className="pb-3 font-medium">Property</th>
-                    <th className="pb-3 font-medium hidden sm:table-cell">Team</th>
+                    <th className="pb-3 font-medium hidden md:table-cell">Team</th>
                     <th className="pb-3 font-medium hidden sm:table-cell">Date</th>
-                    <th className="pb-3 font-medium">Score</th>
                     <th className="pb-3 font-medium">Status</th>
-                    <th className="pb-3 font-medium hidden sm:table-cell">Report</th>
+                    <th className="pb-3 font-medium">Recurrence</th>
+                    <th className="pb-3 font-medium hidden sm:table-cell">Score</th>
                     <th className="pb-3 font-medium"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {inspections.map(i => (
-                    <tr key={i.id} className="hover:bg-white/5 group">
-                      <td className="py-3 font-medium text-gray-100">
-                        {(i.properties as any)?.name ?? '—'}
-                      </td>
-                      <td className="py-3 text-gray-400 hidden sm:table-cell">{(i.teams as any)?.name ?? '—'}</td>
-                      <td className="py-3 text-gray-400 hidden sm:table-cell">{new Date(i.created_at).toLocaleDateString()}</td>
-                      <td className="py-3">
-                        {i.overall_score ? (
-                          <span className={`font-semibold ${i.overall_score >= 80 ? 'text-green-400' : i.overall_score >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>
-                            {i.overall_score}%
-                          </span>
-                        ) : '—'}
-                      </td>
-                      <td className="py-3">
-                        <Badge variant={i.status === 'completed' || i.status === 'report_sent' ? 'success' : 'warning'}>
-                          {i.status === 'report_sent' ? 'completed' : i.status.replace('_', ' ')}
-                        </Badge>
-                      </td>
-                      <td className="py-3 hidden sm:table-cell">
-                        {i.status === 'report_sent'
-                          ? <span className="flex items-center gap-1.5 text-xs text-green-400"><MailCheck className="h-3.5 w-3.5" />Sent</span>
-                          : i.status === 'completed'
-                          ? <span className="flex items-center gap-1.5 text-xs text-gray-500"><Mail className="h-3.5 w-3.5" />Not sent</span>
-                          : <span className="text-xs text-gray-600">—</span>}
-                      </td>
-                      <td className="py-3">
-                        <div className="flex items-center justify-end gap-1">
-                          <Link href={`/inspections/${i.id}`}>
-                            <Button variant="ghost" size="sm">View</Button>
-                          </Link>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deleteInspection(i.id)}
-                            className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {filtered.map(job => {
+                    const property = job.properties as any
+                    const inspection = (job.inspections as any[])?.[0]
+                    const displayName = property?.address ?? property?.name ?? '—'
+                    const statusVariant =
+                      job.status === 'done' ? 'success'
+                      : job.status === 'in_progress' ? 'warning'
+                      : 'default'
+                    const statusLabel =
+                      job.status === 'in_progress' ? 'In Progress'
+                      : job.status.charAt(0).toUpperCase() + job.status.slice(1)
+
+                    return (
+                      <tr key={job.id} className="hover:bg-white/5 group">
+                        <td className="py-3 font-medium text-gray-100 max-w-[180px] truncate">{displayName}</td>
+                        <td className="py-3 text-gray-400 hidden md:table-cell">{(job.teams as any)?.name ?? '—'}</td>
+                        <td className="py-3 text-gray-400 hidden sm:table-cell whitespace-nowrap">
+                          {new Date(job.scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </td>
+                        <td className="py-3">
+                          <Badge variant={statusVariant}>{statusLabel}</Badge>
+                        </td>
+                        <td className="py-3">
+                          <div className="flex items-center gap-1.5">
+                            {job.recurrence && <RefreshCw className="h-3 w-3 text-blue-400 flex-shrink-0" />}
+                            <select
+                              className="h-7 rounded border border-white/20 bg-[#1e2433] text-gray-200 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              value={job.recurrence ?? ''}
+                              onChange={e => setRecurrence(job.id, e.target.value)}
+                            >
+                              {RECURRENCE_OPTIONS.map(o => (
+                                <option key={o.value} value={o.value}>{o.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </td>
+                        <td className="py-3 hidden sm:table-cell">
+                          {inspection?.overall_score ? (
+                            <span className={`font-semibold text-xs ${inspection.overall_score >= 80 ? 'text-green-400' : inspection.overall_score >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>
+                              {inspection.overall_score}%
+                            </span>
+                          ) : '—'}
+                        </td>
+                        <td className="py-3">
+                          <div className="flex items-center justify-end gap-1">
+                            {inspection
+                              ? <Link href={`/inspections/${inspection.id}`}><Button variant="ghost" size="sm">View</Button></Link>
+                              : <Link href="/schedule"><Button variant="ghost" size="sm" className="text-gray-500">Schedule</Button></Link>
+                            }
+                            <Button variant="ghost" size="icon"
+                              onClick={() => deleteJob(job.id)}
+                              className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
