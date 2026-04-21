@@ -22,6 +22,7 @@ function JoinForm() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [invalid, setInvalid] = useState(false)
+  const [checkEmail, setCheckEmail] = useState(false)
 
   useEffect(() => {
     if (!token) { setInvalid(true); return }
@@ -46,6 +47,7 @@ function JoinForm() {
 
     const { data, error: signupError } = await supabase.auth.signUp({ email, password })
     if (signupError) {
+      // Account already exists — sign in instead
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
       if (signInError) {
         setError(signupError.message)
@@ -53,21 +55,30 @@ function JoinForm() {
         return
       }
       if (signInData.user) {
-        await acceptInvite(signInData.user.id)
+        await linkInvite(signInData.user.id)
+        router.push('/dashboard')
         return
       }
     }
     if (data.user) {
-      await acceptInvite(data.user.id)
+      // Link invite now so auth/confirm doesn't create a new org
+      await linkInvite(data.user.id)
+      // If email confirmation is required, session will be null
+      if (!data.session) {
+        setLoading(false)
+        setCheckEmail(true)
+        return
+      }
+      router.push('/dashboard')
     }
+    setLoading(false)
   }
 
-  async function acceptInvite(userId: string) {
+  async function linkInvite(userId: string) {
     await supabase.from('org_members').update({
       user_id: userId,
       invite_accepted_at: new Date().toISOString(),
     }).eq('invite_token', token)
-    router.push('/dashboard')
   }
 
   if (invalid) {
@@ -76,6 +87,16 @@ function JoinForm() {
         <h1 className="text-xl font-bold text-white mb-2">Invalid invitation</h1>
         <p className="text-gray-400 mb-4">This invite link is invalid or has already been used.</p>
         <Link href="/login"><Button variant="outline">Sign in</Button></Link>
+      </div>
+    )
+  }
+
+  if (checkEmail) {
+    return (
+      <div className="text-center max-w-sm">
+        <CheckSquare className="h-10 w-10 text-blue-400 mx-auto mb-4" />
+        <h1 className="text-xl font-bold text-white mb-2">Check your email</h1>
+        <p className="text-gray-400">We sent a confirmation link to <strong className="text-gray-200">{email}</strong>. Click it to finish joining {orgName}.</p>
       </div>
     )
   }
