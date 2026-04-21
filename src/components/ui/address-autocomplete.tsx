@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
 
 interface AddressAutocompleteProps {
-  value: string
-  onChange: (value: string) => void
+  defaultValue?: string
+  onPlaceSelected?: (address: string) => void
   placeholder?: string
   className?: string
 }
@@ -22,51 +22,41 @@ function loadPlaces() {
   return placesPromise
 }
 
-export function AddressAutocomplete({
-  value,
-  onChange,
-  placeholder = '123 Oak St, Springfield, IL',
-  className,
-}: AddressAutocompleteProps) {
-  const inputRef = useRef<HTMLInputElement>(null)
-  const autocompleteRef = useRef<any>(null)
+export const AddressAutocomplete = forwardRef<HTMLInputElement, AddressAutocompleteProps>(
+  function AddressAutocomplete({ defaultValue = '', onPlaceSelected, placeholder = '123 Oak St, Springfield, IL', className }, ref) {
+    const inputRef = useRef<HTMLInputElement>(null)
+    useImperativeHandle(ref, () => inputRef.current!)
 
-  useEffect(() => {
-    const promise = loadPlaces()
-    if (!promise) return
-    promise.then(() => {
-      if (autocompleteRef.current || !inputRef.current) return
-      const ac = new (window as any).google.maps.places.Autocomplete(inputRef.current, {
-        types: ['address'],
-        componentRestrictions: { country: 'us' },
+    useEffect(() => {
+      const promise = loadPlaces()
+      if (!promise || !inputRef.current) return
+      promise.then(() => {
+        if (!inputRef.current) return
+        const ac = new (window as any).google.maps.places.Autocomplete(inputRef.current, {
+          types: ['address'],
+          componentRestrictions: { country: 'us' },
+        })
+        ac.addListener('place_changed', () => {
+          const place = ac.getPlace()
+          if (place?.formatted_address && onPlaceSelected) {
+            onPlaceSelected(place.formatted_address)
+          }
+        })
       })
-      autocompleteRef.current = ac
-      ac.addListener('place_changed', () => {
-        const place = ac.getPlace()
-        if (place?.formatted_address) onChange(place.formatted_address)
-      })
-    })
-  }, [])
+    }, [])
 
-  // Only sync DOM when parent clears the field (e.g. after form submit)
-  useEffect(() => {
-    if (inputRef.current && value === '') {
-      inputRef.current.value = ''
-    }
-  }, [value])
-
-  return (
-    <input
-      ref={inputRef}
-      type="text"
-      defaultValue={value}
-      onChange={e => onChange(e.target.value)}
-      placeholder={placeholder}
-      className={
-        className ??
-        'flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500'
-      }
-      autoComplete="off"
-    />
-  )
-}
+    return (
+      <input
+        ref={inputRef}
+        type="text"
+        defaultValue={defaultValue}
+        placeholder={placeholder}
+        className={
+          className ??
+          'flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500'
+        }
+        autoComplete="off"
+      />
+    )
+  }
+)

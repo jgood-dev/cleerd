@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -21,11 +21,11 @@ export default function NewInspectionPage() {
   const [teamId, setTeamId] = useState('')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
-  const [newAddress, setNewAddress] = useState('')
   const [newEmail, setNewEmail] = useState('')
   const [newOwnerName, setNewOwnerName] = useState('')
   const [newPhone, setNewPhone] = useState('')
   const [propError, setPropError] = useState('')
+  const addressRef = useRef<HTMLInputElement>(null)
   const [selectedPackageId, setSelectedPackageId] = useState('custom')
   const [customItems, setCustomItems] = useState<string[]>([])
   const [newCustomItem, setNewCustomItem] = useState('')
@@ -84,12 +84,13 @@ export default function NewInspectionPage() {
 
     let finalPropertyId = (propertyId === '__new' || !propertyId) ? '' : propertyId
     if (!finalPropertyId) {
-      if (!newAddress.trim()) { setPropError('Address is required.'); setLoading(false); return }
+      const address = addressRef.current?.value?.trim() ?? ''
+      if (!address) { setPropError('Address is required.'); setLoading(false); return }
       if (!newOwnerName.trim()) { setPropError('Owner name is required.'); setLoading(false); return }
       if (!newPhone.trim()) { setPropError('Phone number is required.'); setLoading(false); return }
       if (!newEmail.trim()) { setPropError('Client email is required.'); setLoading(false); return }
       const { data: prop } = await supabase.from('properties')
-        .insert({ org_id: orgId, name: newAddress.trim(), address: newAddress.trim(), owner_name: newOwnerName.trim(), phone: newPhone.trim(), client_email: newEmail.trim() })
+        .insert({ org_id: orgId, name: address, address, owner_name: newOwnerName.trim(), phone: newPhone.trim(), client_email: newEmail.trim() })
         .select().single()
       finalPropertyId = prop?.id ?? ''
     }
@@ -139,7 +140,7 @@ export default function NewInspectionPage() {
                 <div className="space-y-2 rounded-lg border border-white/10 bg-white/5 p-3">
                   <div>
                     <label className="mb-1 block text-xs font-medium text-gray-400">Address <span className="text-red-400">*</span></label>
-                    <AddressAutocomplete value={newAddress} onChange={v => { setNewAddress(v); setPropError('') }} />
+                    <AddressAutocomplete ref={addressRef} />
                   </div>
                   <div>
                     <label className="mb-1 block text-xs font-medium text-gray-400">Owner name <span className="text-red-400">*</span></label>

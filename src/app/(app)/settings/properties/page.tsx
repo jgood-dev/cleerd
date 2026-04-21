@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -14,13 +14,13 @@ export default function PropertiesPage() {
   const supabase = createClient()
   const [orgId, setOrgId] = useState('')
   const [properties, setProperties] = useState<any[]>([])
-  const [newAddress, setNewAddress] = useState('')
   const [newEmail, setNewEmail] = useState('')
   const [newOwnerName, setNewOwnerName] = useState('')
   const [newPhone, setNewPhone] = useState('')
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState('')
   const [dialog, setDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
+  const addressRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { load() }, [])
 
@@ -36,19 +36,21 @@ export default function PropertiesPage() {
   async function addProperty(e: React.FormEvent) {
     e.preventDefault()
     setError('')
-    if (!newAddress.trim()) { setError('Address is required.'); return }
+    const address = addressRef.current?.value?.trim() ?? ''
+    if (!address) { setError('Address is required.'); return }
     if (!newOwnerName.trim()) { setError('Owner name is required.'); return }
     if (!newPhone.trim()) { setError('Phone number is required.'); return }
     if (!newEmail.trim()) { setError('Client email is required.'); return }
     await supabase.from('properties').insert({
       org_id: orgId,
-      name: newAddress.trim(),
-      address: newAddress.trim(),
+      name: address,
+      address,
       owner_name: newOwnerName.trim(),
       phone: newPhone.trim(),
       client_email: newEmail.trim(),
     })
-    setNewAddress(''); setNewEmail(''); setNewOwnerName(''); setNewPhone(''); setAdding(false)
+    if (addressRef.current) addressRef.current.value = ''
+    setNewEmail(''); setNewOwnerName(''); setNewPhone(''); setAdding(false)
     await load()
   }
 
@@ -93,10 +95,7 @@ export default function PropertiesPage() {
                 <label className="mb-1.5 block text-sm font-medium text-gray-300">
                   Address <span className="text-red-400">*</span>
                 </label>
-                <AddressAutocomplete
-                  value={newAddress}
-                  onChange={v => { setNewAddress(v); setError('') }}
-                />
+                <AddressAutocomplete ref={addressRef} />
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-300">
@@ -133,7 +132,11 @@ export default function PropertiesPage() {
               {error && <p className="text-sm text-red-400">{error}</p>}
               <div className="flex gap-2 pt-1">
                 <Button type="submit">Save Property</Button>
-                <Button type="button" variant="outline" onClick={() => { setAdding(false); setNewAddress(''); setNewEmail(''); setNewOwnerName(''); setNewPhone(''); setError('') }}>
+                <Button type="button" variant="outline" onClick={() => {
+                  setAdding(false)
+                  if (addressRef.current) addressRef.current.value = ''
+                  setNewEmail(''); setNewOwnerName(''); setNewPhone(''); setError('')
+                }}>
                   Cancel
                 </Button>
               </div>
