@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Plus, Trash2, ArrowLeft, MapPin } from 'lucide-react'
 import Link from 'next/link'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { AddressAutocomplete } from '@/components/ui/address-autocomplete'
 
 export default function PropertiesPage() {
   const supabase = createClient()
@@ -92,11 +93,9 @@ export default function PropertiesPage() {
                 <label className="mb-1.5 block text-sm font-medium text-gray-300">
                   Address <span className="text-red-400">*</span>
                 </label>
-                <Input
-                  placeholder="123 Oak St, Springfield, IL"
+                <AddressAutocomplete
                   value={newAddress}
-                  onChange={e => setNewAddress(e.target.value)}
-                  autoFocus
+                  onChange={v => { setNewAddress(v); setError('') }}
                 />
               </div>
               <div>

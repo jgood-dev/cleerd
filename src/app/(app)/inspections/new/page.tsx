@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Plus, Trash2 } from 'lucide-react'
+import { AddressAutocomplete } from '@/components/ui/address-autocomplete'
 
 export default function NewInspectionPage() {
   const router = useRouter()
@@ -138,7 +139,7 @@ export default function NewInspectionPage() {
                 <div className="space-y-2 rounded-lg border border-white/10 bg-white/5 p-3">
                   <div>
                     <label className="mb-1 block text-xs font-medium text-gray-400">Address <span className="text-red-400">*</span></label>
-                    <Input placeholder="123 Oak St, Springfield, IL" value={newAddress} onChange={e => { setNewAddress(e.target.value); setPropError('') }} />
+                    <AddressAutocomplete value={newAddress} onChange={v => { setNewAddress(v); setPropError('') }} />
                   </div>
                   <div>
                     <label className="mb-1 block text-xs font-medium text-gray-400">Owner name <span className="text-red-400">*</span></label>
