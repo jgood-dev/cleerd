@@ -22,6 +22,8 @@ export default function NewInspectionPage() {
   const [loading, setLoading] = useState(false)
   const [newAddress, setNewAddress] = useState('')
   const [newEmail, setNewEmail] = useState('')
+  const [newOwnerName, setNewOwnerName] = useState('')
+  const [newPhone, setNewPhone] = useState('')
   const [propError, setPropError] = useState('')
   const [selectedPackageId, setSelectedPackageId] = useState('custom')
   const [customItems, setCustomItems] = useState<string[]>([])
@@ -82,9 +84,11 @@ export default function NewInspectionPage() {
     let finalPropertyId = (propertyId === '__new' || !propertyId) ? '' : propertyId
     if (!finalPropertyId) {
       if (!newAddress.trim()) { setPropError('Address is required.'); setLoading(false); return }
+      if (!newOwnerName.trim()) { setPropError('Owner name is required.'); setLoading(false); return }
+      if (!newPhone.trim()) { setPropError('Phone number is required.'); setLoading(false); return }
       if (!newEmail.trim()) { setPropError('Client email is required.'); setLoading(false); return }
       const { data: prop } = await supabase.from('properties')
-        .insert({ org_id: orgId, name: newAddress.trim(), address: newAddress.trim(), client_email: newEmail.trim() })
+        .insert({ org_id: orgId, name: newAddress.trim(), address: newAddress.trim(), owner_name: newOwnerName.trim(), phone: newPhone.trim(), client_email: newEmail.trim() })
         .select().single()
       finalPropertyId = prop?.id ?? ''
     }
@@ -135,6 +139,14 @@ export default function NewInspectionPage() {
                   <div>
                     <label className="mb-1 block text-xs font-medium text-gray-400">Address <span className="text-red-400">*</span></label>
                     <Input placeholder="123 Oak St, Springfield, IL" value={newAddress} onChange={e => { setNewAddress(e.target.value); setPropError('') }} />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-400">Owner name <span className="text-red-400">*</span></label>
+                    <Input placeholder="Jane Smith" value={newOwnerName} onChange={e => { setNewOwnerName(e.target.value); setPropError('') }} />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-400">Phone number <span className="text-red-400">*</span></label>
+                    <Input type="tel" placeholder="(555) 123-4567" value={newPhone} onChange={e => { setNewPhone(e.target.value); setPropError('') }} />
                   </div>
                   <div>
                     <label className="mb-1 block text-xs font-medium text-gray-400">Client email <span className="text-red-400">*</span></label>

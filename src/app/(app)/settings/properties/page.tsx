@@ -15,6 +15,8 @@ export default function PropertiesPage() {
   const [properties, setProperties] = useState<any[]>([])
   const [newAddress, setNewAddress] = useState('')
   const [newEmail, setNewEmail] = useState('')
+  const [newOwnerName, setNewOwnerName] = useState('')
+  const [newPhone, setNewPhone] = useState('')
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState('')
   const [dialog, setDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
@@ -34,14 +36,18 @@ export default function PropertiesPage() {
     e.preventDefault()
     setError('')
     if (!newAddress.trim()) { setError('Address is required.'); return }
+    if (!newOwnerName.trim()) { setError('Owner name is required.'); return }
+    if (!newPhone.trim()) { setError('Phone number is required.'); return }
     if (!newEmail.trim()) { setError('Client email is required.'); return }
     await supabase.from('properties').insert({
       org_id: orgId,
       name: newAddress.trim(),
       address: newAddress.trim(),
+      owner_name: newOwnerName.trim(),
+      phone: newPhone.trim(),
       client_email: newEmail.trim(),
     })
-    setNewAddress(''); setNewEmail(''); setAdding(false)
+    setNewAddress(''); setNewEmail(''); setNewOwnerName(''); setNewPhone(''); setAdding(false)
     await load()
   }
 
@@ -95,6 +101,27 @@ export default function PropertiesPage() {
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-300">
+                  Owner name <span className="text-red-400">*</span>
+                </label>
+                <Input
+                  placeholder="Jane Smith"
+                  value={newOwnerName}
+                  onChange={e => setNewOwnerName(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-300">
+                  Phone number <span className="text-red-400">*</span>
+                </label>
+                <Input
+                  type="tel"
+                  placeholder="(555) 123-4567"
+                  value={newPhone}
+                  onChange={e => setNewPhone(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-300">
                   Client email <span className="text-red-400">*</span>
                 </label>
                 <Input
@@ -107,7 +134,7 @@ export default function PropertiesPage() {
               {error && <p className="text-sm text-red-400">{error}</p>}
               <div className="flex gap-2 pt-1">
                 <Button type="submit">Save Property</Button>
-                <Button type="button" variant="outline" onClick={() => { setAdding(false); setNewAddress(''); setNewEmail(''); setError('') }}>
+                <Button type="button" variant="outline" onClick={() => { setAdding(false); setNewAddress(''); setNewEmail(''); setNewOwnerName(''); setNewPhone(''); setError('') }}>
                   Cancel
                 </Button>
               </div>
@@ -130,7 +157,12 @@ export default function PropertiesPage() {
             <div key={p.id} className="flex items-center justify-between rounded-xl border border-white/10 bg-[#161b27] px-5 py-4">
               <div className="min-w-0">
                 <p className="font-medium text-gray-100">{p.address ?? p.name}</p>
-                <p className="text-sm text-gray-400 mt-0.5">{p.client_email ?? <span className="text-yellow-400">No email — reports cannot be sent</span>}</p>
+                <p className="text-sm text-gray-400 mt-0.5">
+                  {p.owner_name && <span>{p.owner_name}</span>}
+                  {p.owner_name && p.phone && <span className="mx-1.5 text-gray-600">·</span>}
+                  {p.phone && <span>{p.phone}</span>}
+                </p>
+                <p className="text-sm text-gray-500 mt-0.5">{p.client_email ?? <span className="text-yellow-400">No email — reports cannot be sent</span>}</p>
               </div>
               <Button variant="ghost" size="icon" onClick={() => deleteProperty(p.id)} className="text-gray-500 hover:text-red-400 flex-shrink-0 ml-4">
                 <Trash2 className="h-4 w-4" />
