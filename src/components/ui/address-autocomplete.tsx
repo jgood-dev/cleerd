@@ -65,10 +65,10 @@ export function AddressAutocomplete({
     })
   }, [])
 
-  // Only sync value into DOM when the input isn't focused (avoids fighting autocomplete)
+  // Only sync when parent clears the value (e.g. after form submit)
   useEffect(() => {
-    if (inputRef.current && document.activeElement !== inputRef.current) {
-      inputRef.current.value = value
+    if (inputRef.current && value === '') {
+      inputRef.current.value = ''
     }
   }, [value])
 
