@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { AddressAutocomplete } from '@/components/ui/address-autocomplete'
 import { PhoneInput } from '@/components/ui/phone-input'
-import { Plus, Calendar, Trash2, ClipboardCheck, CheckCircle, Loader2 } from 'lucide-react'
+import { Plus, Calendar, Trash2, ClipboardCheck, CheckCircle, Loader2, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -57,6 +57,16 @@ export default function SchedulePage() {
   const [adding, setAdding] = useState(searchParams.get('new') === '1')
   const [startingJobId, setStartingJobId] = useState<string | null>(null)
   const [dialog, setDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
+  const [editingJobId, setEditingJobId] = useState<string | null>(null)
+  const [editPropertyId, setEditPropertyId] = useState('')
+  const [editTeamId, setEditTeamId] = useState('')
+  const [editPackageId, setEditPackageId] = useState('')
+  const [editScheduledAt, setEditScheduledAt] = useState('')
+  const [editNotes, setEditNotes] = useState('')
+  const [editItems, setEditItems] = useState<string[]>([])
+  const [editNewItem, setEditNewItem] = useState('')
+  const [editTemplateId, setEditTemplateId] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
 
   // New job form state
   const [propertyId, setPropertyId] = useState('')
@@ -121,6 +131,58 @@ export default function SchedulePage() {
 
   function removeItem(idx: number) {
     setJobItems(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  function openEdit(job: Job) {
+    setEditingJobId(job.id)
+    setEditPropertyId(job.property_id ?? '')
+    setEditTeamId(job.team_id ?? '')
+    setEditPackageId(job.package_id ?? '')
+    setEditScheduledAt(job.scheduled_at ? job.scheduled_at.slice(0, 16) : '')
+    setEditNotes(job.notes ?? '')
+    setEditItems((job as any).custom_items ?? [])
+    setEditTemplateId('')
+  }
+
+  function closeEdit() {
+    setEditingJobId(null)
+    setEditNewItem('')
+  }
+
+  function handleEditPackageChange(id: string) {
+    setEditPackageId(id)
+    if (id) setEditItems([])
+    setEditTemplateId('')
+  }
+
+  function handleEditTemplateChange(id: string) {
+    setEditTemplateId(id)
+    const pkg = packages.find(p => p.id === id)
+    setEditItems(pkg?.package_items?.map((i: any) => i.label) ?? [])
+  }
+
+  function addEditItem() {
+    const label = editNewItem.trim()
+    if (!label) return
+    setEditItems(prev => [...prev, label])
+    setEditNewItem('')
+  }
+
+  async function saveEdit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!editingJobId || !editScheduledAt) return
+    setEditSaving(true)
+    await supabase.from('jobs').update({
+      property_id: editPropertyId || null,
+      team_id: editTeamId || null,
+      package_id: editPackageId || null,
+      custom_items: !editPackageId && editItems.length > 0 ? editItems : null,
+      scheduled_at: editScheduledAt,
+      notes: editNotes || null,
+    }).eq('id', editingJobId)
+    setEditSaving(false)
+    closeEdit()
+    await load()
   }
 
   async function saveNewProperty(): Promise<string | null> {
@@ -403,44 +465,138 @@ export default function SchedulePage() {
                 const inspection = job.inspections?.[0]
                 const isDone = job.status === 'done'
                 const isStarting = startingJobId === job.id
+                const isEditing = editingJobId === job.id
                 return (
-                  <div key={job.id} className={`flex items-center justify-between rounded-xl border px-5 py-4 group transition-opacity ${isDone ? 'border-white/5 bg-[#161b27] opacity-50' : 'border-white/10 bg-[#161b27]'}`}>
-                    <div className="min-w-0">
-                      <p className="font-medium text-gray-100 truncate">{displayName}</p>
-                      <p className="text-sm text-gray-400 mt-0.5">
-                        {formatDateTime(job.scheduled_at)}
-                        {job.teams && <><span className="mx-1.5 text-gray-600">·</span><span>{(job.teams as any).name}</span></>}
-                      </p>
-                      {job.notes && <p className="text-xs text-gray-500 mt-0.5 italic">{job.notes}</p>}
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0 ml-4">
-                      <Badge variant={isDone ? 'secondary' : job.status === 'in_progress' ? 'warning' : 'default'}>
-                        {isDone ? 'Done' : job.status === 'in_progress' ? 'In progress' : 'Scheduled'}
-                      </Badge>
-                      {!isDone && inspection && (
-                        <Link href={`/inspections/${inspection.id}`}>
-                          <Button size="sm" variant="outline" className="text-xs">
-                            <ClipboardCheck className="mr-1.5 h-3.5 w-3.5" /> View Checklist
+                  <div key={job.id} className={`rounded-xl border transition-opacity ${isDone ? 'border-white/5 bg-[#161b27] opacity-50' : 'border-white/10 bg-[#161b27]'}`}>
+                    <div className="flex items-center justify-between px-5 py-4 group">
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-100 truncate">{displayName}</p>
+                        <p className="text-sm text-gray-400 mt-0.5">
+                          {formatDateTime(job.scheduled_at)}
+                          {job.teams && <><span className="mx-1.5 text-gray-600">·</span><span>{(job.teams as any).name}</span></>}
+                        </p>
+                        {job.notes && <p className="text-xs text-gray-500 mt-0.5 italic">{job.notes}</p>}
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                        <Badge variant={isDone ? 'secondary' : job.status === 'in_progress' ? 'warning' : 'default'}>
+                          {isDone ? 'Done' : job.status === 'in_progress' ? 'In progress' : 'Scheduled'}
+                        </Badge>
+                        {!isDone && inspection && (
+                          <Link href={`/inspections/${inspection.id}`}>
+                            <Button size="sm" variant="outline" className="text-xs">
+                              <ClipboardCheck className="mr-1.5 h-3.5 w-3.5" /> View Checklist
+                            </Button>
+                          </Link>
+                        )}
+                        {!isDone && !inspection && (
+                          <Button size="sm" variant="outline" className="text-xs" onClick={() => startInspection(job)} disabled={isStarting}>
+                            {isStarting
+                              ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Starting...</>
+                              : <><ClipboardCheck className="mr-1.5 h-3.5 w-3.5" /> Start Job</>}
                           </Button>
-                        </Link>
-                      )}
-                      {!isDone && !inspection && (
-                        <Button size="sm" variant="outline" className="text-xs" onClick={() => startInspection(job)} disabled={isStarting}>
-                          {isStarting
-                            ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Starting...</>
-                            : <><ClipboardCheck className="mr-1.5 h-3.5 w-3.5" /> Start Job</>}
+                        )}
+                        {!isDone && (
+                          <Button size="sm" variant="ghost" className="text-xs text-gray-500 hover:text-green-400" onClick={() => markDone(job)}>
+                            <CheckCircle className="mr-1 h-3.5 w-3.5" /> Done
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="icon" onClick={() => isEditing ? closeEdit() : openEdit(job)}
+                          className={`opacity-0 group-hover:opacity-100 transition-opacity ${isEditing ? 'text-blue-400' : 'text-gray-500 hover:text-blue-400'}`}>
+                          <Pencil className="h-4 w-4" />
                         </Button>
-                      )}
-                      {!isDone && (
-                        <Button size="sm" variant="ghost" className="text-xs text-gray-500 hover:text-green-400" onClick={() => markDone(job)}>
-                          <CheckCircle className="mr-1 h-3.5 w-3.5" /> Done
+                        <Button variant="ghost" size="icon" onClick={() => deleteJob(job.id)}
+                          className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Trash2 className="h-4 w-4" />
                         </Button>
-                      )}
-                      <Button variant="ghost" size="icon" onClick={() => deleteJob(job.id)}
-                        className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      </div>
                     </div>
+
+                    {isEditing && (
+                      <div className="border-t border-white/10 px-5 py-4">
+                        <form onSubmit={saveEdit} className="space-y-3">
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-gray-300">Property</label>
+                            <select className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              value={editPropertyId} onChange={e => setEditPropertyId(e.target.value)}>
+                              <option value="">No property</option>
+                              {properties.map(p => <option key={p.id} value={p.id}>{p.address ?? p.name}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-gray-300">Team (optional)</label>
+                            <select className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              value={editTeamId} onChange={e => setEditTeamId(e.target.value)}>
+                              <option value="">No team assigned</option>
+                              {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-gray-300">Checklist</label>
+                            <select className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
+                              value={editPackageId} onChange={e => handleEditPackageChange(e.target.value)}>
+                              <option value="">Custom</option>
+                              {packages.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                            {!editPackageId && (
+                              <>
+                                <select className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
+                                  value={editTemplateId} onChange={e => handleEditTemplateChange(e.target.value)}>
+                                  <option value="">Start blank</option>
+                                  {packages.map(p => <option key={p.id} value={p.id}>Start from: {p.name}</option>)}
+                                </select>
+                                <div className="rounded-lg border border-white/10 bg-[#1e2433] p-3 space-y-2">
+                                  {editItems.length === 0 && <p className="text-xs text-gray-500 text-center py-1">No items yet — add below.</p>}
+                                  {editItems.map((item, idx) => (
+                                    <div key={idx} className="flex items-center gap-2 group/item">
+                                      <span className="flex-1 text-sm text-gray-200">{item}</span>
+                                      <button type="button" onClick={() => setEditItems(prev => prev.filter((_, i) => i !== idx))}
+                                        className="text-gray-600 hover:text-red-400 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                  <div className="flex gap-2 pt-1">
+                                    <Input placeholder="Add checklist item..." value={editNewItem}
+                                      onChange={e => setEditNewItem(e.target.value)}
+                                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addEditItem() } }}
+                                      className="text-sm h-8" />
+                                    <Button type="button" size="sm" variant="outline" onClick={addEditItem} className="h-8 px-2">
+                                      <Plus className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                            {editPackageId && (() => {
+                              const pkg = packages.find(p => p.id === editPackageId)
+                              const items: string[] = pkg?.package_items?.map((i: any) => i.label) ?? []
+                              return (
+                                <div className="rounded-lg border border-white/10 bg-[#1e2433] p-3 space-y-2">
+                                  {items.length === 0
+                                    ? <p className="text-xs text-gray-500 text-center py-1">This package has no items.</p>
+                                    : items.map((item, idx) => <div key={idx} className="text-sm text-gray-400">{item}</div>)}
+                                </div>
+                              )
+                            })()}
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-gray-300">Date & Time <span className="text-red-400">*</span></label>
+                            <Input type="datetime-local" value={editScheduledAt} onChange={e => setEditScheduledAt(e.target.value)} required />
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-gray-300">Notes (optional)</label>
+                            <textarea className="flex min-h-[60px] w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="Any special instructions..." value={editNotes} onChange={e => setEditNotes(e.target.value)} />
+                          </div>
+                          <div className="flex gap-2 pt-1">
+                            <Button type="submit" disabled={editSaving}>
+                              {editSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Save Changes'}
+                            </Button>
+                            <Button type="button" variant="outline" onClick={closeEdit}>Cancel</Button>
+                          </div>
+                        </form>
+                      </div>
+                    )}
                   </div>
                 )
               })}
