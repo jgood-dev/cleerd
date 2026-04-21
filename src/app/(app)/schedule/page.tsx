@@ -43,8 +43,8 @@ function groupJobs(jobs: Job[]) {
   return { today, upcoming, later, past }
 }
 
-function formatDateTime(iso: string) {
-  return new Date(iso).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+function formatDateTime(iso: string, tz: string) {
+  return new Date(iso).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: tz })
 }
 
 export default function SchedulePage() {
@@ -52,6 +52,7 @@ export default function SchedulePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [orgId, setOrgId] = useState('')
+  const [timezone, setTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone)
   const [jobs, setJobs] = useState<Job[]>([])
   const [properties, setProperties] = useState<any[]>([])
   const [teams, setTeams] = useState<any[]>([])
@@ -70,6 +71,8 @@ export default function SchedulePage() {
   const [editTemplateId, setEditTemplateId] = useState('')
   const [editSaving, setEditSaving] = useState(false)
   const [editDuration, setEditDuration] = useState('')
+  const [overlapError, setOverlapError] = useState('')
+  const [editOverlapError, setEditOverlapError] = useState('')
 
   // New job form state
   const [propertyId, setPropertyId] = useState('')
@@ -95,9 +98,10 @@ export default function SchedulePage() {
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
-    const { data: org } = await supabase.from('organizations').select('id').eq('owner_id', user!.id).single()
+    const { data: org } = await supabase.from('organizations').select('id, timezone').eq('owner_id', user!.id).single()
     if (!org) return
     setOrgId(org.id)
+    if (org.timezone) setTimezone(org.timezone)
     const [{ data: jobData }, { data: props }, { data: tms }, { data: pkgs }] = await Promise.all([
       supabase.from('jobs').select('*, properties(name, address), teams(name), inspections(id)').eq('org_id', org.id).order('scheduled_at'),
       supabase.from('properties').select('*').eq('org_id', org.id).order('created_at'),
@@ -124,6 +128,20 @@ export default function SchedulePage() {
     setTemplateId(id)
     const pkg = packages.find(p => p.id === id)
     setJobItems(pkg?.package_items?.map((i: any) => i.label) ?? [])
+  }
+
+  function checkOverlap(teamId: string, scheduledAtVal: string, durationMins: number, excludeJobId?: string): Job | null {
+    const start = new Date(scheduledAtVal).getTime()
+    const end = start + durationMins * 60000
+    for (const job of jobs) {
+      if (job.id === excludeJobId) continue
+      if (job.team_id !== teamId) continue
+      if (job.status === 'done') continue
+      const jStart = new Date(job.scheduled_at).getTime()
+      const jEnd = jStart + (job.duration_minutes ?? 60) * 60000
+      if (start < jEnd && jStart < end) return job
+    }
+    return null
   }
 
   function calcDuration(pkgId: string, propId: string): string {
@@ -161,6 +179,16 @@ export default function SchedulePage() {
   function closeEdit() {
     setEditingJobId(null)
     setEditNewItem('')
+    setEditOverlapError('')
+  }
+
+  function handleTimelineJobClick(id: string) {
+    const job = jobs.find(j => j.id === id)
+    if (!job) return
+    openEdit(job)
+    setTimeout(() => {
+      document.getElementById(`job-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 50)
   }
 
   function handleEditPackageChange(id: string) {
@@ -185,6 +213,17 @@ export default function SchedulePage() {
   async function saveEdit(e: React.FormEvent) {
     e.preventDefault()
     if (!editingJobId || !editScheduledAt) return
+
+    if (editTeamId) {
+      const mins = editDuration ? parseInt(editDuration) : 60
+      const conflict = checkOverlap(editTeamId, editScheduledAt, mins, editingJobId)
+      if (conflict) {
+        const prop = (conflict.properties as any)?.address ?? (conflict.properties as any)?.name ?? 'another job'
+        setEditOverlapError(`This team is already booked from ${formatDateTime(conflict.scheduled_at, timezone)} (${prop}). Choose a different time or team.`)
+        return
+      }
+    }
+    setEditOverlapError('')
     setEditSaving(true)
     await supabase.from('jobs').update({
       property_id: editPropertyId || null,
@@ -226,6 +265,18 @@ export default function SchedulePage() {
     }
 
     if (!finalPropertyId || !scheduledAt) { setSaving(false); return }
+
+    if (teamId) {
+      const mins = durationMinutes ? parseInt(durationMinutes) : 60
+      const conflict = checkOverlap(teamId, scheduledAt, mins)
+      if (conflict) {
+        const prop = (conflict.properties as any)?.address ?? (conflict.properties as any)?.name ?? 'another job'
+        setOverlapError(`This team is already booked from ${formatDateTime(conflict.scheduled_at, timezone)} (${prop}). Choose a different time or team.`)
+        setSaving(false)
+        return
+      }
+    }
+    setOverlapError('')
 
     await supabase.from('jobs').insert({
       org_id: orgId,
@@ -472,6 +523,11 @@ export default function SchedulePage() {
                 />
               </div>
 
+              {overlapError && (
+                <div className="rounded-lg bg-red-500/10 border border-red-500/30 px-3 py-2 text-sm text-red-400">
+                  {overlapError}
+                </div>
+              )}
               <div className="flex gap-2 pt-1">
                 <Button type="submit" disabled={saving}>
                   {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Schedule Job'}
@@ -493,6 +549,8 @@ export default function SchedulePage() {
           status: j.status,
         }))}
         teams={teams}
+        timezone={timezone}
+        onJobClick={handleTimelineJobClick}
       />
 
       {sections.map(({ label, jobs: sectionJobs, showEmpty }) => (
@@ -512,12 +570,12 @@ export default function SchedulePage() {
                 const isStarting = startingJobId === job.id
                 const isEditing = editingJobId === job.id
                 return (
-                  <div key={job.id} className={`rounded-xl border transition-opacity ${isDone ? 'border-white/5 bg-[#161b27] opacity-50' : 'border-white/10 bg-[#161b27]'}`}>
+                  <div key={job.id} id={`job-${job.id}`} className={`rounded-xl border transition-opacity ${isDone ? 'border-white/5 bg-[#161b27] opacity-50' : 'border-white/10 bg-[#161b27]'}`}>
                     <div className="flex items-center justify-between px-5 py-4 group">
                       <div className="min-w-0">
                         <p className="font-medium text-gray-100 truncate">{displayName}</p>
                         <p className="text-sm text-gray-400 mt-0.5">
-                          {formatDateTime(job.scheduled_at)}
+                          {formatDateTime(job.scheduled_at, timezone)}
                           {job.teams && <><span className="mx-1.5 text-gray-600">·</span><span>{(job.teams as any).name}</span></>}
                         </p>
                         {job.notes && <p className="text-xs text-gray-500 mt-0.5 italic">{job.notes}</p>}
@@ -645,6 +703,11 @@ export default function SchedulePage() {
                             <textarea className="flex min-h-[60px] w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                               placeholder="Any special instructions..." value={editNotes} onChange={e => setEditNotes(e.target.value)} />
                           </div>
+                          {editOverlapError && (
+                            <div className="rounded-lg bg-red-500/10 border border-red-500/30 px-3 py-2 text-sm text-red-400">
+                              {editOverlapError}
+                            </div>
+                          )}
                           <div className="flex gap-2 pt-1">
                             <Button type="submit" disabled={editSaving}>
                               {editSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Save Changes'}

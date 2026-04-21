@@ -21,8 +21,8 @@ function startOfWeek(date: Date) {
   return d
 }
 
-function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+function fmtTime(iso: string, tz: string) {
+  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: tz })
 }
 
 function fmtDuration(mins: number) {
@@ -45,12 +45,23 @@ function hasOverlap(jobs: TimelineJob[]) {
   return false
 }
 
+// Get the calendar date (YYYY-MM-DD) in a given timezone
+function dateKey(iso: string, tz: string) {
+  return new Date(iso).toLocaleDateString('en-CA', { timeZone: tz }) // en-CA gives YYYY-MM-DD
+}
+
+function dayKey(d: Date, tz: string) {
+  return d.toLocaleDateString('en-CA', { timeZone: tz })
+}
+
 interface TeamTimelineProps {
   jobs: TimelineJob[]
   teams: { id: string; name: string }[]
+  timezone: string
+  onJobClick?: (id: string) => void
 }
 
-export function TeamTimeline({ jobs, teams }: TeamTimelineProps) {
+export function TeamTimeline({ jobs, teams, timezone, onJobClick }: TeamTimelineProps) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()))
 
   const days = Array.from({ length: 7 }, (_, i) => {
@@ -65,18 +76,13 @@ export function TeamTimeline({ jobs, teams }: TeamTimelineProps) {
   ]
 
   function jobsForCell(teamId: string | null, day: Date) {
-    const s = day.getTime()
-    const e = s + 86400000
+    const key = dayKey(day, timezone)
     return jobs
-      .filter(j => {
-        const t = new Date(j.scheduled_at).getTime()
-        return t >= s && t < e && j.team_id === teamId
-      })
+      .filter(j => j.team_id === teamId && dateKey(j.scheduled_at, timezone) === key)
       .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())
   }
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const todayKey = dayKey(new Date(), timezone)
 
   const prevWeek = () => { const d = new Date(weekStart); d.setDate(d.getDate() - 7); setWeekStart(d) }
   const nextWeek = () => { const d = new Date(weekStart); d.setDate(d.getDate() + 7); setWeekStart(d) }
@@ -90,9 +96,9 @@ export function TeamTimeline({ jobs, teams }: TeamTimelineProps) {
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-xs text-gray-400 w-36 text-center">
-            {weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            {weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: timezone })}
             {' – '}
-            {days[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            {days[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: timezone })}
           </span>
           <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400" onClick={nextWeek}>
             <ChevronRight className="h-4 w-4" />
@@ -110,12 +116,12 @@ export function TeamTimeline({ jobs, teams }: TeamTimelineProps) {
             <tr className="border-b border-white/10">
               <th className="w-24 px-3 py-2 text-left text-gray-500 font-medium">Team</th>
               {days.map(d => {
-                const isToday = d.getTime() === today.getTime()
+                const isToday = dayKey(d, timezone) === todayKey
                 return (
                   <th key={d.toISOString()} className={`px-2 py-2 text-center font-medium min-w-[90px] ${isToday ? 'text-blue-400' : 'text-gray-400'}`}>
-                    <div>{d.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                    <div>{d.toLocaleDateString('en-US', { weekday: 'short', timeZone: timezone })}</div>
                     <div className={`text-[11px] ${isToday ? 'text-blue-400' : 'text-gray-600'}`}>
-                      {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: timezone })}
                     </div>
                   </th>
                 )
@@ -129,7 +135,7 @@ export function TeamTimeline({ jobs, teams }: TeamTimelineProps) {
                 {days.map(d => {
                   const cellJobs = jobsForCell(row.id, d)
                   const overlap = hasOverlap(cellJobs)
-                  const isToday = d.getTime() === today.getTime()
+                  const isToday = dayKey(d, timezone) === todayKey
                   return (
                     <td key={d.toISOString()} className={`px-1.5 py-2 align-top ${isToday ? 'bg-blue-500/5' : ''}`}>
                       {overlap && (
@@ -144,14 +150,22 @@ export function TeamTimeline({ jobs, teams }: TeamTimelineProps) {
                           : cellJobs.map(job => {
                               const done = job.status === 'done'
                               return (
-                                <div key={job.id}
-                                  className={`rounded px-1.5 py-1 leading-tight ${done ? 'bg-white/5 text-gray-600' : 'bg-blue-500/20 text-blue-200'}`}>
+                                <button
+                                  key={job.id}
+                                  type="button"
+                                  onClick={() => onJobClick?.(job.id)}
+                                  className={`w-full text-left rounded px-1.5 py-1 leading-tight transition-opacity ${
+                                    done
+                                      ? 'bg-white/5 text-gray-600 hover:bg-white/10'
+                                      : 'bg-blue-500/20 text-blue-200 hover:bg-blue-500/30'
+                                  } ${onJobClick ? 'cursor-pointer' : 'cursor-default'}`}
+                                >
                                   <div className="font-medium truncate max-w-[100px]">{job.property_name}</div>
                                   <div className="text-gray-400 mt-0.5">
-                                    {fmtTime(job.scheduled_at)}
+                                    {fmtTime(job.scheduled_at, timezone)}
                                     {job.duration_minutes ? ` · ${fmtDuration(job.duration_minutes)}` : ''}
                                   </div>
-                                </div>
+                                </button>
                               )
                             })}
                       </div>

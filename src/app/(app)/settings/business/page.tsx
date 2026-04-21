@@ -5,16 +5,85 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ArrowLeft, Pencil } from 'lucide-react'
+import { ArrowLeft, Pencil, Globe } from 'lucide-react'
 import Link from 'next/link'
+
+const TIMEZONE_GROUPS = [
+  {
+    label: 'United States & Canada',
+    zones: [
+      { value: 'America/New_York', label: 'Eastern Time — New York, Miami, Atlanta' },
+      { value: 'America/Chicago', label: 'Central Time — Chicago, Dallas, Houston' },
+      { value: 'America/Denver', label: 'Mountain Time — Denver, Phoenix area' },
+      { value: 'America/Phoenix', label: 'Mountain Time (no DST) — Phoenix' },
+      { value: 'America/Los_Angeles', label: 'Pacific Time — Los Angeles, Seattle' },
+      { value: 'America/Anchorage', label: 'Alaska Time — Anchorage' },
+      { value: 'Pacific/Honolulu', label: 'Hawaii Time — Honolulu' },
+      { value: 'America/Toronto', label: 'Eastern Time — Toronto' },
+      { value: 'America/Vancouver', label: 'Pacific Time — Vancouver' },
+      { value: 'America/Edmonton', label: 'Mountain Time — Calgary, Edmonton' },
+      { value: 'America/Winnipeg', label: 'Central Time — Winnipeg' },
+      { value: 'America/Halifax', label: 'Atlantic Time — Halifax' },
+    ],
+  },
+  {
+    label: 'Europe',
+    zones: [
+      { value: 'Europe/London', label: 'GMT/BST — London, Dublin' },
+      { value: 'Europe/Paris', label: 'CET — Paris, Brussels, Amsterdam' },
+      { value: 'Europe/Berlin', label: 'CET — Berlin, Vienna, Zurich' },
+      { value: 'Europe/Rome', label: 'CET — Rome, Milan' },
+      { value: 'Europe/Madrid', label: 'CET — Madrid, Barcelona' },
+      { value: 'Europe/Helsinki', label: 'EET — Helsinki, Kyiv' },
+    ],
+  },
+  {
+    label: 'Australia & Pacific',
+    zones: [
+      { value: 'Australia/Sydney', label: 'AEDT — Sydney, Melbourne' },
+      { value: 'Australia/Brisbane', label: 'AEST — Brisbane (no DST)' },
+      { value: 'Australia/Perth', label: 'AWST — Perth' },
+      { value: 'Pacific/Auckland', label: 'NZDT — Auckland' },
+    ],
+  },
+  {
+    label: 'Americas (other)',
+    zones: [
+      { value: 'America/Mexico_City', label: 'CST — Mexico City' },
+      { value: 'America/Sao_Paulo', label: 'BRT — São Paulo' },
+      { value: 'America/Argentina/Buenos_Aires', label: 'ART — Buenos Aires' },
+    ],
+  },
+  {
+    label: 'Asia & Middle East',
+    zones: [
+      { value: 'Asia/Dubai', label: 'GST — Dubai, Abu Dhabi' },
+      { value: 'Asia/Kolkata', label: 'IST — Mumbai, Delhi' },
+      { value: 'Asia/Singapore', label: 'SGT — Singapore, Kuala Lumpur' },
+      { value: 'Asia/Tokyo', label: 'JST — Tokyo' },
+      { value: 'Asia/Shanghai', label: 'CST — Beijing, Shanghai' },
+    ],
+  },
+  {
+    label: 'Africa',
+    zones: [
+      { value: 'Africa/Johannesburg', label: 'SAST — Johannesburg, Cape Town' },
+      { value: 'Africa/Cairo', label: 'EET — Cairo' },
+      { value: 'Africa/Lagos', label: 'WAT — Lagos, Accra' },
+    ],
+  },
+]
 
 export default function BusinessSettingsPage() {
   const supabase = createClient()
   const [org, setOrg] = useState<any>(null)
   const [orgName, setOrgName] = useState('')
+  const [timezone, setTimezone] = useState('')
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [tzSaving, setTzSaving] = useState(false)
+  const [tzSaved, setTzSaved] = useState(false)
 
   useEffect(() => { load() }, [])
 
@@ -23,6 +92,7 @@ export default function BusinessSettingsPage() {
     const { data: o } = await supabase.from('organizations').select('*').eq('owner_id', user!.id).single()
     setOrg(o)
     setOrgName(o?.name ?? '')
+    setTimezone(o?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone)
   }
 
   async function save(e: React.FormEvent) {
@@ -37,10 +107,25 @@ export default function BusinessSettingsPage() {
     await load()
   }
 
+  async function saveTimezone() {
+    if (!org) return
+    setTzSaving(true)
+    await supabase.from('organizations').update({ timezone }).eq('id', org.id)
+    setTzSaving(false)
+    setTzSaved(true)
+    setTimeout(() => setTzSaved(false), 2000)
+  }
+
   function cancel() {
     setOrgName(org?.name ?? '')
     setEditing(false)
   }
+
+  function detectTimezone() {
+    setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone)
+  }
+
+  const currentTzLabel = TIMEZONE_GROUPS.flatMap(g => g.zones).find(z => z.value === timezone)?.label
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
@@ -77,6 +162,43 @@ export default function BusinessSettingsPage() {
               {saved && <p className="text-sm text-green-400 mt-2">Saved successfully.</p>}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Globe className="h-4 w-4 text-gray-400" />
+            <CardTitle>Time Zone</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-gray-400">Used for scheduling, the team availability calendar, and all time displays across the app.</p>
+          <select
+            className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={timezone}
+            onChange={e => setTimezone(e.target.value)}
+          >
+            {TIMEZONE_GROUPS.map(group => (
+              <optgroup key={group.label} label={group.label}>
+                {group.zones.map(z => (
+                  <option key={z.value} value={z.value}>{z.label}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          {timezone && !currentTzLabel && (
+            <p className="text-xs text-gray-500">Current: {timezone}</p>
+          )}
+          <div className="flex gap-2">
+            <Button onClick={saveTimezone} disabled={tzSaving}>
+              {tzSaving ? 'Saving...' : 'Save timezone'}
+            </Button>
+            <Button type="button" variant="outline" onClick={detectTimezone}>
+              Detect from browser
+            </Button>
+          </div>
+          {tzSaved && <p className="text-sm text-green-400">Timezone saved.</p>}
         </CardContent>
       </Card>
 
