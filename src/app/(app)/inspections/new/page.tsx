@@ -95,7 +95,7 @@ export default function NewInspectionPage() {
 
     if (inspection) {
       await supabase.from('checklist_items').insert(
-        customItems.map((label, i) => ({ inspection_id: inspection.id, label, completed: false, sort_order: i }))
+        customItems.map(label => ({ inspection_id: inspection.id, label, completed: false }))
       )
       router.push(`/inspections/${inspection.id}`)
     } else {
