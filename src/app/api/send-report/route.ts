@@ -92,6 +92,9 @@ export async function POST(request: NextRequest) {
 </body>
 </html>`
 
+  const address = property.address ?? property.name ?? 'your property'
+  const plainText = `Hi,\n\nYour cleaning inspection for ${address} is complete${score != null ? ` with a quality score of ${score}%` : ''}.\n\nView the full report here:\n${reportUrl}\n\nThis report includes photos, checklist results, and quality notes.\n\n— Josh\njosh@cleancheck.io`
+
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -99,10 +102,12 @@ export async function POST(request: NextRequest) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'CleanCheck <josh@cleancheck.io>',
+      from: 'Josh at CleanCheck <josh@cleancheck.io>',
+      reply_to: 'josh@cleancheck.io',
       to: property.client_email,
-      subject: `Cleaning inspection report — ${property.name}`,
+      subject: `Inspection report — ${address}`,
       html,
+      text: plainText,
     }),
   })
 

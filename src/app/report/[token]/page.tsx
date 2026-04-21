@@ -1,9 +1,12 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
 import { CheckSquare, CheckCircle, XCircle, Camera } from 'lucide-react'
 
 export default async function ClientReportPage({ params }: { params: { token: string } }) {
-  const supabase = await createClient()
+  const supabase = createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
 
   const { data: inspection } = await supabase
     .from('inspections')
@@ -11,7 +14,18 @@ export default async function ClientReportPage({ params }: { params: { token: st
     .eq('share_token', params.token)
     .single()
 
-  if (!inspection || !inspection.ai_report) notFound()
+  if (!inspection) notFound()
+  if (!inspection.ai_report) {
+    return (
+      <div className="min-h-screen bg-[#0f1117] flex items-center justify-center">
+        <div className="text-center px-4">
+          <CheckSquare className="h-10 w-10 text-blue-400 mx-auto mb-4" />
+          <h1 className="text-xl font-bold text-white mb-2">Report Not Ready</h1>
+          <p className="text-gray-400">This inspection hasn't been completed yet. Check back soon.</p>
+        </div>
+      </div>
+    )
+  }
 
   const property = inspection.properties as any
   const photos = (inspection.inspection_photos as any[]) ?? []
