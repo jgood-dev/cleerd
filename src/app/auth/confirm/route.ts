@@ -24,9 +24,24 @@ export async function GET(request: NextRequest) {
       }
     )
 
-    const { error } = await supabase.auth.verifyOtp({ type: type as any, token_hash })
+    const { data, error } = await supabase.auth.verifyOtp({ type: type as any, token_hash })
 
-    if (!error) {
+    if (!error && data.user) {
+      // Create org on first confirmation if it doesn't exist yet
+      const { count } = await supabase
+        .from('organizations')
+        .select('*', { count: 'exact', head: true })
+        .eq('owner_id', data.user.id)
+
+      if (count === 0) {
+        const businessName = data.user.user_metadata?.business_name ?? 'My Business'
+        await supabase.from('organizations').insert({
+          name: businessName,
+          owner_id: data.user.id,
+          plan: 'solo',
+        })
+      }
+
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
   }
