@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, Trash2, Users } from 'lucide-react'
+import { Plus, Trash2, Users, ChevronDown, ChevronUp } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 export default function TeamsPage() {
@@ -14,22 +14,24 @@ export default function TeamsPage() {
   const [teams, setTeams] = useState<any[]>([])
   const [newTeamName, setNewTeamName] = useState('')
   const [loading, setLoading] = useState(false)
-  const [debugInfo, setDebugInfo] = useState<string>('')
   const [dialog, setDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
+  const [expandedTeam, setExpandedTeam] = useState<string | null>(null)
+
+  // Per-team add-member form state
+  const [memberName, setMemberName] = useState<Record<string, string>>({})
+  const [memberEmail, setMemberEmail] = useState<Record<string, string>>({})
+  const [memberRole, setMemberRole] = useState<Record<string, string>>({})
+  const [memberAdding, setMemberAdding] = useState<Record<string, boolean>>({})
 
   useEffect(() => { load() }, [])
 
   async function load() {
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) { setDebugInfo(`Auth error: ${userError?.message ?? 'no user'}`); return }
-
-    const { data: org, error: orgError } = await supabase.from('organizations').select('id').eq('owner_id', user.id).single()
-    if (orgError || !org) { setDebugInfo(`Org error: ${orgError?.message ?? 'no org found'} | uid: ${user.id}`); return }
-
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data: org } = await supabase.from('organizations').select('id').eq('owner_id', user.id).single()
+    if (!org) return
     setOrgId(org.id)
-    setDebugInfo(`org: ${org.id}`)
-    const { data, error: teamsError } = await supabase.from('teams').select('*, team_members(*)').eq('org_id', org.id)
-    if (teamsError) setDebugInfo(`Teams error: ${teamsError.message}`)
+    const { data } = await supabase.from('teams').select('*, team_members(*)').eq('org_id', org.id).order('created_at')
     setTeams(data ?? [])
   }
 
@@ -37,17 +39,17 @@ export default function TeamsPage() {
     e.preventDefault()
     if (!newTeamName.trim() || !orgId) return
     setLoading(true)
-    const { error } = await supabase.from('teams').insert({ org_id: orgId, name: newTeamName.trim() })
-    if (error) setDebugInfo(`Insert error: ${error.message}`)
+    const { data } = await supabase.from('teams').insert({ org_id: orgId, name: newTeamName.trim() }).select().single()
     setNewTeamName('')
     setLoading(false)
+    if (data) setExpandedTeam(data.id)
     await load()
   }
 
   function deleteTeam(id: string) {
     setDialog({
       title: 'Delete team?',
-      message: 'This team will be permanently removed.',
+      message: 'This team and all its members will be permanently removed.',
       onConfirm: async () => {
         await supabase.from('teams').delete().eq('id', id)
         setDialog(null)
@@ -56,8 +58,37 @@ export default function TeamsPage() {
     })
   }
 
+  async function addMember(teamId: string) {
+    const name = memberName[teamId]?.trim()
+    if (!name) return
+    setMemberAdding(prev => ({ ...prev, [teamId]: true }))
+    await supabase.from('team_members').insert({
+      team_id: teamId,
+      name,
+      email: memberEmail[teamId]?.trim() || null,
+      role: memberRole[teamId] || 'cleaner',
+    })
+    setMemberName(prev => ({ ...prev, [teamId]: '' }))
+    setMemberEmail(prev => ({ ...prev, [teamId]: '' }))
+    setMemberRole(prev => ({ ...prev, [teamId]: 'cleaner' }))
+    setMemberAdding(prev => ({ ...prev, [teamId]: false }))
+    await load()
+  }
+
+  function deleteMember(memberId: string) {
+    setDialog({
+      title: 'Remove member?',
+      message: 'This person will be removed from the team.',
+      onConfirm: async () => {
+        await supabase.from('team_members').delete().eq('id', memberId)
+        setDialog(null)
+        await load()
+      },
+    })
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-2xl">
       <h1 className="text-2xl font-bold text-white">Teams</h1>
 
       <Card>
@@ -72,27 +103,106 @@ export default function TeamsPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4">
+      <div className="space-y-3">
         {teams.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center text-gray-500">
-              <Users className="mx-auto mb-3 h-10 w-10 text-gray-300" />
+              <Users className="mx-auto mb-3 h-10 w-10 text-gray-600" />
               <p>No teams yet. Create your first team above.</p>
             </CardContent>
           </Card>
-        ) : teams.map(team => (
-          <Card key={team.id}>
-            <CardContent className="flex items-center justify-between p-6">
-              <div>
-                <p className="font-semibold text-gray-100">{team.name}</p>
-                <p className="text-sm text-gray-400">{team.team_members?.length ?? 0} members</p>
+        ) : teams.map(team => {
+          const members: any[] = team.team_members ?? []
+          const isExpanded = expandedTeam === team.id
+          return (
+            <div key={team.id} className="rounded-xl border border-white/10 bg-[#161b27] overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center gap-2 px-5 py-4">
+                <button
+                  className="flex items-center gap-3 flex-1 text-left min-w-0"
+                  onClick={() => setExpandedTeam(isExpanded ? null : team.id)}
+                >
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-100">{team.name}</p>
+                    <p className="text-sm text-gray-400">{members.length} {members.length === 1 ? 'member' : 'members'}</p>
+                  </div>
+                  {isExpanded
+                    ? <ChevronUp className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                    : <ChevronDown className="h-4 w-4 text-gray-500 flex-shrink-0" />}
+                </button>
+                <Button variant="ghost" size="icon" onClick={() => deleteTeam(team.id)} className="text-gray-500 hover:text-red-400 flex-shrink-0">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => deleteTeam(team.id)} className="text-gray-400 hover:text-red-600">
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+
+              {/* Members */}
+              {isExpanded && (
+                <div className="border-t border-white/10 px-5 py-4 bg-[#1e2433] space-y-4">
+                  {/* Member list */}
+                  {members.length === 0 ? (
+                    <p className="text-sm text-gray-500">No members yet. Add someone below.</p>
+                  ) : (
+                    <ul className="space-y-1">
+                      {members.map((m: any) => (
+                        <li key={m.id} className="flex items-center gap-3 rounded-lg px-2 py-2 group hover:bg-white/5">
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-medium text-gray-200">{m.name}</span>
+                            {m.email && <span className="ml-2 text-xs text-gray-500">{m.email}</span>}
+                          </div>
+                          <span className="text-xs text-gray-500 capitalize flex-shrink-0">{m.role}</span>
+                          <button
+                            onClick={() => deleteMember(m.id)}
+                            className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {/* Add member form */}
+                  <div className="space-y-2 pt-1">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Add Member</p>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Full name *"
+                        className="text-sm"
+                        value={memberName[team.id] ?? ''}
+                        onChange={e => setMemberName(prev => ({ ...prev, [team.id]: e.target.value }))}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addMember(team.id) } }}
+                      />
+                      <Input
+                        placeholder="Email (optional)"
+                        type="email"
+                        className="text-sm"
+                        value={memberEmail[team.id] ?? ''}
+                        onChange={e => setMemberEmail(prev => ({ ...prev, [team.id]: e.target.value }))}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addMember(team.id) } }}
+                      />
+                      <select
+                        className="flex h-10 rounded-lg border border-white/20 bg-[#161b27] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 flex-shrink-0"
+                        value={memberRole[team.id] ?? 'cleaner'}
+                        onChange={e => setMemberRole(prev => ({ ...prev, [team.id]: e.target.value }))}
+                      >
+                        <option value="cleaner">Cleaner</option>
+                        <option value="supervisor">Supervisor</option>
+                      </select>
+                      <Button
+                        size="sm"
+                        onClick={() => addMember(team.id)}
+                        disabled={memberAdding[team.id] || !memberName[team.id]?.trim()}
+                        className="flex-shrink-0"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
 
       <ConfirmDialog
