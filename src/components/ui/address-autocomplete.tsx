@@ -1,68 +1,80 @@
 'use client'
 
-import { useEffect, useRef, forwardRef, useImperativeHandle, useState } from 'react'
-import Script from 'next/script'
+import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
 
 interface AddressAutocompleteProps {
-  onPlaceSelected?: (address: string) => void
   placeholder?: string
+  className?: string
 }
 
 export const AddressAutocomplete = forwardRef<HTMLInputElement, AddressAutocompleteProps>(
-  function AddressAutocomplete({ onPlaceSelected, placeholder = '123 Oak St, Springfield, IL' }, ref) {
-    const containerRef = useRef<HTMLDivElement>(null)
-    const hiddenRef = useRef<HTMLInputElement>(null)
-    const [scriptLoaded, setScriptLoaded] = useState(false)
+  function AddressAutocomplete({ placeholder = '123 Oak St, Springfield, IL', className }, ref) {
+    const inputRef = useRef<HTMLInputElement>(null)
+    const [suggestions, setSuggestions] = useState<string[]>([])
+    const [open, setOpen] = useState(false)
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const wrapperRef = useRef<HTMLDivElement>(null)
 
-    // Expose hidden input value to parent via ref
-    useImperativeHandle(ref, () => hiddenRef.current!)
+    useImperativeHandle(ref, () => inputRef.current!)
 
+    // Close on outside click
     useEffect(() => {
-      if (!scriptLoaded || !containerRef.current) return
-
-      async function init() {
-        const { PlaceAutocompleteElement } = await (window as any).google.maps.importLibrary('places') as any
-        if (!containerRef.current) return
-        containerRef.current.innerHTML = ''
-
-        const el = new PlaceAutocompleteElement({
-          types: ['address'],
-          componentRestrictions: { country: 'us' },
-        })
-        el.setAttribute('placeholder', placeholder)
-        containerRef.current.appendChild(el)
-
-        // When user selects a suggestion
-        el.addEventListener('gmp-placeselect', async ({ place }: any) => {
-          await place.fetchFields({ fields: ['formattedAddress'] })
-          const addr = place.formattedAddress ?? ''
-          if (hiddenRef.current) hiddenRef.current.value = addr
-          if (onPlaceSelected) onPlaceSelected(addr)
-        })
-
-        // Sync manual typing so validation works even without selecting
-        el.addEventListener('input', (e: any) => {
-          if (hiddenRef.current) hiddenRef.current.value = e.target?.value ?? ''
-        })
+      function onClickOutside(e: MouseEvent) {
+        if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+          setOpen(false)
+        }
       }
+      document.addEventListener('mousedown', onClickOutside)
+      return () => document.removeEventListener('mousedown', onClickOutside)
+    }, [])
 
-      init()
-    }, [scriptLoaded])
+    function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
+      const val = e.target.value
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      if (!val || val.length < 2) { setSuggestions([]); setOpen(false); return }
+      debounceRef.current = setTimeout(async () => {
+        const res = await fetch(`/api/places-autocomplete?input=${encodeURIComponent(val)}`)
+        const data = await res.json()
+        const preds: string[] = (data.predictions ?? []).map((p: any) => p.description)
+        setSuggestions(preds)
+        setOpen(preds.length > 0)
+      }, 250)
+    }
 
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+    function selectSuggestion(desc: string) {
+      if (inputRef.current) inputRef.current.value = desc
+      setSuggestions([])
+      setOpen(false)
+    }
 
     return (
-      <>
-        {apiKey && (
-          <Script
-            src={`https://maps.googleapis.com/maps/api/js?key=${apiKey}&loading=async`}
-            strategy="afterInteractive"
-            onLoad={() => setScriptLoaded(true)}
-          />
+      <div ref={wrapperRef} className="relative w-full">
+        <input
+          ref={inputRef}
+          type="text"
+          placeholder={placeholder}
+          onChange={handleInput}
+          onFocus={() => suggestions.length > 0 && setOpen(true)}
+          className={
+            className ??
+            'flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500'
+          }
+          autoComplete="off"
+        />
+        {open && suggestions.length > 0 && (
+          <ul className="absolute z-50 mt-1 w-full rounded-lg border border-white/10 bg-[#1e2433] shadow-xl overflow-hidden">
+            {suggestions.map((s, i) => (
+              <li
+                key={i}
+                onMouseDown={() => selectSuggestion(s)}
+                className="px-3 py-2.5 text-sm text-gray-200 cursor-pointer hover:bg-white/10 border-b border-white/5 last:border-0"
+              >
+                {s}
+              </li>
+            ))}
+          </ul>
         )}
-        <div ref={containerRef} className="gmp-autocomplete-wrapper w-full" />
-        <input ref={hiddenRef} type="hidden" />
-      </>
+      </div>
     )
   }
 )
