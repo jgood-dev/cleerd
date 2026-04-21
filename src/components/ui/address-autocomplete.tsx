@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { Loader } from '@googlemaps/js-api-loader'
 
 interface AddressAutocompleteProps {
   value: string
@@ -9,32 +10,16 @@ interface AddressAutocompleteProps {
   className?: string
 }
 
-declare global {
-  interface Window {
-    google: any
-    _initGooglePlaces: () => void
-  }
-}
+let loaderPromise: Promise<void> | null = null
 
-let scriptLoaded = false
-let scriptLoading = false
-const pendingCallbacks: (() => void)[] = []
-
-function loadGoogleScript(apiKey: string, onReady: () => void) {
-  if (scriptLoaded) { onReady(); return }
-  pendingCallbacks.push(onReady)
-  if (scriptLoading) return
-  scriptLoading = true
-  window._initGooglePlaces = () => {
-    scriptLoaded = true
-    pendingCallbacks.forEach(cb => cb())
-    pendingCallbacks.length = 0
+function getLoader() {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+  if (!apiKey) return null
+  if (!loaderPromise) {
+    const loader = new Loader({ apiKey, libraries: ['places'] })
+    loaderPromise = loader.importLibrary('places').then(() => {})
   }
-  const script = document.createElement('script')
-  script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=_initGooglePlaces`
-  script.async = true
-  script.defer = true
-  document.head.appendChild(script)
+  return loaderPromise
 }
 
 export function AddressAutocomplete({
@@ -47,25 +32,23 @@ export function AddressAutocomplete({
   const autocompleteRef = useRef<any>(null)
 
   useEffect(() => {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-    if (!apiKey || !inputRef.current) return
-
-    loadGoogleScript(apiKey, () => {
+    const promise = getLoader()
+    if (!promise) return
+    promise.then(() => {
       if (autocompleteRef.current || !inputRef.current) return
-      autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
+      const ac = new (window as any).google.maps.places.Autocomplete(inputRef.current, {
         types: ['address'],
         componentRestrictions: { country: 'us' },
       })
-      autocompleteRef.current.addListener('place_changed', () => {
-        const place = autocompleteRef.current.getPlace()
-        if (place?.formatted_address) {
-          onChange(place.formatted_address)
-        }
+      autocompleteRef.current = ac
+      ac.addListener('place_changed', () => {
+        const place = ac.getPlace()
+        if (place?.formatted_address) onChange(place.formatted_address)
       })
     })
   }, [])
 
-  // Only sync when parent clears the value (e.g. after form submit)
+  // Only sync DOM when parent clears the field (e.g. after form submit)
   useEffect(() => {
     if (inputRef.current && value === '') {
       inputRef.current.value = ''
