@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { Loader } from '@googlemaps/js-api-loader'
+import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
 
 interface AddressAutocompleteProps {
   value: string
@@ -10,16 +10,16 @@ interface AddressAutocompleteProps {
   className?: string
 }
 
-let loaderPromise: Promise<void> | null = null
+let placesPromise: Promise<any> | null = null
 
-function getLoader() {
+function loadPlaces() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
   if (!apiKey) return null
-  if (!loaderPromise) {
-    const loader = new Loader({ apiKey, libraries: ['places'] })
-    loaderPromise = loader.load().then(() => {})
+  if (!placesPromise) {
+    setOptions({ key: apiKey, libraries: ['places'] })
+    placesPromise = importLibrary('places')
   }
-  return loaderPromise
+  return placesPromise
 }
 
 export function AddressAutocomplete({
@@ -32,7 +32,7 @@ export function AddressAutocomplete({
   const autocompleteRef = useRef<any>(null)
 
   useEffect(() => {
-    const promise = getLoader()
+    const promise = loadPlaces()
     if (!promise) return
     promise.then(() => {
       if (autocompleteRef.current || !inputRef.current) return
