@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, Trash2, Users, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Trash2, Users, ChevronDown, ChevronUp, Pencil, Check, X } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { PhoneInput } from '@/components/ui/phone-input'
 
@@ -24,6 +24,13 @@ export default function TeamsPage() {
   const [memberPhone, setMemberPhone] = useState<Record<string, string>>({})
   const [memberRole, setMemberRole] = useState<Record<string, string>>({})
   const [memberAdding, setMemberAdding] = useState<Record<string, boolean>>({})
+
+  // Per-member edit state
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [editPhone, setEditPhone] = useState('')
+  const [editRole, setEditRole] = useState('cleaner')
 
   useEffect(() => { load() }, [])
 
@@ -76,6 +83,26 @@ export default function TeamsPage() {
     setMemberPhone(prev => ({ ...prev, [teamId]: '' }))
     setMemberRole(prev => ({ ...prev, [teamId]: 'cleaner' }))
     setMemberAdding(prev => ({ ...prev, [teamId]: false }))
+    await load()
+  }
+
+  function openEditMember(m: any) {
+    setEditingMemberId(m.id)
+    setEditName(m.name)
+    setEditEmail(m.email ?? '')
+    setEditPhone(m.phone ?? '')
+    setEditRole(m.role ?? 'cleaner')
+  }
+
+  async function saveEditMember() {
+    if (!editingMemberId || !editName.trim()) return
+    await supabase.from('team_members').update({
+      name: editName.trim(),
+      email: editEmail.trim() || null,
+      phone: editPhone.trim() || null,
+      role: editRole,
+    }).eq('id', editingMemberId)
+    setEditingMemberId(null)
     await load()
   }
 
@@ -148,19 +175,49 @@ export default function TeamsPage() {
                   ) : (
                     <ul className="space-y-1">
                       {members.map((m: any) => (
-                        <li key={m.id} className="flex items-center gap-3 rounded-lg px-2 py-2 group hover:bg-white/5">
-                          <div className="flex-1 min-w-0">
-                            <span className="text-sm font-medium text-gray-200">{m.name}</span>
-                            {m.phone && <span className="ml-2 text-xs text-gray-500">{m.phone}</span>}
-                            {m.email && <span className="ml-2 text-xs text-gray-500">{m.email}</span>}
-                          </div>
-                          <span className="text-xs text-gray-500 capitalize flex-shrink-0">{m.role}</span>
-                          <button
-                            onClick={() => deleteMember(m.id)}
-                            className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                        <li key={m.id} className="rounded-lg px-2 py-2 group hover:bg-white/5">
+                          {editingMemberId === m.id ? (
+                            <div className="space-y-2">
+                              <div className="flex gap-2">
+                                <Input className="text-sm flex-1" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Full name *" />
+                                <select
+                                  className="flex h-10 rounded-lg border border-white/20 bg-[#161b27] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 flex-shrink-0"
+                                  value={editRole} onChange={e => setEditRole(e.target.value)}
+                                >
+                                  <option value="cleaner">Cleaner</option>
+                                  <option value="supervisor">Supervisor</option>
+                                </select>
+                              </div>
+                              <div className="flex gap-2">
+                                <PhoneInput className="flex-1 text-sm" placeholder="Phone (optional)" value={editPhone} onChange={setEditPhone} />
+                                <Input className="text-sm flex-1" type="email" placeholder="Email (optional)" value={editEmail} onChange={e => setEditEmail(e.target.value)}
+                                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveEditMember() } }} />
+                                <Button size="sm" onClick={saveEditMember} disabled={!editName.trim()} className="flex-shrink-0">
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => setEditingMemberId(null)} className="flex-shrink-0">
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1 min-w-0">
+                                <span className="text-sm font-medium text-gray-200">{m.name}</span>
+                                {m.phone && <span className="ml-2 text-xs text-gray-500">{m.phone}</span>}
+                                {m.email && <span className="ml-2 text-xs text-gray-500">{m.email}</span>}
+                              </div>
+                              <span className="text-xs text-gray-500 capitalize flex-shrink-0">{m.role}</span>
+                              <button onClick={() => openEditMember(m)}
+                                className="text-gray-600 hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button onClick={() => deleteMember(m.id)}
+                                className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          )}
                         </li>
                       ))}
                     </ul>
