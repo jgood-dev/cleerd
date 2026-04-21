@@ -2,7 +2,9 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
 import { CheckSquare, CheckCircle, XCircle, Camera } from 'lucide-react'
 
-export default async function ClientReportPage({ params }: { params: { token: string } }) {
+export default async function ClientReportPage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params
+
   const supabase = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -11,7 +13,7 @@ export default async function ClientReportPage({ params }: { params: { token: st
   const { data: inspection } = await supabase
     .from('inspections')
     .select('*, properties(name, address), inspection_photos(*), checklist_items(*)')
-    .eq('share_token', params.token)
+    .eq('share_token', token)
     .single()
 
   if (!inspection) notFound()
