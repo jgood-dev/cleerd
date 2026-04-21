@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Plus, Trash2, ChevronDown, ChevronUp, GripVertical, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { getOrgForUser } from '@/lib/get-org'
 
 export default function PackagesPage() {
   const supabase = createClient()
@@ -25,7 +26,7 @@ export default function PackagesPage() {
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
-    const { data: org } = await supabase.from('organizations').select('id').eq('owner_id', user!.id).single()
+    const { org } = await getOrgForUser(supabase, user!.id)
     if (!org) return
     setOrgId(org.id)
     const { data: pkgs } = await supabase.from('packages').select('*, package_items(*)').eq('org_id', org.id).order('created_at')

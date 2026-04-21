@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import Link from 'next/link'
 import { FileText, Trash2 } from 'lucide-react'
+import { getOrgForUser } from '@/lib/get-org'
 
 export default function ReportsPage() {
   const supabase = createClient()
@@ -18,7 +19,7 @@ export default function ReportsPage() {
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
-    const { data: org } = await supabase.from('organizations').select('id').eq('owner_id', user!.id).single()
+    const { org } = await getOrgForUser(supabase, user!.id)
     if (!org) return
     const { data } = await supabase
       .from('inspections')

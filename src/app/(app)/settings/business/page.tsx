@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ArrowLeft, Pencil, Globe, Star } from 'lucide-react'
 import Link from 'next/link'
+import { getOrgForUser } from '@/lib/get-org'
 
 const TIMEZONE_GROUPS = [
   {
@@ -95,7 +96,7 @@ export default function BusinessSettingsPage() {
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
-    const { data: o } = await supabase.from('organizations').select('*').eq('owner_id', user!.id).single()
+    const { org: o } = await getOrgForUser(supabase, user!.id)
     setOrg(o)
     setOrgName(o?.name ?? '')
     setTimezone(o?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone)

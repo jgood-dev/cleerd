@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Camera, Sparkles, Send, CheckSquare, Square, Loader2, CheckCircle, Trash2, MessageSquare } from 'lucide-react'
+import { Camera, Sparkles, Send, CheckSquare, Square, Loader2, CheckCircle, Trash2, MessageSquare, DollarSign } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 export default function InspectionDetailPage() {
@@ -27,6 +27,8 @@ export default function InspectionDetailPage() {
   const [clientNote, setClientNote] = useState('')
   const [savingNote, setSavingNote] = useState(false)
   const [noteSaved, setNoteSaved] = useState(false)
+  const [job, setJob] = useState<any>(null)
+  const [markingPaid, setMarkingPaid] = useState(false)
   const [dialog, setDialog] = useState<{ title: string; message: string; confirmLabel?: string; destructive?: boolean; onConfirm: () => void } | null>(null)
 
   useEffect(() => { load() }, [id])
@@ -41,6 +43,10 @@ export default function InspectionDetailPage() {
     setPhotos(ph ?? [])
     setChecklist(cl ?? [])
     setClientNote(insp?.client_note ?? '')
+    if (insp?.job_id) {
+      const { data: j } = await supabase.from('jobs').select('id, paid_at, invoice_sent_at').eq('id', insp.job_id).single()
+      setJob(j)
+    }
   }
 
   async function toggleChecklist(item: any) {
@@ -124,6 +130,22 @@ export default function InspectionDetailPage() {
     setSavingNote(false)
     setNoteSaved(true)
     setTimeout(() => setNoteSaved(false), 2000)
+  }
+
+  async function markAsPaid() {
+    if (!job?.id) return
+    setMarkingPaid(true)
+    const res = await fetch('/api/send-invoice', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId: job.id }),
+    })
+    setMarkingPaid(false)
+    if (res.ok) {
+      await load()
+    } else {
+      alert('Failed to send invoice. Check that your Resend API key is set.')
+    }
   }
 
   async function sendReport() {
@@ -309,6 +331,38 @@ export default function InspectionDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Payment */}
+      {job && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-green-400" /> Payment
+              </CardTitle>
+              {job.paid_at && (
+                <Badge variant="success">Paid</Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {job.paid_at ? (
+              <p className="text-sm text-gray-400">
+                Marked as paid on {new Date(job.paid_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}.
+                {job.invoice_sent_at && ' Invoice sent to client.'}
+              </p>
+            ) : (
+              <p className="text-sm text-gray-400">Mark this job as paid to send the client an invoice email.</p>
+            )}
+            {!job.paid_at && (
+              <Button onClick={markAsPaid} disabled={markingPaid} variant="outline" className="border-green-500/30 text-green-400 hover:bg-green-500/10">
+                {markingPaid ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
+                {markingPaid ? 'Sending…' : 'Mark as Paid & Send Invoice'}
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* AI Report */}
       <Card>

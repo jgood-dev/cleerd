@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { AddressAutocomplete } from '@/components/ui/address-autocomplete'
 import { PhoneInput } from '@/components/ui/phone-input'
+import { getOrgForUser } from '@/lib/get-org'
 
 export default function PropertiesPage() {
   const supabase = createClient()
@@ -19,6 +20,7 @@ export default function PropertiesPage() {
   const [newOwnerName, setNewOwnerName] = useState('')
   const [newPhone, setNewPhone] = useState('')
   const [newSize, setNewSize] = useState('medium')
+  const [newEntryNotes, setNewEntryNotes] = useState('')
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState('')
   const [dialog, setDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
@@ -28,7 +30,7 @@ export default function PropertiesPage() {
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
-    const { data: org } = await supabase.from('organizations').select('id').eq('owner_id', user!.id).single()
+    const { org } = await getOrgForUser(supabase, user!.id)
     if (!org) return
     setOrgId(org.id)
     const { data } = await supabase.from('properties').select('*').eq('org_id', org.id).order('created_at')
@@ -51,9 +53,10 @@ export default function PropertiesPage() {
       phone: newPhone.trim(),
       client_email: newEmail.trim(),
       size: newSize,
+      entry_notes: newEntryNotes.trim() || null,
     })
     if (addressRef.current) addressRef.current.value = ''
-    setNewEmail(''); setNewOwnerName(''); setNewPhone(''); setNewSize('medium'); setAdding(false)
+    setNewEmail(''); setNewOwnerName(''); setNewPhone(''); setNewSize('medium'); setNewEntryNotes(''); setAdding(false)
     await load()
   }
 
@@ -139,13 +142,22 @@ export default function PropertiesPage() {
                   onChange={e => setNewEmail(e.target.value)}
                 />
               </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-300">Entry instructions (optional)</label>
+                <textarea
+                  className="flex min-h-[70px] w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g. Key under mat, gate code is 1234, dog is friendly..."
+                  value={newEntryNotes}
+                  onChange={e => setNewEntryNotes(e.target.value)}
+                />
+              </div>
               {error && <p className="text-sm text-red-400">{error}</p>}
               <div className="flex gap-2 pt-1">
                 <Button type="submit">Save Property</Button>
                 <Button type="button" variant="outline" onClick={() => {
                   setAdding(false)
                   if (addressRef.current) addressRef.current.value = ''
-                  setNewEmail(''); setNewOwnerName(''); setNewPhone(''); setError('')
+                  setNewEmail(''); setNewOwnerName(''); setNewPhone(''); setNewEntryNotes(''); setError('')
                 }}>
                   Cancel
                 </Button>
@@ -178,6 +190,9 @@ export default function PropertiesPage() {
                   {p.size && <span className="capitalize mr-2">{p.size}</span>}
                   {p.client_email ?? <span className="text-yellow-400">No email — reports cannot be sent</span>}
                 </p>
+                {p.entry_notes && (
+                  <p className="text-xs text-amber-400 mt-1">🔑 {p.entry_notes}</p>
+                )}
               </div>
               <Button variant="ghost" size="icon" onClick={() => deleteProperty(p.id)} className="text-gray-500 hover:text-red-400 flex-shrink-0 ml-4">
                 <Trash2 className="h-4 w-4" />

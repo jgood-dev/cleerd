@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Plus, Trash2, Users, ChevronDown, ChevronUp, Pencil, Check, X } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { PhoneInput } from '@/components/ui/phone-input'
+import { getOrgForUser } from '@/lib/get-org'
 
 export default function TeamsPage() {
   const supabase = createClient()
@@ -37,7 +38,7 @@ export default function TeamsPage() {
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const { data: org } = await supabase.from('organizations').select('id').eq('owner_id', user.id).single()
+    const { org } = await getOrgForUser(supabase, user.id)
     if (!org) return
     setOrgId(org.id)
     const { data } = await supabase.from('teams').select('*, team_members(*)').eq('org_id', org.id).order('created_at')

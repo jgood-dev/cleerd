@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { Building2, ClipboardList, MapPin, CreditCard, ChevronRight } from 'lucide-react'
+import { Building2, ClipboardList, MapPin, CreditCard, ChevronRight, Users } from 'lucide-react'
+import { getOrgForUser } from '@/lib/get-org'
 
 const sections = [
   {
@@ -22,6 +23,12 @@ const sections = [
     description: 'Manage client locations and their contact emails.',
   },
   {
+    href: '/settings/members',
+    icon: Users,
+    title: 'Team Logins',
+    description: 'Invite team members to access your CleanCheck account.',
+  },
+  {
     href: '/settings/billing',
     icon: CreditCard,
     title: 'Billing & Plan',
@@ -32,7 +39,7 @@ const sections = [
 export default async function SettingsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const { data: org } = await supabase.from('organizations').select('name, plan').eq('owner_id', user!.id).single()
+  const { org } = await getOrgForUser(supabase, user!.id)
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">

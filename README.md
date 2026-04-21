@@ -11,8 +11,11 @@ Job scheduling and quality tracking software for residential cleaning companies.
 - **Client Reports** — Branded, customer-friendly summaries sent via email: after photos, completed checklist, team info, time on-site, next visit, and a review link.
 - **AI Quality Report** — Internal-only AI assessment and score for company use.
 - **Appointment Reminders** — Automated email reminders sent to clients before their scheduled appointment (configurable lead time).
+- **Booking Confirmation Email** — Automatically emailed to the client when a job is scheduled (date/time, team, duration).
+- **Invoice & Payment Tracking** — Mark a job as paid to send the client a paid invoice email. Status shown on the job detail page.
 - **Team Management** — Teams with members (name, phone, email, role).
-- **Properties** — Client locations with owner info, home size, and email for report delivery.
+- **Team Logins** — Invite team members by email to access the account. Invites create a CleanCheck account linked to your organization.
+- **Properties** — Client locations with owner info, home size, entry instructions, and email for report delivery.
 
 ## Stack
 
@@ -50,6 +53,7 @@ Run these SQL files in order in the Supabase SQL Editor:
 9. `supabase-client-report.sql` — client_note, review_link
 10. `supabase-recurrence.sql` — recurrence and reminder tracking
 11. `supabase-team-member-phone.sql` — phone on team members
+12. `supabase-new-features.sql` — entry_notes on properties, payment tracking on jobs, org_members for multi-user login
 
 ## Local Development
 

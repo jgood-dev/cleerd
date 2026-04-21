@@ -10,6 +10,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { AddressAutocomplete } from '@/components/ui/address-autocomplete'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { Plus, Calendar, Trash2, ClipboardCheck, CheckCircle, Loader2, Pencil } from 'lucide-react'
+import { getOrgForUser } from '@/lib/get-org'
 import { TeamTimeline } from '@/components/ui/team-timeline'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -102,6 +103,7 @@ export default function SchedulePage() {
   const [templateId, setTemplateId] = useState('')
   const [durationMinutes, setDurationMinutes] = useState<string>('')
   const [recurrence, setRecurrence] = useState<string>('')
+  const [teamFilter, setTeamFilter] = useState<string>('all')
 
   // Inline new property state
   const [addingProperty, setAddingProperty] = useState(false)
@@ -115,13 +117,13 @@ export default function SchedulePage() {
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
-    const { data: org } = await supabase.from('organizations').select('id, timezone').eq('owner_id', user!.id).single()
+    const { org } = await getOrgForUser(supabase, user!.id)
     if (!org) return
     setOrgId(org.id)
     if (org.timezone) setTimezone(org.timezone)
     const [{ data: jobData }, { data: props }, { data: tms }, { data: pkgs }] = await Promise.all([
       supabase.from('jobs').select('*, properties(name, address), teams(name), inspections(id)').eq('org_id', org.id).order('scheduled_at'),
-      supabase.from('properties').select('*').eq('org_id', org.id).order('created_at'),
+      supabase.from('properties').select('id, name, address, size, entry_notes').eq('org_id', org.id).order('created_at'),
       supabase.from('teams').select('*').eq('org_id', org.id),
       supabase.from('packages').select('*, package_items(*)').eq('org_id', org.id).order('created_at'),
     ])
@@ -132,6 +134,17 @@ export default function SchedulePage() {
       ...p,
       package_items: [...(p.package_items ?? [])].sort((a: any, b: any) => a.sort_order - b.sort_order),
     })))
+
+    // Default team filter to the team whose member email matches the logged-in user
+    const { data: memberMatch } = await supabase
+      .from('team_members')
+      .select('team_id')
+      .eq('email', user!.email ?? '')
+      .in('team_id', (tms ?? []).map((t: any) => t.id))
+      .single()
+    if (memberMatch?.team_id) {
+      setTeamFilter(memberMatch.team_id)
+    }
   }
 
   function handlePackageChange(id: string) {
@@ -320,7 +333,7 @@ export default function SchedulePage() {
     }
     setOverlapError('')
 
-    await supabase.from('jobs').insert({
+    const { data: newJob } = await supabase.from('jobs').insert({
       org_id: orgId,
       property_id: finalPropertyId,
       team_id: teamId || null,
@@ -331,7 +344,15 @@ export default function SchedulePage() {
       scheduled_at: scheduledAt,
       notes: notes || null,
       status: 'scheduled',
-    })
+    }).select().single()
+
+    if (newJob?.id) {
+      fetch('/api/send-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId: newJob.id }),
+      }).catch(() => {})
+    }
 
     setAdding(false); setAddingProperty(false)
     setPropertyId(''); setTeamId(''); setPackageId(''); setScheduledAt(''); setNotes('')
@@ -385,7 +406,8 @@ export default function SchedulePage() {
     })
   }
 
-  const groups = groupJobs(jobs)
+  const visibleJobs = teamFilter === 'all' ? jobs : jobs.filter(j => j.team_id === teamFilter)
+  const groups = groupJobs(visibleJobs)
   const sections = [
     { label: 'Today', jobs: groups.today, showEmpty: true },
     { label: 'Next 7 Days', jobs: groups.upcoming, showEmpty: false },
@@ -396,7 +418,21 @@ export default function SchedulePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Schedule</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-white">Schedule</h1>
+          {teams.length > 0 && (
+            <select
+              className="h-8 rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={teamFilter}
+              onChange={e => setTeamFilter(e.target.value)}
+            >
+              <option value="all">All teams</option>
+              {teams.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          )}
+        </div>
         {!adding && (
           <Button onClick={() => setAdding(true)}>
             <Plus className="mr-2 h-4 w-4" /> Schedule Job
@@ -413,17 +449,25 @@ export default function SchedulePage() {
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-300">Property <span className="text-red-400">*</span></label>
                 {!addingProperty ? (
-                  <div className="flex gap-2">
-                    <select
-                      className="flex h-10 flex-1 rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      value={propertyId} onChange={e => { setPropertyId(e.target.value); setDurationMinutes(calcDuration(packageId, e.target.value)) }}
-                    >
-                      <option value="">Select property</option>
-                      {properties.map(p => <option key={p.id} value={p.id}>{p.address ?? p.name}</option>)}
-                    </select>
-                    <Button type="button" variant="outline" onClick={() => { setAddingProperty(true); setPropertyId('') }}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <select
+                        className="flex h-10 flex-1 rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={propertyId} onChange={e => { setPropertyId(e.target.value); setDurationMinutes(calcDuration(packageId, e.target.value)) }}
+                      >
+                        <option value="">Select property</option>
+                        {properties.map(p => <option key={p.id} value={p.id}>{p.address ?? p.name}</option>)}
+                      </select>
+                      <Button type="button" variant="outline" onClick={() => { setAddingProperty(true); setPropertyId('') }}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {propertyId && properties.find(p => p.id === propertyId)?.entry_notes && (
+                      <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-2 text-xs text-amber-300">
+                        <span className="font-semibold">Entry instructions: </span>
+                        {properties.find(p => p.id === propertyId)!.entry_notes}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-2 rounded-lg border border-white/10 bg-white/5 p-3">
@@ -638,6 +682,12 @@ export default function SchedulePage() {
                           <p className="text-xs text-blue-400 mt-0.5">↻ {RECURRENCE_LABELS[job.recurrence] ?? job.recurrence}</p>
                         )}
                         {job.notes && <p className="text-xs text-gray-500 mt-0.5 italic">{job.notes}</p>}
+                        {(() => {
+                          const prop = properties.find(p => p.id === job.property_id)
+                          return prop?.entry_notes ? (
+                            <p className="text-xs text-amber-400 mt-0.5">🔑 {prop.entry_notes}</p>
+                          ) : null
+                        })()}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0 ml-4">
                         <Badge variant={isDone ? 'secondary' : job.status === 'in_progress' ? 'warning' : 'default'}>

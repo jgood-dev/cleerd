@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { Plus, Trash2, RefreshCw } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useSearchParams } from 'next/navigation'
+import { getOrgForUser } from '@/lib/get-org'
 
 const RECURRENCE_OPTIONS = [
   { value: '', label: 'One-time' },
@@ -22,9 +23,11 @@ export default function JobsPage() {
   const supabase = createClient()
   const searchParams = useSearchParams()
   const [jobs, setJobs] = useState<any[]>([])
+  const [teams, setTeams] = useState<any[]>([])
   const [orgId, setOrgId] = useState('')
   const initialFilter = (searchParams.get('filter') ?? 'all') as 'all' | 'scheduled' | 'in_progress' | 'done'
   const [filter, setFilter] = useState<'all' | 'scheduled' | 'in_progress' | 'done'>(initialFilter)
+  const [teamFilter, setTeamFilter] = useState<string>('all')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [dialog, setDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
@@ -33,15 +36,31 @@ export default function JobsPage() {
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
-    const { data: org } = await supabase.from('organizations').select('id').eq('owner_id', user!.id).single()
+    const { org } = await getOrgForUser(supabase, user!.id)
     if (!org) return
     setOrgId(org.id)
-    const { data } = await supabase
-      .from('jobs')
-      .select('*, properties(name, address), teams(name), inspections(id, overall_score, status, ai_report)')
-      .eq('org_id', org.id)
-      .order('scheduled_at', { ascending: false })
-    setJobs(data ?? [])
+
+    const [{ data: jobData }, { data: teamData }] = await Promise.all([
+      supabase
+        .from('jobs')
+        .select('*, properties(name, address), teams(name), inspections(id, overall_score, status, ai_report)')
+        .eq('org_id', org.id)
+        .order('scheduled_at', { ascending: false }),
+      supabase.from('teams').select('id, name').eq('org_id', org.id).order('created_at'),
+    ])
+    setJobs(jobData ?? [])
+    setTeams(teamData ?? [])
+
+    // Default to the team whose member email matches the logged-in user
+    const { data: memberMatch } = await supabase
+      .from('team_members')
+      .select('team_id')
+      .eq('email', user!.email ?? '')
+      .in('team_id', (teamData ?? []).map((t: any) => t.id))
+      .single()
+    if (memberMatch?.team_id) {
+      setTeamFilter(memberMatch.team_id)
+    }
   }
 
   async function setRecurrence(jobId: string, recurrence: string) {
@@ -63,16 +82,19 @@ export default function JobsPage() {
 
   const filtered = jobs.filter(j => {
     if (filter !== 'all' && j.status !== filter) return false
+    if (teamFilter !== 'all' && j.team_id !== teamFilter) return false
     if (dateFrom && new Date(j.scheduled_at) < new Date(dateFrom)) return false
     if (dateTo && new Date(j.scheduled_at) > new Date(dateTo + 'T23:59:59')) return false
     return true
   })
 
+  // Status counts scoped to the current team filter
+  const teamScoped = teamFilter === 'all' ? jobs : jobs.filter(j => j.team_id === teamFilter)
   const counts = {
-    all: jobs.length,
-    scheduled: jobs.filter(j => j.status === 'scheduled').length,
-    in_progress: jobs.filter(j => j.status === 'in_progress').length,
-    done: jobs.filter(j => j.status === 'done').length,
+    all: teamScoped.length,
+    scheduled: teamScoped.filter(j => j.status === 'scheduled').length,
+    in_progress: teamScoped.filter(j => j.status === 'in_progress').length,
+    done: teamScoped.filter(j => j.status === 'done').length,
   }
 
   return (
@@ -86,20 +108,33 @@ export default function JobsPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-      <div className="flex gap-1 rounded-lg bg-white/5 p-1 w-fit">
-        {(['all', 'scheduled', 'in_progress', 'done'] as const).map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-              filter === f ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-gray-200'
-            }`}
+        <div className="flex gap-1 rounded-lg bg-white/5 p-1 w-fit">
+          {(['all', 'scheduled', 'in_progress', 'done'] as const).map(f => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                filter === f ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              {f === 'all' ? 'All' : f === 'in_progress' ? 'In Progress' : f.charAt(0).toUpperCase() + f.slice(1)}
+              <span className="ml-1.5 text-xs text-gray-500">{counts[f]}</span>
+            </button>
+          ))}
+        </div>
+
+        {teams.length > 0 && (
+          <select
+            className="h-9 rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={teamFilter}
+            onChange={e => setTeamFilter(e.target.value)}
           >
-            {f === 'all' ? 'All' : f === 'in_progress' ? 'In Progress' : f.charAt(0).toUpperCase() + f.slice(1)}
-            <span className="ml-1.5 text-xs text-gray-500">{counts[f]}</span>
-          </button>
-        ))}
-      </div>
+            <option value="all">All teams</option>
+            {teams.map(t => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        )}
 
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-500">From</span>
@@ -115,6 +150,9 @@ export default function JobsPage() {
 
       <Card>
         <CardHeader><CardTitle>
+          {teamFilter !== 'all'
+            ? `${teams.find(t => t.id === teamFilter)?.name ?? 'Team'} — `
+            : ''}
           {filter === 'all' ? 'All Jobs' : filter === 'in_progress' ? 'In Progress' : filter.charAt(0).toUpperCase() + filter.slice(1)}
         </CardTitle></CardHeader>
         <CardContent>

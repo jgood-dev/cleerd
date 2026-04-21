@@ -4,12 +4,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { ClipboardCheck, CheckCircle, AlertTriangle, TrendingUp, Calendar, RefreshCw } from 'lucide-react'
+import { getOrgForUser } from '@/lib/get-org'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: org } = await supabase.from('organizations').select('*').eq('owner_id', user!.id).single()
+  const { org } = await getOrgForUser(supabase, user!.id)
 
   // Today's jobs
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
