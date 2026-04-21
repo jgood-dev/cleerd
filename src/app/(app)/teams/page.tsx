@@ -13,23 +13,30 @@ export default function TeamsPage() {
   const [teams, setTeams] = useState<any[]>([])
   const [newTeamName, setNewTeamName] = useState('')
   const [loading, setLoading] = useState(false)
+  const [debugInfo, setDebugInfo] = useState<string>('')
 
   useEffect(() => { load() }, [])
 
   async function load() {
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data: org } = await supabase.from('organizations').select('id').eq('owner_id', user!.id).single()
-    if (!org) return
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) { setDebugInfo(`Auth error: ${userError?.message ?? 'no user'}`); return }
+
+    const { data: org, error: orgError } = await supabase.from('organizations').select('id').eq('owner_id', user.id).single()
+    if (orgError || !org) { setDebugInfo(`Org error: ${orgError?.message ?? 'no org found'} | uid: ${user.id}`); return }
+
     setOrgId(org.id)
-    const { data } = await supabase.from('teams').select('*, team_members(*)').eq('org_id', org.id)
+    setDebugInfo(`org: ${org.id}`)
+    const { data, error: teamsError } = await supabase.from('teams').select('*, team_members(*)').eq('org_id', org.id)
+    if (teamsError) setDebugInfo(`Teams error: ${teamsError.message}`)
     setTeams(data ?? [])
   }
 
   async function addTeam(e: React.FormEvent) {
     e.preventDefault()
-    if (!newTeamName.trim()) return
+    if (!newTeamName.trim() || !orgId) return
     setLoading(true)
-    await supabase.from('teams').insert({ org_id: orgId, name: newTeamName.trim() })
+    const { error } = await supabase.from('teams').insert({ org_id: orgId, name: newTeamName.trim() })
+    if (error) setDebugInfo(`Insert error: ${error.message}`)
     setNewTeamName('')
     setLoading(false)
     await load()
@@ -44,6 +51,7 @@ export default function TeamsPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-white">Teams</h1>
+      {debugInfo && <p className="text-xs text-yellow-400 font-mono bg-yellow-500/10 border border-yellow-500/20 rounded p-2">{debugInfo}</p>}
 
       <Card>
         <CardHeader><CardTitle>Add Team</CardTitle></CardHeader>
