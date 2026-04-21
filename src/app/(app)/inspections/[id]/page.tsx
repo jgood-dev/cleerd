@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Camera, Sparkles, Send, CheckSquare, Square, Loader2, CheckCircle } from 'lucide-react'
+import { Camera, Sparkles, Send, CheckSquare, Square, Loader2, CheckCircle, Trash2 } from 'lucide-react'
 
 export default function InspectionDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -54,6 +54,13 @@ export default function InspectionDetailPage() {
     }
     setUploadingType(null)
     e.target.value = ''
+  }
+
+  async function deletePhoto(photo: any) {
+    if (!confirm('Delete this photo?')) return
+    await supabase.storage.from('inspection-photos').remove([photo.storage_path])
+    await supabase.from('inspection_photos').delete().eq('id', photo.id)
+    setPhotos(prev => prev.filter(p => p.id !== photo.id))
   }
 
   async function completeInspection() {
@@ -221,7 +228,7 @@ export default function InspectionDetailPage() {
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
                     {sectionPhotos.map(photo => (
-                      <PhotoThumb key={photo.id} photo={photo} supabase={supabase} />
+                      <PhotoThumb key={photo.id} photo={photo} supabase={supabase} onDelete={deletePhoto} />
                     ))}
                     <button
                       onClick={() => ref.current?.click()}
@@ -262,6 +269,16 @@ export default function InspectionDetailPage() {
               {generatingReport ? 'Generating...' : inspection.ai_report ? 'Regenerate Report' : 'Generate AI Report'}
             </Button>
             {inspection.ai_report && (
+              <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-400" onClick={async () => {
+                if (!confirm('Delete this report? The inspection will remain but the AI report and score will be cleared.')) return
+                await supabase.from('inspections').update({ ai_report: null, overall_score: null, status: 'in_progress', completed_at: null }).eq('id', id)
+                setReportSent(false)
+                await load()
+              }}>
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete report
+              </Button>
+            )}
+            {inspection.ai_report && (
               <div className="flex items-center gap-3">
                 <Button variant="outline" onClick={sendReport} disabled={reportSent}>
                   <Send className="mr-2 h-4 w-4" />
@@ -281,7 +298,7 @@ export default function InspectionDetailPage() {
   )
 }
 
-function PhotoThumb({ photo, supabase }: { photo: any, supabase: any }) {
+function PhotoThumb({ photo, supabase, onDelete }: { photo: any, supabase: any, onDelete: (photo: any) => void }) {
   const [url, setUrl] = useState('')
   useEffect(() => {
     supabase.storage.from('inspection-photos').createSignedUrl(photo.storage_path, 3600)
@@ -289,11 +306,17 @@ function PhotoThumb({ photo, supabase }: { photo: any, supabase: any }) {
   }, [photo.storage_path])
 
   return (
-    <div className="relative overflow-hidden rounded-lg border border-white/10 h-20">
+    <div className="relative overflow-hidden rounded-lg border border-white/10 h-20 group">
       {url
         ? <img src={url} alt="" className="h-full w-full object-cover" />
         : <div className="h-full w-full bg-white/5 flex items-center justify-center"><Loader2 className="h-4 w-4 animate-spin text-gray-500" /></div>
       }
+      <button
+        onClick={() => onDelete(photo)}
+        className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        <Trash2 className="h-5 w-5 text-red-400" />
+      </button>
     </div>
   )
 }
