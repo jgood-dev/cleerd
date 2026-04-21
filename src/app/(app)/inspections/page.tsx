@@ -5,9 +5,11 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import Link from 'next/link'
 import { Plus, Trash2, RefreshCw } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { useSearchParams } from 'next/navigation'
 
 const RECURRENCE_OPTIONS = [
   { value: '', label: 'One-time' },
@@ -18,9 +20,13 @@ const RECURRENCE_OPTIONS = [
 
 export default function JobsPage() {
   const supabase = createClient()
+  const searchParams = useSearchParams()
   const [jobs, setJobs] = useState<any[]>([])
   const [orgId, setOrgId] = useState('')
-  const [filter, setFilter] = useState<'all' | 'scheduled' | 'in_progress' | 'done'>('all')
+  const initialFilter = (searchParams.get('filter') ?? 'all') as 'all' | 'scheduled' | 'in_progress' | 'done'
+  const [filter, setFilter] = useState<'all' | 'scheduled' | 'in_progress' | 'done'>(initialFilter)
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [dialog, setDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
 
   useEffect(() => { load() }, [])
@@ -55,7 +61,12 @@ export default function JobsPage() {
     })
   }
 
-  const filtered = filter === 'all' ? jobs : jobs.filter(j => j.status === filter)
+  const filtered = jobs.filter(j => {
+    if (filter !== 'all' && j.status !== filter) return false
+    if (dateFrom && new Date(j.scheduled_at) < new Date(dateFrom)) return false
+    if (dateTo && new Date(j.scheduled_at) > new Date(dateTo + 'T23:59:59')) return false
+    return true
+  })
 
   const counts = {
     all: jobs.length,
@@ -73,7 +84,8 @@ export default function JobsPage() {
         </Link>
       </div>
 
-      {/* Filter tabs */}
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
       <div className="flex gap-1 rounded-lg bg-white/5 p-1 w-fit">
         {(['all', 'scheduled', 'in_progress', 'done'] as const).map(f => (
           <button
@@ -87,6 +99,18 @@ export default function JobsPage() {
             <span className="ml-1.5 text-xs text-gray-500">{counts[f]}</span>
           </button>
         ))}
+      </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500">From</span>
+          <Input type="date" className="h-9 w-36 text-sm" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+          <span className="text-sm text-gray-500">To</span>
+          <Input type="date" className="h-9 w-36 text-sm" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+          {(dateFrom || dateTo) && (
+            <Button variant="ghost" size="sm" className="text-xs text-gray-500 h-9"
+              onClick={() => { setDateFrom(''); setDateTo('') }}>Clear</Button>
+          )}
+        </div>
       </div>
 
       <Card>

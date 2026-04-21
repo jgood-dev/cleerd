@@ -55,21 +55,23 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[
-          { icon: ClipboardCheck, label: 'Total Jobs', value: totalInspections ?? 0, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-          { icon: CheckCircle, label: 'Completed This Month', value: completedThisMonth ?? 0, color: 'text-green-400', bg: 'bg-green-500/10' },
-          { icon: AlertTriangle, label: 'In Progress', value: pendingCount ?? 0, color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
-        ].map(({ icon: Icon, label, value, color, bg }) => (
-          <Card key={label}>
-            <CardContent className="flex items-center gap-4 p-6">
-              <div className={`rounded-lg ${bg} p-3`}>
-                <Icon className={`h-6 w-6 ${color}`} />
-              </div>
-              <div>
-                <p className="text-sm text-gray-400">{label}</p>
-                <p className="text-2xl font-bold text-white">{value}</p>
-              </div>
-            </CardContent>
-          </Card>
+          { icon: ClipboardCheck, label: 'Total Jobs', value: totalInspections ?? 0, color: 'text-blue-400', bg: 'bg-blue-500/10', href: '/inspections?filter=all' },
+          { icon: CheckCircle, label: 'Completed This Month', value: completedThisMonth ?? 0, color: 'text-green-400', bg: 'bg-green-500/10', href: '/inspections?filter=done' },
+          { icon: AlertTriangle, label: 'In Progress', value: pendingCount ?? 0, color: 'text-yellow-400', bg: 'bg-yellow-500/10', href: '/inspections?filter=in_progress' },
+        ].map(({ icon: Icon, label, value, color, bg, href }) => (
+          <Link key={label} href={href}>
+            <Card className="hover:bg-white/5 transition-colors cursor-pointer">
+              <CardContent className="flex items-center gap-4 p-6">
+                <div className={`rounded-lg ${bg} p-3`}>
+                  <Icon className={`h-6 w-6 ${color}`} />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-400">{label}</p>
+                  <p className="text-2xl font-bold text-white">{value}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
 
