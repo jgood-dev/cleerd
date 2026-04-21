@@ -1,6 +1,21 @@
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
-import { CheckSquare, CheckCircle, XCircle, Camera } from 'lucide-react'
+import { CheckCircle, Clock, Users, Calendar, Star, Camera, AlertCircle } from 'lucide-react'
+
+function fmtDuration(start: string, end: string) {
+  const ms = new Date(end).getTime() - new Date(start).getTime()
+  if (ms <= 0) return null
+  const totalMins = Math.round(ms / 60000)
+  const h = Math.floor(totalMins / 60)
+  const m = totalMins % 60
+  if (h === 0) return `${m} minute${m !== 1 ? 's' : ''}`
+  if (m === 0) return `${h} hour${h !== 1 ? 's' : ''}`
+  return `${h} hr ${m} min`
+}
+
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+}
 
 export default async function ClientReportPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
@@ -12,146 +27,205 @@ export default async function ClientReportPage({ params }: { params: Promise<{ t
 
   const { data: inspection } = await supabase
     .from('inspections')
-    .select('*, properties(name, address), inspection_photos(*), checklist_items(*)')
+    .select('*, properties(name, address, owner_name, org_id), teams(name, team_members(*)), inspection_photos(*), checklist_items(*)')
     .eq('share_token', token)
     .single()
 
   if (!inspection) notFound()
-  if (!inspection.ai_report) {
-    return (
-      <div className="min-h-screen bg-[#0f1117] flex items-center justify-center">
-        <div className="text-center px-4">
-          <CheckSquare className="h-10 w-10 text-blue-400 mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-white mb-2">Report Not Ready</h1>
-          <p className="text-gray-400">This inspection hasn't been completed yet. Check back soon.</p>
-        </div>
-      </div>
-    )
-  }
 
   const property = inspection.properties as any
+  const team = inspection.teams as any
+  const members: any[] = team?.team_members ?? []
   const photos = (inspection.inspection_photos as any[]) ?? []
   const checklist = (inspection.checklist_items as any[]) ?? []
-  const completedCount = checklist.filter((c: any) => c.completed).length
-  const score = inspection.overall_score
 
-  const scoreColor = score >= 80 ? '#22c55e' : score >= 60 ? '#eab308' : '#ef4444'
-  const scoreBg = score >= 80 ? 'bg-green-500/10 border-green-500/30' : score >= 60 ? 'bg-yellow-500/10 border-yellow-500/30' : 'bg-red-500/10 border-red-500/30'
+  // Fetch org for name + review link
+  const orgId = property?.org_id ?? inspection.org_id
+  const { data: org } = await supabase.from('organizations').select('name, review_link').eq('id', orgId).single()
+
+  // Fetch next scheduled job for this property
+  const { data: nextJob } = await supabase
+    .from('jobs')
+    .select('scheduled_at')
+    .eq('property_id', inspection.property_id)
+    .gt('scheduled_at', new Date().toISOString())
+    .neq('status', 'done')
+    .order('scheduled_at')
+    .limit(1)
+    .single()
 
   // Generate signed URLs for photos
   const photoUrls: Record<string, string> = {}
   for (const photo of photos) {
-    const { data } = await supabase.storage.from('inspection-photos').createSignedUrl(photo.storage_path, 3600)
+    const { data } = await supabase.storage.from('inspection-photos').createSignedUrl(photo.storage_path, 86400)
     if (data?.signedUrl) photoUrls[photo.id] = data.signedUrl
   }
 
-  const beforePhotos = photos.filter(p => p.photo_type === 'before')
-  const afterPhotos = photos.filter(p => p.photo_type === 'after')
+  const completedItems = checklist.filter((c: any) => c.completed)
   const issuePhotos = photos.filter(p => p.photo_type === 'issue')
+  const afterPhotos = photos.filter(p => p.photo_type === 'after')
+  const completedAt = inspection.completed_at ?? inspection.created_at
+  const timeOnSite = inspection.completed_at ? fmtDuration(inspection.created_at, inspection.completed_at) : null
+  const companyName = org?.name ?? 'Your Cleaning Service'
+  const ownerName = property?.owner_name ? property.owner_name.split(' ')[0] : null
 
   return (
-    <div className="min-h-screen bg-[#0f1117] text-gray-100">
+    <div className="min-h-screen bg-[#f8f9fb] text-gray-800" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
       {/* Header */}
-      <header className="border-b border-white/10 bg-[#161b27] px-6 py-4">
-        <div className="mx-auto max-w-3xl flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CheckSquare className="h-6 w-6 text-blue-400" />
-            <span className="text-lg font-bold text-white">CleanCheck</span>
-          </div>
-          <span className="text-sm text-gray-400">Quality Report</span>
+      <header style={{ background: '#161b27', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '18px 24px' }}>
+        <div style={{ maxWidth: 640, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ color: '#ffffff', fontWeight: 700, fontSize: 18 }}>{companyName}</span>
+          <span style={{ color: '#6b7280', fontSize: 13 }}>Cleaning Summary</span>
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 py-10 space-y-8">
-        {/* Title block */}
-        <div className="rounded-xl border border-white/10 bg-[#161b27] p-6">
-          <h1 className="text-2xl font-bold text-white mb-1">{property?.name ?? 'Cleaning Inspection'}</h1>
-          {property?.address && <p className="text-gray-400 text-sm">{property.address}</p>}
-          <p className="text-gray-500 text-sm mt-2">
-            Completed {new Date(inspection.completed_at ?? inspection.created_at).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+      <main style={{ maxWidth: 640, margin: '0 auto', padding: '32px 20px 60px' }}>
+
+        {/* Greeting */}
+        <div style={{ marginBottom: 32 }}>
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: '#111827', margin: '0 0 6px' }}>
+            {ownerName ? `Hi ${ownerName} — your home is clean!` : 'Your home is clean!'}
+          </h1>
+          <p style={{ color: '#6b7280', fontSize: 15, margin: 0 }}>
+            {property?.address ?? property?.name} · {fmtDate(completedAt)}
           </p>
         </div>
 
-        {/* Score */}
-        {score != null && (
-          <div className={`rounded-xl border p-6 text-center ${scoreBg}`}>
-            <p className="text-sm text-gray-400 mb-2">Overall Quality Score</p>
-            <div className="text-6xl font-bold mb-1" style={{ color: scoreColor }}>{score}%</div>
-            <p className="text-gray-400 text-sm">
-              {score >= 90 ? 'Excellent — outstanding quality' : score >= 80 ? 'Great — high quality clean' : score >= 60 ? 'Good — meets standards' : 'Needs improvement'}
-            </p>
+        {/* Personal note */}
+        {inspection.client_note && (
+          <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderLeft: '4px solid #3b82f6', borderRadius: 10, padding: '18px 20px', marginBottom: 24 }}>
+            <p style={{ color: '#374151', fontSize: 15, lineHeight: 1.6, margin: 0 }}>{inspection.client_note}</p>
+            {team?.name && <p style={{ color: '#9ca3af', fontSize: 13, margin: '10px 0 0' }}>— {team.name}</p>}
           </div>
         )}
 
-        {/* AI Report */}
-        <div className="rounded-xl border border-white/10 bg-[#161b27] p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Inspector Notes</h2>
-          <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-sm">{inspection.ai_report}</p>
+        {/* Stats row */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 28 }}>
+          {/* Items completed */}
+          <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '16px 18px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <CheckCircle size={16} color="#22c55e" />
+              <span style={{ fontSize: 13, color: '#6b7280', fontWeight: 500 }}>Items Completed</span>
+            </div>
+            <p style={{ fontSize: 22, fontWeight: 700, color: '#111827', margin: 0 }}>
+              {completedItems.length}<span style={{ fontSize: 14, color: '#9ca3af', fontWeight: 400 }}>/{checklist.length}</span>
+            </p>
+          </div>
+
+          {/* Time on site */}
+          {timeOnSite && (
+            <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '16px 18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <Clock size={16} color="#3b82f6" />
+                <span style={{ fontSize: 13, color: '#6b7280', fontWeight: 500 }}>Time on Site</span>
+              </div>
+              <p style={{ fontSize: 22, fontWeight: 700, color: '#111827', margin: 0, lineHeight: 1.2 }}>{timeOnSite}</p>
+            </div>
+          )}
+
+          {/* Team */}
+          {team?.name && (
+            <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '16px 18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <Users size={16} color="#8b5cf6" />
+                <span style={{ fontSize: 13, color: '#6b7280', fontWeight: 500 }}>Cleaned by</span>
+              </div>
+              <p style={{ fontSize: 15, fontWeight: 600, color: '#111827', margin: 0 }}>{team.name}</p>
+              {members.length > 0 && (
+                <p style={{ fontSize: 13, color: '#6b7280', margin: '2px 0 0' }}>
+                  {members.map((m: any) => m.name).join(', ')}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
+        {/* After photos */}
+        {afterPhotos.length > 0 && (
+          <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 12, padding: '20px 22px', marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+              <Camera size={18} color="#3b82f6" />
+              <h2 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: 0 }}>After Photos</h2>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
+              {afterPhotos.map((photo: any) => photoUrls[photo.id] && (
+                <img key={photo.id} src={photoUrls[photo.id]} alt="After cleaning"
+                  style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 8, border: '1px solid #e5e7eb' }} />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Checklist */}
-        {checklist.length > 0 && (
-          <div className="rounded-xl border border-white/10 bg-[#161b27] p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white">Checklist</h2>
-              <span className="text-sm text-gray-400">{completedCount}/{checklist.length} completed</span>
-            </div>
-            <div className="h-2 rounded-full bg-white/10 mb-4">
-              <div className="h-2 rounded-full bg-blue-500 transition-all" style={{ width: `${Math.round((completedCount / checklist.length) * 100)}%` }} />
-            </div>
-            <ul className="space-y-2">
-              {checklist.map((item: any) => (
-                <li key={item.id} className="flex items-center gap-3">
-                  {item.completed
-                    ? <CheckCircle className="h-4 w-4 flex-shrink-0 text-green-400" />
-                    : <XCircle className="h-4 w-4 flex-shrink-0 text-red-400" />}
-                  <span className={`text-sm ${item.completed ? 'text-gray-300' : 'text-gray-500 line-through'}`}>{item.label}</span>
+        {completedItems.length > 0 && (
+          <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 12, padding: '20px 22px', marginBottom: 20 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: '0 0 14px' }}>What We Completed</h2>
+            <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '6px 16px' }}>
+              {completedItems.map((item: any) => (
+                <li key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: '#374151' }}>
+                  <CheckCircle size={14} color="#22c55e" style={{ flexShrink: 0 }} />
+                  {item.label}
                 </li>
               ))}
             </ul>
           </div>
         )}
 
-        {/* Photos */}
-        {photos.length > 0 && (
-          <div className="rounded-xl border border-white/10 bg-[#161b27] p-6">
-            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Camera className="h-5 w-5 text-blue-400" /> Photos
-            </h2>
-            <div className="space-y-6">
-              {[
-                { label: 'After', photos: afterPhotos, labelClass: 'bg-green-500/20 text-green-300' },
-                { label: 'Before', photos: beforePhotos, labelClass: 'bg-blue-500/20 text-blue-300' },
-                { label: 'Issues', photos: issuePhotos, labelClass: 'bg-red-500/20 text-red-300' },
-              ].filter(g => g.photos.length > 0).map(group => (
-                <div key={group.label}>
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${group.labelClass}`}>{group.label}</span>
-                    <span className="text-xs text-gray-500">{group.photos.length} photo{group.photos.length !== 1 ? 's' : ''}</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    {group.photos.map((photo: any) => (
-                      <div key={photo.id} className="overflow-hidden rounded-lg border border-white/10">
-                        {photoUrls[photo.id] && (
-                          <img src={photoUrls[photo.id]} alt={photo.photo_type} className="h-40 w-full object-cover" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+        {/* Issues noted */}
+        {issuePhotos.length > 0 && (
+          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '20px 22px', marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <AlertCircle size={18} color="#d97706" />
+              <h2 style={{ fontSize: 16, fontWeight: 600, color: '#92400e', margin: 0 }}>A Few Things We Noted</h2>
+            </div>
+            <p style={{ fontSize: 14, color: '#78350f', margin: '0 0 14px', lineHeight: 1.5 }}>
+              We wanted to make you aware of the following items we came across. These are pre-existing conditions or areas that needed extra attention.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
+              {issuePhotos.map((photo: any) => photoUrls[photo.id] && (
+                <img key={photo.id} src={photoUrls[photo.id]} alt="Item noted"
+                  style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 8, border: '1px solid #fde68a' }} />
               ))}
             </div>
           </div>
         )}
 
-        {/* Footer */}
-        <div className="text-center text-xs text-gray-600 pb-6">
-          <div className="flex items-center justify-center gap-1.5 mb-1">
-            <CheckSquare className="h-3.5 w-3.5 text-blue-400/60" />
-            <span>Report generated by CleanCheck</span>
+        {/* Next visit */}
+        {nextJob && (
+          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12, padding: '18px 22px', marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Calendar size={18} color="#2563eb" />
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 600, color: '#1e40af', margin: 0 }}>Next Visit Scheduled</p>
+                <p style={{ fontSize: 14, color: '#3b82f6', margin: '2px 0 0' }}>
+                  {new Date(nextJob.scheduled_at).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                  {' at '}
+                  {new Date(nextJob.scheduled_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                </p>
+              </div>
+            </div>
           </div>
-          <p>This report was automatically generated using AI analysis of inspection photos and checklist data.</p>
-        </div>
+        )}
+
+        {/* Review request */}
+        {org?.review_link && (
+          <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 12, padding: '24px 22px', marginBottom: 20, textAlign: 'center' }}>
+            <Star size={28} color="#f59e0b" style={{ margin: '0 auto 10px' }} />
+            <h2 style={{ fontSize: 17, fontWeight: 600, color: '#111827', margin: '0 0 8px' }}>How did we do?</h2>
+            <p style={{ fontSize: 14, color: '#6b7280', margin: '0 0 16px' }}>
+              We'd love to hear your feedback. A quick review means the world to our small team.
+            </p>
+            <a href={org.review_link} target="_blank" rel="noopener noreferrer"
+              style={{ display: 'inline-block', background: '#f59e0b', color: '#ffffff', textDecoration: 'none', fontWeight: 600, fontSize: 14, padding: '12px 28px', borderRadius: 8 }}>
+              Leave a Review
+            </a>
+          </div>
+        )}
+
+        {/* Footer */}
+        <p style={{ textAlign: 'center', fontSize: 13, color: '#9ca3af', margin: '32px 0 0' }}>
+          Summary prepared by <strong style={{ color: '#6b7280' }}>{companyName}</strong> · Powered by CleanCheck
+        </p>
       </main>
     </div>
   )

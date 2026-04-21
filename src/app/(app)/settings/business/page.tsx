@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ArrowLeft, Pencil, Globe } from 'lucide-react'
+import { ArrowLeft, Pencil, Globe, Star } from 'lucide-react'
 import Link from 'next/link'
 
 const TIMEZONE_GROUPS = [
@@ -84,6 +84,9 @@ export default function BusinessSettingsPage() {
   const [saved, setSaved] = useState(false)
   const [tzSaving, setTzSaving] = useState(false)
   const [tzSaved, setTzSaved] = useState(false)
+  const [reviewLink, setReviewLink] = useState('')
+  const [reviewSaving, setReviewSaving] = useState(false)
+  const [reviewSaved, setReviewSaved] = useState(false)
 
   useEffect(() => { load() }, [])
 
@@ -93,6 +96,7 @@ export default function BusinessSettingsPage() {
     setOrg(o)
     setOrgName(o?.name ?? '')
     setTimezone(o?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone)
+    setReviewLink(o?.review_link ?? '')
   }
 
   async function save(e: React.FormEvent) {
@@ -105,6 +109,15 @@ export default function BusinessSettingsPage() {
     setEditing(false)
     setTimeout(() => setSaved(false), 2000)
     await load()
+  }
+
+  async function saveReviewLink() {
+    if (!org) return
+    setReviewSaving(true)
+    await supabase.from('organizations').update({ review_link: reviewLink.trim() || null }).eq('id', org.id)
+    setReviewSaving(false)
+    setReviewSaved(true)
+    setTimeout(() => setReviewSaved(false), 2000)
   }
 
   async function saveTimezone() {
@@ -199,6 +212,29 @@ export default function BusinessSettingsPage() {
             </Button>
           </div>
           {tzSaved && <p className="text-sm text-green-400">Timezone saved.</p>}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Star className="h-4 w-4 text-yellow-400" />
+            <CardTitle>Review Link</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-gray-400">Paste your Google, Yelp, or other review page URL. It will appear as a "Leave a Review" button at the bottom of every client report.</p>
+          <Input
+            placeholder="https://g.page/r/your-business/review"
+            value={reviewLink}
+            onChange={e => setReviewLink(e.target.value)}
+          />
+          <div className="flex gap-2 items-center">
+            <Button onClick={saveReviewLink} disabled={reviewSaving}>
+              {reviewSaving ? 'Saving...' : 'Save review link'}
+            </Button>
+            {reviewSaved && <p className="text-sm text-green-400">Saved.</p>}
+          </div>
         </CardContent>
       </Card>
 

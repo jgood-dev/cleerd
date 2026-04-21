@@ -11,13 +11,19 @@ export async function POST(request: NextRequest) {
 
   const { data: inspection } = await supabase
     .from('inspections')
-    .select('*, properties(name, address, client_email)')
+    .select('*, properties(name, address, client_email, owner_name, org_id), teams(name)')
     .eq('id', inspectionId)
     .single()
 
   if (!inspection?.properties?.client_email) {
     return Response.json({ error: 'No client email' }, { status: 400 })
   }
+
+  const { data: org } = await supabase
+    .from('organizations')
+    .select('name')
+    .eq('id', (inspection.properties as any).org_id ?? inspection.org_id)
+    .single()
 
   // Generate share token if not already set
   let token = inspection.share_token
@@ -27,63 +33,64 @@ export async function POST(request: NextRequest) {
   }
 
   const property = inspection.properties as any
+  const team = inspection.teams as any
+  const companyName = org?.name ?? 'Your Cleaning Service'
   const reportUrl = `${process.env.NEXT_PUBLIC_APP_URL}/report/${token}`
-  const score = inspection.overall_score
-  const scoreColor = score >= 80 ? '#22c55e' : score >= 60 ? '#eab308' : '#ef4444'
+  const address = property.address ?? property.name ?? 'your property'
+  const ownerFirst = property.owner_name ? property.owner_name.split(' ')[0] : null
+  const greeting = ownerFirst ? `Hi ${ownerFirst},` : 'Hi,'
 
   const html = `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#0f1117;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f1117;padding:40px 20px;">
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:40px 20px;">
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
 
         <!-- Header -->
-        <tr><td style="background:#161b27;border-radius:12px 12px 0 0;border:1px solid rgba(255,255,255,0.1);border-bottom:none;padding:24px 32px;">
+        <tr><td style="background:#161b27;border-radius:12px 12px 0 0;padding:20px 32px;">
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr>
-              <td style="color:#60a5fa;font-size:18px;font-weight:700;">✓ CleanCheck</td>
-              <td align="right" style="color:#6b7280;font-size:13px;">Quality Report</td>
+              <td style="color:#ffffff;font-size:17px;font-weight:700;">${companyName}</td>
+              <td align="right" style="color:#6b7280;font-size:13px;">Cleaning Summary</td>
             </tr>
           </table>
         </td></tr>
 
         <!-- Body -->
-        <tr><td style="background:#161b27;border:1px solid rgba(255,255,255,0.1);border-top:none;border-bottom:none;padding:32px;">
+        <tr><td style="background:#ffffff;padding:32px;">
 
-          <h1 style="margin:0 0 4px;color:#ffffff;font-size:24px;font-weight:700;">${property?.name ?? 'Inspection Complete'}</h1>
-          ${property?.address ? `<p style="margin:0 0 24px;color:#6b7280;font-size:14px;">${property.address}</p>` : '<div style="margin-bottom:24px;"></div>'}
+          <p style="margin:0 0 6px;font-size:20px;font-weight:700;color:#111827;">${greeting}</p>
+          <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.6;">
+            Your home at <strong>${address}</strong> has been cleaned. We've put together a quick summary for you.
+          </p>
 
-          ${score != null ? `
-          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
-            <tr><td style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:20px;text-align:center;">
-              <p style="margin:0 0 4px;color:#9ca3af;font-size:13px;">Overall Quality Score</p>
-              <p style="margin:0;font-size:48px;font-weight:700;color:${scoreColor};">${score}%</p>
+          ${inspection.client_note ? `
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+            <tr><td style="background:#eff6ff;border-left:4px solid #3b82f6;border-radius:6px;padding:14px 16px;">
+              <p style="margin:0;font-size:14px;color:#374151;line-height:1.6;">${inspection.client_note}</p>
+              ${team?.name ? `<p style="margin:8px 0 0;font-size:13px;color:#9ca3af;">— ${team.name}</p>` : ''}
             </td></tr>
           </table>` : ''}
-
-          <p style="margin:0 0 24px;color:#d1d5db;font-size:15px;line-height:1.6;">
-            Your latest cleaning inspection has been completed and a full quality report is ready for your review.
-          </p>
 
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
             <tr><td align="center">
               <a href="${reportUrl}" style="display:inline-block;background:#3b82f6;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 32px;border-radius:8px;">
-                View Full Report
+                View Your Cleaning Summary
               </a>
             </td></tr>
           </table>
 
-          <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.5;">
-            This report includes photos, a detailed checklist, and AI-generated quality notes. The link above will always show the latest version of this report.
+          <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.6;">
+            Your summary includes after photos, a full checklist of completed items, and any notes from the team. The link above will always show the latest version.
           </p>
 
         </td></tr>
 
         <!-- Footer -->
-        <tr><td style="background:#0f1117;border-radius:0 0 12px 12px;border:1px solid rgba(255,255,255,0.1);border-top:none;padding:20px 32px;text-align:center;">
-          <p style="margin:0;color:#4b5563;font-size:12px;">Report generated by <strong style="color:#6b7280;">CleanCheck</strong> · <a href="${process.env.NEXT_PUBLIC_APP_URL}" style="color:#6b7280;">cleancheck.io</a></p>
+        <tr><td style="background:#f9fafb;border-radius:0 0 12px 12px;border-top:1px solid #e5e7eb;padding:18px 32px;text-align:center;">
+          <p style="margin:0;color:#9ca3af;font-size:12px;">Sent by <strong style="color:#6b7280;">${companyName}</strong> · Powered by CleanCheck</p>
         </td></tr>
 
       </table>
@@ -92,8 +99,7 @@ export async function POST(request: NextRequest) {
 </body>
 </html>`
 
-  const address = property.address ?? property.name ?? 'your property'
-  const plainText = `Hi,\n\nYour cleaning inspection for ${address} is complete${score != null ? ` with a quality score of ${score}%` : ''}.\n\nView the full report here:\n${reportUrl}\n\nThis report includes photos, checklist results, and quality notes.\n\n— Josh\njosh@cleancheck.io`
+  const plainText = `${greeting}\n\nYour home at ${address} has been cleaned.${inspection.client_note ? `\n\n${inspection.client_note}` : ''}\n\nView your cleaning summary here:\n${reportUrl}\n\nYour summary includes after photos, a completed checklist, and notes from the team.\n\n— ${companyName}`
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -102,10 +108,10 @@ export async function POST(request: NextRequest) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'Josh at CleanCheck <josh@cleancheck.io>',
+      from: `${companyName} <josh@cleancheck.io>`,
       reply_to: 'josh@cleancheck.io',
       to: property.client_email,
-      subject: `Inspection report — ${address}`,
+      subject: `Your home is clean — ${address}`,
       html,
       text: plainText,
     }),

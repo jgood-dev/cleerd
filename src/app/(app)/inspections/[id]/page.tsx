@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Camera, Sparkles, Send, CheckSquare, Square, Loader2, CheckCircle, Trash2 } from 'lucide-react'
+import { Camera, Sparkles, Send, CheckSquare, Square, Loader2, CheckCircle, Trash2, MessageSquare } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 export default function InspectionDetailPage() {
@@ -24,6 +24,9 @@ export default function InspectionDetailPage() {
   const [generatingReport, setGeneratingReport] = useState(false)
   const [uploadingType, setUploadingType] = useState<string | null>(null)
   const [reportSent, setReportSent] = useState(false)
+  const [clientNote, setClientNote] = useState('')
+  const [savingNote, setSavingNote] = useState(false)
+  const [noteSaved, setNoteSaved] = useState(false)
   const [dialog, setDialog] = useState<{ title: string; message: string; confirmLabel?: string; destructive?: boolean; onConfirm: () => void } | null>(null)
 
   useEffect(() => { load() }, [id])
@@ -37,6 +40,7 @@ export default function InspectionDetailPage() {
     setInspection(insp)
     setPhotos(ph ?? [])
     setChecklist(cl ?? [])
+    setClientNote(insp?.client_note ?? '')
   }
 
   async function toggleChecklist(item: any) {
@@ -114,8 +118,16 @@ export default function InspectionDetailPage() {
     }
   }
 
+  async function saveClientNote() {
+    setSavingNote(true)
+    await supabase.from('inspections').update({ client_note: clientNote || null }).eq('id', id)
+    setSavingNote(false)
+    setNoteSaved(true)
+    setTimeout(() => setNoteSaved(false), 2000)
+  }
+
   async function sendReport() {
-    const clientEmail = inspection?.properties?.client_email
+    const clientEmail = (inspection?.properties as any)?.client_email
     if (!clientEmail) {
       alert('No client email on this property. Add one in Settings → Properties.')
       return
@@ -260,6 +272,44 @@ export default function InspectionDetailPage() {
         })}
       </div>
 
+      {/* Client Summary */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-blue-400" /> Client Summary
+            </CardTitle>
+            <Badge variant={inspection.status === 'report_sent' ? 'success' : 'secondary'}>
+              {inspection.status === 'report_sent' ? 'Sent' : 'Not sent'}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-gray-400">This is what gets sent to the client — checklist, after photos, issues noted, and your personal note. The AI quality report stays internal.</p>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-300">Note to client <span className="text-gray-500 font-normal">(optional)</span></label>
+            <textarea
+              className="flex min-h-[80px] w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g. Everything came out great today! We noticed the grout near the master bath could use a deep clean — let us know if you'd like to add that next visit."
+              value={clientNote}
+              onChange={e => setClientNote(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="outline" size="sm" onClick={saveClientNote} disabled={savingNote}>
+              {savingNote ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : null}
+              {savingNote ? 'Saving…' : 'Save note'}
+            </Button>
+            {noteSaved && <span className="text-sm text-green-400 flex items-center gap-1"><CheckCircle className="h-3.5 w-3.5" /> Saved</span>}
+            <Button onClick={sendReport} disabled={reportSent}>
+              <Send className="mr-2 h-4 w-4" />
+              {reportSent ? 'Sent' : inspection.status === 'report_sent' ? 'Resend to Client' : 'Send to Client'}
+            </Button>
+            {reportSent && <span className="text-sm text-green-400 flex items-center gap-1.5"><CheckCircle className="h-4 w-4" /> Sent successfully</span>}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* AI Report */}
       <Card>
         <CardHeader><CardTitle>AI Quality Report</CardTitle></CardHeader>
@@ -297,19 +347,6 @@ export default function InspectionDetailPage() {
               })}>
                 <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete report
               </Button>
-            )}
-            {inspection.ai_report && (
-              <div className="flex items-center gap-3">
-                <Button variant="outline" onClick={sendReport} disabled={reportSent}>
-                  <Send className="mr-2 h-4 w-4" />
-                  {reportSent ? 'Sent' : inspection.status === 'report_sent' ? 'Resend to Client' : 'Send to Client'}
-                </Button>
-                {reportSent && (
-                  <span className="flex items-center gap-1.5 text-sm text-green-400">
-                    <CheckCircle className="h-4 w-4" /> Report sent successfully
-                  </span>
-                )}
-              </div>
             )}
           </div>
         </CardContent>
