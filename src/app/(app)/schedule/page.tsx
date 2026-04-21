@@ -1,18 +1,22 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { Plus, Calendar, Trash2, ClipboardCheck, CheckCircle } from 'lucide-react'
+import { AddressAutocomplete } from '@/components/ui/address-autocomplete'
+import { Plus, Calendar, Trash2, ClipboardCheck, CheckCircle, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 type Job = {
   id: string
+  property_id: string | null
+  team_id: string | null
+  package_id: string | null
   scheduled_at: string
   status: string
   notes: string | null
@@ -22,16 +26,10 @@ type Job = {
 }
 
 function groupJobs(jobs: Job[]) {
-  const now = new Date()
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0)
   const todayEnd = new Date(todayStart.getTime() + 86400000)
   const weekEnd = new Date(todayStart.getTime() + 7 * 86400000)
-
-  const today: Job[] = []
-  const upcoming: Job[] = []
-  const later: Job[] = []
-  const past: Job[] = []
-
+  const today: Job[] = [], upcoming: Job[] = [], later: Job[] = [], past: Job[] = []
   for (const job of jobs) {
     const d = new Date(job.scheduled_at)
     if (d < todayStart) past.push(job)
@@ -39,13 +37,11 @@ function groupJobs(jobs: Job[]) {
     else if (d < weekEnd) upcoming.push(job)
     else later.push(job)
   }
-
   return { today, upcoming, later, past }
 }
 
 function formatDateTime(iso: string) {
-  const d = new Date(iso)
-  return d.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+  return new Date(iso).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 }
 
 export default function SchedulePage() {
@@ -55,13 +51,26 @@ export default function SchedulePage() {
   const [jobs, setJobs] = useState<Job[]>([])
   const [properties, setProperties] = useState<any[]>([])
   const [teams, setTeams] = useState<any[]>([])
+  const [packages, setPackages] = useState<any[]>([])
   const [adding, setAdding] = useState(false)
+  const [startingJobId, setStartingJobId] = useState<string | null>(null)
+  const [dialog, setDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
+
+  // New job form state
   const [propertyId, setPropertyId] = useState('')
   const [teamId, setTeamId] = useState('')
+  const [packageId, setPackageId] = useState('')
   const [scheduledAt, setScheduledAt] = useState('')
   const [notes, setNotes] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [dialog, setDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  // Inline new property state
+  const [addingProperty, setAddingProperty] = useState(false)
+  const [newOwnerName, setNewOwnerName] = useState('')
+  const [newPhone, setNewPhone] = useState('')
+  const [newEmail, setNewEmail] = useState('')
+  const [propError, setPropError] = useState('')
+  const addressRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { load() }, [])
 
@@ -70,34 +79,89 @@ export default function SchedulePage() {
     const { data: org } = await supabase.from('organizations').select('id').eq('owner_id', user!.id).single()
     if (!org) return
     setOrgId(org.id)
-    const [{ data: jobData }, { data: props }, { data: tms }] = await Promise.all([
-      supabase.from('jobs')
-        .select('*, properties(name, address), teams(name), inspections(id)')
-        .eq('org_id', org.id)
-        .order('scheduled_at'),
-      supabase.from('properties').select('id, address, name').eq('org_id', org.id),
-      supabase.from('teams').select('id, name').eq('org_id', org.id),
+    const [{ data: jobData }, { data: props }, { data: tms }, { data: pkgs }] = await Promise.all([
+      supabase.from('jobs').select('*, properties(name, address), teams(name), inspections(id)').eq('org_id', org.id).order('scheduled_at'),
+      supabase.from('properties').select('*').eq('org_id', org.id).order('created_at'),
+      supabase.from('teams').select('*').eq('org_id', org.id),
+      supabase.from('packages').select('*, package_items(*)').eq('org_id', org.id).order('created_at'),
     ])
     setJobs(jobData ?? [])
     setProperties(props ?? [])
     setTeams(tms ?? [])
+    setPackages((pkgs ?? []).map((p: any) => ({
+      ...p,
+      package_items: [...(p.package_items ?? [])].sort((a: any, b: any) => a.sort_order - b.sort_order),
+    })))
+  }
+
+  async function saveNewProperty(): Promise<string | null> {
+    const address = addressRef.current?.value?.trim() ?? ''
+    if (!address) { setPropError('Address is required.'); return null }
+    if (!newOwnerName.trim()) { setPropError('Owner name is required.'); return null }
+    if (!newPhone.trim()) { setPropError('Phone is required.'); return null }
+    if (!newEmail.trim()) { setPropError('Email is required.'); return null }
+    const { data } = await supabase.from('properties').insert({
+      org_id: orgId, name: address, address,
+      owner_name: newOwnerName.trim(), phone: newPhone.trim(), client_email: newEmail.trim(),
+    }).select().single()
+    return data?.id ?? null
   }
 
   async function addJob(e: React.FormEvent) {
     e.preventDefault()
-    if (!propertyId || !scheduledAt) return
-    setLoading(true)
+    setSaving(true)
+    let finalPropertyId = propertyId
+
+    if (addingProperty) {
+      const id = await saveNewProperty()
+      if (!id) { setSaving(false); return }
+      finalPropertyId = id
+      await load() // refresh properties list
+    }
+
+    if (!finalPropertyId || !scheduledAt) { setSaving(false); return }
+
     await supabase.from('jobs').insert({
       org_id: orgId,
-      property_id: propertyId,
+      property_id: finalPropertyId,
       team_id: teamId || null,
+      package_id: packageId || null,
       scheduled_at: scheduledAt,
       notes: notes || null,
       status: 'scheduled',
     })
-    setAdding(false); setPropertyId(''); setTeamId(''); setScheduledAt(''); setNotes('')
-    setLoading(false)
+
+    setAdding(false); setAddingProperty(false)
+    setPropertyId(''); setTeamId(''); setPackageId(''); setScheduledAt(''); setNotes('')
+    setNewOwnerName(''); setNewPhone(''); setNewEmail('')
+    if (addressRef.current) addressRef.current.value = ''
+    setSaving(false)
     await load()
+  }
+
+  async function startInspection(job: Job) {
+    setStartingJobId(job.id)
+    const pkg = packages.find(p => p.id === job.package_id)
+    const items: string[] = pkg?.package_items?.map((i: any) => i.label) ?? []
+
+    const { data: inspection } = await supabase.from('inspections').insert({
+      org_id: orgId,
+      property_id: job.property_id,
+      team_id: job.team_id,
+      job_id: job.id,
+      status: 'in_progress',
+    }).select().single()
+
+    if (inspection) {
+      if (items.length > 0) {
+        await supabase.from('checklist_items').insert(
+          items.map(label => ({ inspection_id: inspection.id, label, completed: false }))
+        )
+      }
+      await supabase.from('jobs').update({ status: 'in_progress' }).eq('id', job.id)
+      router.push(`/inspections/${inspection.id}`)
+    }
+    setStartingJobId(null)
   }
 
   async function markDone(job: Job) {
@@ -108,69 +172,108 @@ export default function SchedulePage() {
   function deleteJob(id: string) {
     setDialog({
       title: 'Delete job?',
-      message: 'This job will be permanently removed. Any linked inspection will remain.',
+      message: 'This job will be removed. Any linked inspection will remain.',
       onConfirm: async () => {
         await supabase.from('jobs').delete().eq('id', id)
-        setDialog(null)
-        await load()
+        setDialog(null); await load()
       },
     })
   }
 
-  function startInspection(job: Job) {
-    const params = new URLSearchParams({ job_id: job.id })
-    if (job.properties) params.set('property_id', (job as any).property_id ?? '')
-    if (job.teams) params.set('team_id', (job as any).team_id ?? '')
-    router.push(`/inspections/new?${params.toString()}`)
-  }
-
   const groups = groupJobs(jobs)
-
   const sections = [
-    { label: 'Today', jobs: groups.today, emptyText: 'No jobs scheduled for today.' },
-    { label: 'Next 7 Days', jobs: groups.upcoming, emptyText: null },
-    { label: 'Later', jobs: groups.later, emptyText: null },
-    { label: 'Past', jobs: groups.past, emptyText: null },
-  ].filter(s => s.jobs.length > 0 || s.label === 'Today')
+    { label: 'Today', jobs: groups.today, showEmpty: true },
+    { label: 'Next 7 Days', jobs: groups.upcoming, showEmpty: false },
+    { label: 'Later', jobs: groups.later, showEmpty: false },
+    { label: 'Past', jobs: groups.past, showEmpty: false },
+  ].filter(s => s.jobs.length > 0 || s.showEmpty)
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-white">Schedule</h1>
-        <Button onClick={() => setAdding(true)}>
-          <Plus className="mr-2 h-4 w-4" /> Add Job
-        </Button>
+        {!adding && (
+          <Button onClick={() => setAdding(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Schedule Job
+          </Button>
+        )}
       </div>
 
       {adding && (
         <Card>
-          <CardHeader><CardTitle>New Job</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Schedule New Job</CardTitle></CardHeader>
           <CardContent>
-            <form onSubmit={addJob} className="space-y-3">
+            <form onSubmit={addJob} className="space-y-4">
+              {/* Property */}
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-300">Property <span className="text-red-400">*</span></label>
-                <select
-                  className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={propertyId} onChange={e => setPropertyId(e.target.value)} required
-                >
-                  <option value="">Select property</option>
-                  {properties.map(p => <option key={p.id} value={p.id}>{p.address ?? p.name}</option>)}
-                </select>
+                {!addingProperty ? (
+                  <div className="flex gap-2">
+                    <select
+                      className="flex h-10 flex-1 rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={propertyId} onChange={e => setPropertyId(e.target.value)}
+                    >
+                      <option value="">Select property</option>
+                      {properties.map(p => <option key={p.id} value={p.id}>{p.address ?? p.name}</option>)}
+                    </select>
+                    <Button type="button" variant="outline" onClick={() => { setAddingProperty(true); setPropertyId('') }}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2 rounded-lg border border-white/10 bg-white/5 p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium text-gray-400">New Property</span>
+                      <button type="button" onClick={() => { setAddingProperty(false); setPropError('') }} className="text-xs text-gray-500 hover:text-gray-300">Cancel</button>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-gray-400">Address <span className="text-red-400">*</span></label>
+                      <AddressAutocomplete ref={addressRef} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-gray-400">Owner name <span className="text-red-400">*</span></label>
+                      <Input placeholder="Jane Smith" value={newOwnerName} onChange={e => { setNewOwnerName(e.target.value); setPropError('') }} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-gray-400">Phone <span className="text-red-400">*</span></label>
+                      <Input type="tel" placeholder="(555) 123-4567" value={newPhone} onChange={e => { setNewPhone(e.target.value); setPropError('') }} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-gray-400">Client email <span className="text-red-400">*</span></label>
+                      <Input type="email" placeholder="client@example.com" value={newEmail} onChange={e => { setNewEmail(e.target.value); setPropError('') }} />
+                    </div>
+                    {propError && <p className="text-xs text-red-400">{propError}</p>}
+                  </div>
+                )}
               </div>
+
+              {/* Team */}
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-300">Team (optional)</label>
-                <select
-                  className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={teamId} onChange={e => setTeamId(e.target.value)}
-                >
-                  <option value="">No team</option>
+                <select className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={teamId} onChange={e => setTeamId(e.target.value)}>
+                  <option value="">No team assigned</option>
                   {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
               </div>
+
+              {/* Package */}
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-300">Checklist package (optional)</label>
+                <select className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={packageId} onChange={e => setPackageId(e.target.value)}>
+                  <option value="">No package / custom</option>
+                  {packages.map(p => <option key={p.id} value={p.id}>{p.name} ({p.package_items?.length ?? 0} items)</option>)}
+                </select>
+              </div>
+
+              {/* Date & Time */}
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-300">Date & Time <span className="text-red-400">*</span></label>
                 <Input type="datetime-local" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} required />
               </div>
+
+              {/* Notes */}
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-300">Notes (optional)</label>
                 <textarea
@@ -179,40 +282,42 @@ export default function SchedulePage() {
                   value={notes} onChange={e => setNotes(e.target.value)}
                 />
               </div>
+
               <div className="flex gap-2 pt-1">
-                <Button type="submit" disabled={loading}>Schedule Job</Button>
-                <Button type="button" variant="outline" onClick={() => setAdding(false)}>Cancel</Button>
+                <Button type="submit" disabled={saving}>
+                  {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Schedule Job'}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => { setAdding(false); setAddingProperty(false) }}>Cancel</Button>
               </div>
             </form>
           </CardContent>
         </Card>
       )}
 
-      {sections.map(({ label, jobs: sectionJobs, emptyText }) => (
+      {sections.map(({ label, jobs: sectionJobs, showEmpty }) => (
         <div key={label}>
-          <h2 className="mb-3 text-sm font-semibold text-gray-500 uppercase tracking-wider">{label}</h2>
-          {sectionJobs.length === 0 && emptyText ? (
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500">{label}</h2>
+          {sectionJobs.length === 0 && showEmpty ? (
             <div className="rounded-xl border border-white/5 bg-[#161b27] px-5 py-8 text-center">
               <Calendar className="mx-auto mb-2 h-8 w-8 text-gray-600" />
-              <p className="text-sm text-gray-500">{emptyText}</p>
+              <p className="text-sm text-gray-500">No jobs scheduled for today.</p>
             </div>
           ) : (
             <div className="space-y-2">
               {sectionJobs.map(job => {
-                const property = job.properties
-                const displayName = property?.address ?? property?.name ?? 'Unknown property'
+                const displayName = job.properties?.address ?? job.properties?.name ?? 'Unknown property'
                 const inspection = job.inspections?.[0]
                 const isDone = job.status === 'done'
+                const isStarting = startingJobId === job.id
                 return (
-                  <div key={job.id} className={`flex items-center justify-between rounded-xl border px-5 py-4 group ${isDone ? 'border-white/5 bg-[#161b27] opacity-60' : 'border-white/10 bg-[#161b27]'}`}>
+                  <div key={job.id} className={`flex items-center justify-between rounded-xl border px-5 py-4 group transition-opacity ${isDone ? 'border-white/5 bg-[#161b27] opacity-50' : 'border-white/10 bg-[#161b27]'}`}>
                     <div className="min-w-0">
                       <p className="font-medium text-gray-100 truncate">{displayName}</p>
                       <p className="text-sm text-gray-400 mt-0.5">
                         {formatDateTime(job.scheduled_at)}
-                        {job.teams && <span className="mx-1.5 text-gray-600">·</span>}
-                        {job.teams && <span>{(job.teams as any).name}</span>}
+                        {job.teams && <><span className="mx-1.5 text-gray-600">·</span><span>{(job.teams as any).name}</span></>}
                       </p>
-                      {job.notes && <p className="text-xs text-gray-500 mt-0.5">{job.notes}</p>}
+                      {job.notes && <p className="text-xs text-gray-500 mt-0.5 italic">{job.notes}</p>}
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0 ml-4">
                       <Badge variant={isDone ? 'secondary' : job.status === 'in_progress' ? 'warning' : 'default'}>
@@ -226,8 +331,10 @@ export default function SchedulePage() {
                         </Link>
                       )}
                       {!isDone && !inspection && (
-                        <Button size="sm" variant="outline" className="text-xs" onClick={() => startInspection(job)}>
-                          <ClipboardCheck className="mr-1.5 h-3.5 w-3.5" /> Start Inspection
+                        <Button size="sm" variant="outline" className="text-xs" onClick={() => startInspection(job)} disabled={isStarting}>
+                          {isStarting
+                            ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Starting...</>
+                            : <><ClipboardCheck className="mr-1.5 h-3.5 w-3.5" /> Start Inspection</>}
                         </Button>
                       )}
                       {!isDone && (
@@ -249,11 +356,8 @@ export default function SchedulePage() {
       ))}
 
       <ConfirmDialog
-        open={!!dialog}
-        title={dialog?.title ?? ''}
-        message={dialog?.message ?? ''}
-        onConfirm={dialog?.onConfirm ?? (() => {})}
-        onCancel={() => setDialog(null)}
+        open={!!dialog} title={dialog?.title ?? ''} message={dialog?.message ?? ''}
+        onConfirm={dialog?.onConfirm ?? (() => {})} onCancel={() => setDialog(null)}
       />
     </div>
   )

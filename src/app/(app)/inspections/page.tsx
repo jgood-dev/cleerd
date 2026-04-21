@@ -46,8 +46,8 @@ export default function InspectionsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-white">Inspections</h1>
-        <Link href="/inspections/new">
-          <Button><Plus className="mr-2 h-4 w-4" />New Inspection</Button>
+        <Link href="/schedule">
+          <Button><Plus className="mr-2 h-4 w-4" />Schedule Job</Button>
         </Link>
       </div>
 
@@ -57,8 +57,8 @@ export default function InspectionsPage() {
           {!inspections.length ? (
             <div className="py-12 text-center">
               <p className="text-gray-500">No inspections yet. Start one to begin tracking quality.</p>
-              <Link href="/inspections/new">
-                <Button className="mt-4">Create first inspection</Button>
+              <Link href="/schedule">
+                <Button className="mt-4">Schedule first job</Button>
               </Link>
             </div>
           ) : (
