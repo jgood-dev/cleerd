@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,14 +11,15 @@ import { AddressAutocomplete } from '@/components/ui/address-autocomplete'
 
 export default function NewInspectionPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
   const [orgId, setOrgId] = useState('')
   const [properties, setProperties] = useState<any[]>([])
   const [teams, setTeams] = useState<any[]>([])
   const [packages, setPackages] = useState<any[]>([])
-  const [propertyId, setPropertyId] = useState('')
-  const [teamId, setTeamId] = useState('')
+  const [propertyId, setPropertyId] = useState(searchParams.get('property_id') ?? '')
+  const [teamId, setTeamId] = useState(searchParams.get('team_id') ?? '')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [newEmail, setNewEmail] = useState('')
@@ -95,13 +96,20 @@ export default function NewInspectionPage() {
       finalPropertyId = prop?.id ?? ''
     }
 
+    const jobId = searchParams.get('job_id')
     const { data: inspection } = await supabase.from('inspections').insert({
       org_id: orgId,
       property_id: finalPropertyId || null,
       team_id: teamId || null,
+      job_id: jobId || null,
       notes,
       status: 'in_progress',
     }).select().single()
+
+    // Mark job as in_progress when inspection starts
+    if (jobId) {
+      await supabase.from('jobs').update({ status: 'in_progress' }).eq('id', jobId)
+    }
 
     if (inspection) {
       await supabase.from('checklist_items').insert(

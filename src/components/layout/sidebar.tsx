@@ -5,10 +5,11 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import { LayoutDashboard, ClipboardCheck, Users, FileText, Settings, CheckSquare, Menu, X, LogOut } from 'lucide-react'
+import { LayoutDashboard, ClipboardCheck, Users, FileText, Settings, CheckSquare, Menu, X, LogOut, CalendarDays } from 'lucide-react'
 
 const nav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/schedule', label: 'Schedule', icon: CalendarDays },
   { href: '/inspections', label: 'Inspections', icon: ClipboardCheck },
   { href: '/teams', label: 'Teams', icon: Users },
   { href: '/reports', label: 'Reports', icon: FileText },
