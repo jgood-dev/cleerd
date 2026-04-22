@@ -31,12 +31,25 @@ export default async function DashboardPage() {
     .order('created_at', { ascending: false })
     .limit(5)
 
+  // For members, get their team's job IDs to scope inspection stats
+  let teamJobIds: string[] | null = null
+  if (!isOwner && memberTeamId) {
+    const { data: teamJobs } = await supabase.from('jobs').select('id').eq('team_id', memberTeamId)
+    teamJobIds = teamJobs?.map((j: any) => j.id) ?? []
+  }
+
   let statsQuery = supabase.from('inspections').select('*', { count: 'exact', head: true }).eq('org_id', org?.id)
   let completedQuery = supabase.from('inspections').select('*', { count: 'exact', head: true })
     .eq('org_id', org?.id).eq('status', 'completed')
     .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
   let pendingQuery = supabase.from('inspections').select('*', { count: 'exact', head: true })
     .eq('org_id', org?.id).eq('status', 'in_progress')
+
+  if (teamJobIds) {
+    statsQuery = statsQuery.in('job_id', teamJobIds.length ? teamJobIds : [''])
+    completedQuery = completedQuery.in('job_id', teamJobIds.length ? teamJobIds : [''])
+    pendingQuery = pendingQuery.in('job_id', teamJobIds.length ? teamJobIds : [''])
+  }
 
   const [{ data: todayJobs }, { data: inspections }, { count: totalInspections }, { count: completedThisMonth }, { count: pendingCount }] =
     await Promise.all([todayJobsQuery, inspectionsQuery, statsQuery, completedQuery, pendingQuery])
