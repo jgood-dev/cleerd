@@ -26,16 +26,12 @@ function JoinForm() {
 
   useEffect(() => {
     if (!token) { setInvalid(true); return }
-    supabase
-      .from('org_members')
-      .select('*, organizations(name)')
-      .eq('invite_token', token)
-      .is('invite_accepted_at', null)
-      .single()
-      .then(({ data }) => {
-        if (!data) { setInvalid(true); return }
+    fetch(`/api/invite-info?token=${encodeURIComponent(token)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) { setInvalid(true); return }
         setInvite(data)
-        setOrgName((data.organizations as any)?.name ?? '')
+        setOrgName(data.orgName ?? '')
         setEmail(data.email ?? '')
       })
   }, [token])
@@ -75,10 +71,11 @@ function JoinForm() {
   }
 
   async function linkInvite(userId: string) {
-    await supabase.from('org_members').update({
-      user_id: userId,
-      invite_accepted_at: new Date().toISOString(),
-    }).eq('invite_token', token)
+    await fetch('/api/accept-invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, userId }),
+    })
   }
 
   if (invalid) {
