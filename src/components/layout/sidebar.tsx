@@ -7,17 +7,18 @@ import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { LayoutDashboard, ClipboardCheck, Users, FileText, Settings, CheckSquare, Menu, X, LogOut, CalendarDays } from 'lucide-react'
 
-const nav = [
+const allNav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/schedule', label: 'Schedule', icon: CalendarDays },
   { href: '/inspections', label: 'Jobs', icon: ClipboardCheck },
-  { href: '/teams', label: 'Teams', icon: Users },
+  { href: '/teams', label: 'Teams', icon: Users, ownerOnly: true },
   { href: '/reports', label: 'Reports', icon: FileText },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
-function NavLinks({ onClick }: { onClick?: () => void }) {
+function NavLinks({ isOwner, onClick }: { isOwner: boolean; onClick?: () => void }) {
   const pathname = usePathname()
+  const nav = allNav.filter(n => !n.ownerOnly || isOwner)
   return (
     <nav className="flex-1 space-y-1 p-4">
       {nav.map(({ href, label, icon: Icon }) => (
@@ -60,7 +61,21 @@ function SignOutButton({ className }: { className?: string }) {
   )
 }
 
-export function Sidebar() {
+function TeamBadge({ teamName }: { teamName: string }) {
+  return (
+    <div className="mx-4 mb-2 rounded-lg border border-blue-500/20 bg-blue-500/10 px-3 py-2">
+      <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">My Team</p>
+      <p className="text-sm font-semibold text-blue-300 mt-0.5">{teamName}</p>
+    </div>
+  )
+}
+
+interface SidebarProps {
+  isOwner: boolean
+  memberTeamName: string | null
+}
+
+export function Sidebar({ isOwner, memberTeamName }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
@@ -71,7 +86,8 @@ export function Sidebar() {
           <CheckSquare className="h-6 w-6 text-blue-400" />
           <span className="text-lg font-bold text-white">CleanCheck</span>
         </div>
-        <NavLinks />
+        <NavLinks isOwner={isOwner} />
+        {!isOwner && memberTeamName && <TeamBadge teamName={memberTeamName} />}
         <div className="border-t border-white/10 p-4">
           <SignOutButton />
         </div>
@@ -102,7 +118,8 @@ export function Sidebar() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <NavLinks onClick={() => setMobileOpen(false)} />
+            <NavLinks isOwner={isOwner} onClick={() => setMobileOpen(false)} />
+            {!isOwner && memberTeamName && <TeamBadge teamName={memberTeamName} />}
             <div className="border-t border-white/10 p-4">
               <SignOutButton />
             </div>

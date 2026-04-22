@@ -104,6 +104,7 @@ export default function SchedulePage() {
   const [durationMinutes, setDurationMinutes] = useState<string>('')
   const [recurrence, setRecurrence] = useState<string>('')
   const [teamFilter, setTeamFilter] = useState<string>('all')
+  const [isOwner, setIsOwner] = useState(true)
 
   // Inline new property state
   const [addingProperty, setAddingProperty] = useState(false)
@@ -117,9 +118,10 @@ export default function SchedulePage() {
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
-    const { org } = await getOrgForUser(supabase, user!.id)
+    const { org, isOwner: owner } = await getOrgForUser(supabase, user!.id, user!.email)
     if (!org) return
     setOrgId(org.id)
+    setIsOwner(owner)
     if (org.timezone) setTimezone(org.timezone)
     const [{ data: jobData }, { data: props }, { data: tms }, { data: pkgs }] = await Promise.all([
       supabase.from('jobs').select('*, properties(name, address), teams(name), inspections(id)').eq('org_id', org.id).order('scheduled_at'),
@@ -420,7 +422,7 @@ export default function SchedulePage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold text-white">Schedule</h1>
-          {teams.length > 0 && (
+          {isOwner && teams.length > 0 && (
             <select
               className="h-8 rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={teamFilter}

@@ -10,37 +10,41 @@ export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { org } = await getOrgForUser(supabase, user!.id)
+  const { org, isOwner, memberTeamId } = await getOrgForUser(supabase, user!.id, user!.email)
 
-  // Today's jobs
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
   const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999)
-  const { data: todayJobs } = await supabase
+
+  let todayJobsQuery = supabase
     .from('jobs')
     .select('*, properties(name, address), teams(name), inspections(id)')
     .eq('org_id', org?.id)
     .gte('scheduled_at', todayStart.toISOString())
     .lte('scheduled_at', todayEnd.toISOString())
     .order('scheduled_at')
+  if (!isOwner && memberTeamId) todayJobsQuery = todayJobsQuery.eq('team_id', memberTeamId)
 
-  const { data: inspections } = await supabase
+  let inspectionsQuery = supabase
     .from('inspections')
-    .select('*, properties(name)')
+    .select('*, properties(name), jobs(team_id)')
     .eq('org_id', org?.id)
     .order('created_at', { ascending: false })
     .limit(5)
 
-  const { count: totalInspections } = await supabase
-    .from('inspections').select('*', { count: 'exact', head: true }).eq('org_id', org?.id)
-
-  const { count: completedThisMonth } = await supabase
-    .from('inspections').select('*', { count: 'exact', head: true })
+  let statsQuery = supabase.from('inspections').select('*', { count: 'exact', head: true }).eq('org_id', org?.id)
+  let completedQuery = supabase.from('inspections').select('*', { count: 'exact', head: true })
     .eq('org_id', org?.id).eq('status', 'completed')
     .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
-
-  const { count: pendingCount } = await supabase
-    .from('inspections').select('*', { count: 'exact', head: true })
+  let pendingQuery = supabase.from('inspections').select('*', { count: 'exact', head: true })
     .eq('org_id', org?.id).eq('status', 'in_progress')
+
+  const [{ data: todayJobs }, { data: inspections }, { count: totalInspections }, { count: completedThisMonth }, { count: pendingCount }] =
+    await Promise.all([todayJobsQuery, inspectionsQuery, statsQuery, completedQuery, pendingQuery])
+
+  // Filter recent inspections by team if member
+  const filteredInspections = (!isOwner && memberTeamId)
+    ? (inspections ?? []).filter((i: any) => (i.jobs as any)?.team_id === memberTeamId)
+    : (inspections ?? [])
 
   return (
     <div className="space-y-6">
@@ -49,9 +53,11 @@ export default async function DashboardPage() {
           <h1 className="text-2xl font-bold text-white">Dashboard</h1>
           <p className="text-gray-400">{org?.name}</p>
         </div>
-        <Link href="/schedule?new=1">
-          <Button><ClipboardCheck className="mr-2 h-4 w-4" />Schedule Job</Button>
-        </Link>
+        {isOwner && (
+          <Link href="/schedule?new=1">
+            <Button><ClipboardCheck className="mr-2 h-4 w-4" />Schedule Job</Button>
+          </Link>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -92,9 +98,11 @@ export default async function DashboardPage() {
           {!todayJobs?.length ? (
             <div className="py-6 text-center">
               <p className="text-gray-500 text-sm">No jobs scheduled for today.</p>
-              <Link href="/schedule?new=1">
-                <Button className="mt-3" variant="outline" size="sm">Schedule a job</Button>
-              </Link>
+              {isOwner && (
+                <Link href="/schedule?new=1">
+                  <Button className="mt-3" variant="outline" size="sm">Schedule a job</Button>
+                </Link>
+              )}
             </div>
           ) : (
             <div className="divide-y divide-white/5">
@@ -140,17 +148,19 @@ export default async function DashboardPage() {
       <Card>
         <CardHeader><CardTitle>Recent Jobs</CardTitle></CardHeader>
         <CardContent>
-          {!inspections?.length ? (
+          {!filteredInspections.length ? (
             <div className="py-8 text-center">
               <TrendingUp className="mx-auto mb-3 h-10 w-10 text-gray-600" />
               <p className="text-gray-400">No jobs yet.</p>
-              <Link href="/schedule?new=1">
-                <Button className="mt-4" variant="outline">Schedule your first job</Button>
-              </Link>
+              {isOwner && (
+                <Link href="/schedule?new=1">
+                  <Button className="mt-4" variant="outline">Schedule your first job</Button>
+                </Link>
+              )}
             </div>
           ) : (
             <div className="divide-y divide-white/5">
-              {inspections.map(inspection => (
+              {filteredInspections.map((inspection: any) => (
                 <Link key={inspection.id} href={`/inspections/${inspection.id}`}
                   className="flex items-center justify-between py-3 px-2 hover:bg-white/5 rounded-lg transition-colors">
                   <div>

@@ -28,6 +28,7 @@ export default function JobsPage() {
   const initialFilter = (searchParams.get('filter') ?? 'all') as 'all' | 'scheduled' | 'in_progress' | 'done'
   const [filter, setFilter] = useState<'all' | 'scheduled' | 'in_progress' | 'done'>(initialFilter)
   const [teamFilter, setTeamFilter] = useState<string>('all')
+  const [isOwner, setIsOwner] = useState(true)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [dialog, setDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
@@ -36,9 +37,10 @@ export default function JobsPage() {
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
-    const { org } = await getOrgForUser(supabase, user!.id)
+    const { org, isOwner: owner } = await getOrgForUser(supabase, user!.id, user!.email)
     if (!org) return
     setOrgId(org.id)
+    setIsOwner(owner)
 
     const [{ data: jobData }, { data: teamData }] = await Promise.all([
       supabase
@@ -123,7 +125,7 @@ export default function JobsPage() {
           ))}
         </div>
 
-        {teams.length > 0 && (
+        {isOwner && teams.length > 0 && (
           <select
             className="h-9 rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={teamFilter}

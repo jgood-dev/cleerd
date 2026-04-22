@@ -19,15 +19,19 @@ export default function ReportsPage() {
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
-    const { org } = await getOrgForUser(supabase, user!.id)
+    const { org, isOwner, memberTeamId } = await getOrgForUser(supabase, user!.id, user!.email)
     if (!org) return
-    const { data } = await supabase
+    let query = supabase
       .from('inspections')
-      .select('*, properties(name, address)')
+      .select('*, properties(name, address), jobs(team_id)')
       .eq('org_id', org.id)
       .not('ai_report', 'is', null)
       .order('completed_at', { ascending: false })
-    setInspections(data ?? [])
+    const { data } = await query
+    const filtered = (!isOwner && memberTeamId)
+      ? (data ?? []).filter((i: any) => (i.jobs as any)?.team_id === memberTeamId)
+      : (data ?? [])
+    setInspections(filtered)
   }
 
   function confirmDeleteReport(id: string) {
