@@ -15,6 +15,7 @@ export default function TeamsPage() {
   const [orgId, setOrgId] = useState<string>('')
   const [isOwner, setIsOwner] = useState(false)
   const [ownerEmail, setOwnerEmail] = useState<string>('')
+  const [plan, setPlan] = useState<string>('solo')
   const [teams, setTeams] = useState<any[]>([])
   const [orgMembers, setOrgMembers] = useState<any[]>([])
   const [newTeamName, setNewTeamName] = useState('')
@@ -43,6 +44,7 @@ export default function TeamsPage() {
     if (!org) return
     setOrgId(org.id)
     setIsOwner(owner)
+    setPlan(org.plan ?? 'solo')
     if (owner) setOwnerEmail(user.email ?? '')
     const [{ data: teamsData }, { data: membersData }] = await Promise.all([
       supabase.from('teams').select('*, team_members(*)').eq('org_id', org.id).order('created_at'),
@@ -129,19 +131,35 @@ export default function TeamsPage() {
     <div className="space-y-6 max-w-2xl">
       <h1 className="text-2xl font-bold text-white">Teams</h1>
 
-      {isOwner && (
-        <Card>
-          <CardHeader><CardTitle>Add Team</CardTitle></CardHeader>
-          <CardContent>
-            <form onSubmit={addTeam} className="flex gap-3">
-              <Input placeholder="Team name (e.g. Morning Crew)" value={newTeamName} onChange={e => setNewTeamName(e.target.value)} />
-              <Button type="submit" disabled={loading}>
-                <Plus className="mr-2 h-4 w-4" /> Add
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+      {isOwner && (() => {
+        const teamLimit = plan === 'pro' ? Infinity : plan === 'growth' ? 3 : 1
+        const atLimit = teams.length >= teamLimit
+        return (
+          <Card>
+            <CardHeader><CardTitle>Add Team</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              {atLimit ? (
+                <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3">
+                  <p className="text-sm text-amber-300 font-medium">Team limit reached for your plan</p>
+                  <p className="text-xs text-amber-400/70 mt-0.5">
+                    {plan === 'solo' ? 'Solo plan includes 1 team. Upgrade to Growth for up to 3 teams.' : 'Growth plan includes 3 teams. Upgrade to Pro for unlimited teams.'}
+                  </p>
+                </div>
+              ) : (
+                <form onSubmit={addTeam} className="flex gap-3">
+                  <Input placeholder="Team name (e.g. Morning Crew)" value={newTeamName} onChange={e => setNewTeamName(e.target.value)} />
+                  <Button type="submit" disabled={loading}>
+                    <Plus className="mr-2 h-4 w-4" /> Add
+                  </Button>
+                </form>
+              )}
+              <p className="text-xs text-gray-500">
+                {plan === 'pro' ? 'Unlimited teams' : `${teams.length} / ${teamLimit} team${teamLimit === 1 ? '' : 's'} used`}
+              </p>
+            </CardContent>
+          </Card>
+        )
+      })()}
 
       <div className="space-y-3">
         {teams.length === 0 ? (

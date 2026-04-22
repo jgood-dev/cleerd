@@ -79,7 +79,7 @@ export default function LandingPage() {
       <section className="px-6 py-20 max-w-4xl mx-auto text-center">
         <h2 className="text-3xl font-bold text-white mb-4">Built for small cleaning businesses</h2>
         <p className="text-lg text-gray-400 mb-12 max-w-2xl mx-auto">
-          Most QC software costs $250+/month and is built for enterprise janitorial companies. CleanCheck is built for teams of 1–20, starting at $49/month.
+          Most QC software costs $250+/month and is built for enterprise janitorial companies. CleanCheck is built for teams of 1–20, starting at $39/month.
         </p>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {['Replace Google Forms + WhatsApp', 'Professional client-facing reports', 'Know exactly what each team completed'].map(point => (
@@ -98,8 +98,8 @@ export default function LandingPage() {
           <p className="text-gray-400 mb-12">Start free for 14 days. No credit card required.</p>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             {[
-              { name: 'Solo', price: 49, features: ['1 team', 'Up to 30 jobs/month', 'AI reports', 'Photo uploads'] },
-              { name: 'Growth', price: 79, features: ['Up to 3 teams', 'Unlimited jobs', 'AI reports', 'Client email delivery'], popular: true },
+              { name: 'Solo', price: 39, features: ['1 team', 'Up to 30 jobs/month', 'AI reports', 'Photo uploads'] },
+              { name: 'Growth', price: 69, features: ['Up to 3 teams', 'Unlimited jobs', 'AI reports', 'Client email delivery'], popular: true },
               { name: 'Pro', price: 99, features: ['Unlimited teams', 'Unlimited jobs', 'AI reports', 'Client portal', 'Priority support'] },
             ].map(plan => (
               <div key={plan.name} className={`rounded-xl border p-6 text-left ${plan.popular ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/10' : 'border-white/10 bg-[#1e2433]'}`}>
