@@ -84,7 +84,7 @@ export function Sidebar({ isOwner, memberTeamName }: SidebarProps) {
       <aside className="hidden md:flex h-screen w-60 flex-col border-r border-white/10 bg-[#161b27] flex-shrink-0">
         <div className="flex h-16 items-center gap-2 border-b border-white/10 px-6">
           <CheckSquare className="h-6 w-6 text-blue-400" />
-          <span className="text-lg font-bold text-white">CleanCheck</span>
+          <span className="text-lg font-bold text-white">Cleerd</span>
         </div>
         <NavLinks isOwner={isOwner} />
         {!isOwner && memberTeamName && <TeamBadge teamName={memberTeamName} />}
@@ -97,7 +97,7 @@ export function Sidebar({ isOwner, memberTeamName }: SidebarProps) {
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex h-14 items-center justify-between border-b border-white/10 bg-[#161b27] px-4">
         <div className="flex items-center gap-2">
           <CheckSquare className="h-5 w-5 text-blue-400" />
-          <span className="text-base font-bold text-white">CleanCheck</span>
+          <span className="text-base font-bold text-white">Cleerd</span>
         </div>
         <button onClick={() => setMobileOpen(true)} className="p-2 text-gray-400 hover:text-white">
           <Menu className="h-5 w-5" />
@@ -112,7 +112,7 @@ export function Sidebar({ isOwner, memberTeamName }: SidebarProps) {
             <div className="flex h-14 items-center justify-between border-b border-white/10 px-4">
               <div className="flex items-center gap-2">
                 <CheckSquare className="h-5 w-5 text-blue-400" />
-                <span className="text-base font-bold text-white">CleanCheck</span>
+                <span className="text-base font-bold text-white">Cleerd</span>
               </div>
               <button onClick={() => setMobileOpen(false)} className="p-2 text-gray-400 hover:text-white">
                 <X className="h-5 w-5" />

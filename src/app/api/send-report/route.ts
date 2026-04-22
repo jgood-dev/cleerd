@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
 
         <!-- Footer -->
         <tr><td style="background:#f9fafb;border-radius:0 0 12px 12px;border-top:1px solid #e5e7eb;padding:18px 32px;text-align:center;">
-          <p style="margin:0;color:#9ca3af;font-size:12px;">Sent by <strong style="color:#6b7280;">${companyName}</strong> · Powered by CleanCheck</p>
+          <p style="margin:0;color:#9ca3af;font-size:12px;">Sent by <strong style="color:#6b7280;">${companyName}</strong> · Powered by Cleerd</p>
         </td></tr>
 
       </table>
@@ -108,8 +108,8 @@ export async function POST(request: NextRequest) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: `${companyName} <support@cleancheck.io>`,
-      reply_to: 'support@cleancheck.io',
+      from: `${companyName} <support@cleerd.io>`,
+      reply_to: 'support@cleerd.io',
       to: property.client_email,
       subject: `Your home is clean — ${address}`,
       html,

@@ -18,8 +18,8 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: "CleanCheck – Cleaning Business QC Software",
-  description: "Photo-based inspection reports and AI-powered quality control for cleaning businesses. Replace Google Forms in minutes.",
+  title: "Cleerd – Field Service Management Software",
+  description: "Schedule jobs, manage teams, document work with photos, and deliver professional client reports. Built for small service businesses.",
 };
 
 export default function RootLayout({

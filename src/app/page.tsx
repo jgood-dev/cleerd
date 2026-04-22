@@ -35,7 +35,7 @@ function AppMockup() {
             <div className="h-3 w-3 rounded-full bg-emerald-500/70" />
           </div>
           <div className="flex-1 mx-4 bg-[#161b27] rounded-md px-3 py-1 text-xs text-gray-500 text-center">
-            app.cleancheck.io/inspections/job-detail
+            app.cleerd.io/inspections/job-detail
           </div>
         </div>
 
@@ -45,7 +45,7 @@ function AppMockup() {
           <div className="hidden sm:flex w-44 flex-col bg-[#161b27] border-r border-white/10 p-3 gap-1 flex-shrink-0">
             <div className="flex items-center gap-2 px-2 py-3 mb-2">
               <CheckSquare className="h-4 w-4 text-blue-400" />
-              <span className="text-sm font-bold text-white">CleanCheck</span>
+              <span className="text-sm font-bold text-white">Cleerd</span>
             </div>
             {[
               { label: 'Dashboard', active: false },
@@ -135,7 +135,7 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2">
             <CheckSquare className="h-6 w-6 text-blue-400" />
-            <span className="text-lg font-bold text-white">CleanCheck</span>
+            <span className="text-lg font-bold text-white">Cleerd</span>
           </div>
           <div className="flex items-center gap-4">
             <Link href="#pricing" className="hidden sm:block text-sm text-gray-400 hover:text-white transition-colors">Pricing</Link>
@@ -157,7 +157,7 @@ export default function LandingPage() {
           <span className="text-blue-400">Impress your clients.</span>
         </h1>
         <p className="text-lg sm:text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-          CleanCheck gives your cleaning business a complete operations platform — scheduling, team management, photo documentation, AI quality reports, and automated client communication.
+          Cleerd gives your cleaning business a complete operations platform — scheduling, team management, photo documentation, AI quality reports, and automated client communication.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link href="/signup">
@@ -268,7 +268,7 @@ export default function LandingPage() {
             <div>
               <h2 className="text-3xl font-bold text-white mb-4">Built for teams of 1–20, not enterprise</h2>
               <p className="text-gray-400 mb-8 leading-relaxed">
-                Most QC software costs $250+/month and is designed for large janitorial companies with IT departments. CleanCheck is purpose-built for independent cleaning businesses that want to look professional without the overhead.
+                Most QC software costs $250+/month and is designed for large janitorial companies with IT departments. Cleerd is purpose-built for independent cleaning businesses that want to look professional without the overhead.
               </p>
               <ul className="space-y-3">
                 {[
@@ -354,7 +354,7 @@ export default function LandingPage() {
       <section className="px-6 py-24 text-center max-w-2xl mx-auto">
         <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Ready to run a tighter operation?</h2>
         <p className="text-gray-400 mb-10 leading-relaxed">
-          Join cleaning businesses using CleanCheck to schedule smarter, document every job, and keep quality high across every team.
+          Join cleaning businesses using Cleerd to schedule smarter, document every job, and keep quality high across every team.
         </p>
         <Link href="/signup">
           <Button size="lg" className="bg-blue-500 hover:bg-blue-600 text-white gap-2">
@@ -369,7 +369,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <CheckSquare className="h-4 w-4 text-blue-400" />
-            <span className="font-semibold text-gray-400">CleanCheck</span>
+            <span className="font-semibold text-gray-400">Cleerd</span>
             <span className="ml-2">© {new Date().getFullYear()}</span>
           </div>
           <div className="flex gap-6">

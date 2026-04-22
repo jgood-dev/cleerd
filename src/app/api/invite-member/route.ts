@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
         <tr><td style="background:#ffffff;padding:32px;">
           <p style="margin:0 0 6px;font-size:20px;font-weight:700;color:#111827;">You're invited!</p>
           <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.6;">
-            You've been invited to join <strong>${companyName}</strong> on CleanCheck — a tool for scheduling jobs, tracking checklists, and delivering client reports.
+            You've been invited to join <strong>${companyName}</strong> on Cleerd — a tool for scheduling jobs, tracking checklists, and delivering client reports.
           </p>
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
             <tr><td align="center">
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
           </p>
         </td></tr>
         <tr><td style="background:#f9fafb;border-radius:0 0 12px 12px;border-top:1px solid #e5e7eb;padding:18px 32px;text-align:center;">
-          <p style="margin:0;color:#9ca3af;font-size:12px;">Sent by <strong style="color:#6b7280;">${companyName}</strong> · Powered by CleanCheck</p>
+          <p style="margin:0;color:#9ca3af;font-size:12px;">Sent by <strong style="color:#6b7280;">${companyName}</strong> · Powered by Cleerd</p>
         </td></tr>
       </table>
     </td></tr>
@@ -77,12 +77,12 @@ export async function POST(request: NextRequest) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: `${companyName} <support@cleancheck.io>`,
-      reply_to: 'support@cleancheck.io',
+      from: `${companyName} <support@cleerd.io>`,
+      reply_to: 'support@cleerd.io',
       to: normalizedEmail,
-      subject: `You're invited to join ${companyName} on CleanCheck`,
+      subject: `You're invited to join ${companyName} on Cleerd`,
       html,
-      text: `You've been invited to join ${companyName} on CleanCheck.\n\nAccept your invitation here:\n${inviteUrl}\n\nIf you didn't expect this, you can ignore this email.`,
+      text: `You've been invited to join ${companyName} on Cleerd.\n\nAccept your invitation here:\n${inviteUrl}\n\nIf you didn't expect this, you can ignore this email.`,
     }),
   })
 

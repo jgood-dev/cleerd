@@ -51,7 +51,7 @@ export default function SignupPage() {
           <div className="mb-4 flex justify-center">
             <div className="flex items-center gap-2">
               <CheckSquare className="h-8 w-8 text-blue-400" />
-              <span className="text-2xl font-bold text-white">CleanCheck</span>
+              <span className="text-2xl font-bold text-white">Cleerd</span>
             </div>
           </div>
           <h1 className="text-2xl font-bold text-white">Start your free trial</h1>

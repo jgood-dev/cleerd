@@ -45,12 +45,12 @@ export default function PrivacyPage() {
 
         <section>
           <h2 className="text-xl font-semibold text-gray-900">5. AI Processing</h2>
-          <p>CleanCheck uses Anthropic's Claude AI to generate inspection reports. Inspection photos and notes you submit may be processed by Anthropic's API to generate reports. Anthropic's privacy policy governs their handling of this data.</p>
+          <p>Cleerd uses Anthropic's Claude AI to generate inspection reports. Inspection photos and notes you submit may be processed by Anthropic's API to generate reports. Anthropic's privacy policy governs their handling of this data.</p>
         </section>
 
         <section>
           <h2 className="text-xl font-semibold text-gray-900">6. Your Rights</h2>
-          <p>You may request to access, correct, or delete your personal data at any time by contacting us at support@cleancheck.io. We will respond within 30 days.</p>
+          <p>You may request to access, correct, or delete your personal data at any time by contacting us at support@cleerd.io. We will respond within 30 days.</p>
         </section>
 
         <section>
@@ -65,7 +65,7 @@ export default function PrivacyPage() {
 
         <section>
           <h2 className="text-xl font-semibold text-gray-900">9. Contact</h2>
-          <p>For privacy-related questions, contact us at <a href="mailto:support@cleancheck.io" className="text-blue-600 hover:underline">support@cleancheck.io</a>.</p>
+          <p>For privacy-related questions, contact us at <a href="mailto:support@cleerd.io" className="text-blue-600 hover:underline">support@cleerd.io</a>.</p>
         </section>
       </div>
     </div>

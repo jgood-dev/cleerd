@@ -34,7 +34,7 @@ export default async function SettingsPage() {
       href: '/settings/members',
       icon: Users,
       title: 'Team Logins',
-      description: 'Invite team members to access your CleanCheck account.',
+      description: 'Invite team members to access your Cleerd account.',
       ownerOnly: true,
     },
     {

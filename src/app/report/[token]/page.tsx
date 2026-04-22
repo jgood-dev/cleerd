@@ -224,7 +224,7 @@ export default async function ClientReportPage({ params }: { params: Promise<{ t
 
         {/* Footer */}
         <p style={{ textAlign: 'center', fontSize: 13, color: '#9ca3af', margin: '32px 0 0' }}>
-          Summary prepared by <strong style={{ color: '#6b7280' }}>{companyName}</strong> · Powered by CleanCheck
+          Summary prepared by <strong style={{ color: '#6b7280' }}>{companyName}</strong> · Powered by Cleerd
         </p>
       </main>
     </div>
