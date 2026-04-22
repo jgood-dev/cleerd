@@ -126,7 +126,7 @@ function JoinForm() {
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-300">Phone number <span className="text-red-400">*</span></label>
-            <PhoneInput value={phone} onChange={setPhone} required />
+            <PhoneInput value={phone} onChange={setPhone} />
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-300">Email</label>
