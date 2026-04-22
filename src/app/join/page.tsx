@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CheckSquare } from 'lucide-react'
+import { PhoneInput } from '@/components/ui/phone-input'
 
 function JoinForm() {
   const supabase = createClient()
@@ -18,6 +19,8 @@ function JoinForm() {
   const [invite, setInvite] = useState<any>(null)
   const [orgName, setOrgName] = useState('')
   const [email, setEmail] = useState('')
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -38,12 +41,15 @@ function JoinForm() {
 
   async function handleJoin(e: React.FormEvent) {
     e.preventDefault()
+    if (!name.trim() || !phone.trim()) {
+      setError('Full name and phone number are required.')
+      return
+    }
     setLoading(true)
     setError('')
 
     const { data, error: signupError } = await supabase.auth.signUp({ email, password })
     if (signupError) {
-      // Account already exists — sign in instead
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
       if (signInError) {
         setError(signupError.message)
@@ -57,9 +63,7 @@ function JoinForm() {
       }
     }
     if (data.user) {
-      // Link invite now so auth/confirm doesn't create a new org
       await linkInvite(data.user.id)
-      // If email confirmation is required, session will be null
       if (!data.session) {
         setLoading(false)
         setCheckEmail(true)
@@ -74,7 +78,7 @@ function JoinForm() {
     await fetch('/api/accept-invite', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, userId }),
+      body: JSON.stringify({ token, userId, name: name.trim(), phone: phone.trim() }),
     })
   }
 
@@ -116,6 +120,14 @@ function JoinForm() {
       </div>
       <div className="rounded-xl border border-white/10 bg-[#161b27] p-8 shadow-xl">
         <form onSubmit={handleJoin} className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-300">Full name <span className="text-red-400">*</span></label>
+            <Input placeholder="Jane Smith" value={name} onChange={e => setName(e.target.value)} required />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-300">Phone number <span className="text-red-400">*</span></label>
+            <PhoneInput value={phone} onChange={setPhone} required />
+          </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-300">Email</label>
             <Input type="email" value={email} onChange={e => setEmail(e.target.value)} required />

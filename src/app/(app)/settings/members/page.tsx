@@ -79,8 +79,11 @@ export default function MembersPage() {
     })
   }
 
+  const active = members.filter(m => m.invite_accepted_at)
+  const pending = members.filter(m => !m.invite_accepted_at)
+
   return (
-    <div className="mx-auto max-w-xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center gap-3">
         <Link href="/settings" className="text-gray-400 hover:text-white transition-colors">
           <ArrowLeft className="h-5 w-5" />
@@ -117,32 +120,70 @@ export default function MembersPage() {
         </CardContent>
       </Card>
 
-      {members.length > 0 && (
+      {active.length > 0 && (
         <Card>
-          <CardHeader><CardTitle>Pending & Active Members</CardTitle></CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {members.map(m => (
-                <div key={m.id} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-                  <div>
-                    <p className="text-sm font-medium text-gray-100">{m.email}</p>
-                    <p className="text-xs text-gray-500">
-                      {m.invite_accepted_at
-                        ? `Joined ${new Date(m.invite_accepted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
-                        : `Invited ${new Date(m.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={m.invite_accepted_at ? 'success' : 'secondary'}>
-                      {m.invite_accepted_at ? 'Active' : 'Pending'}
-                    </Badge>
-                    <Button variant="ghost" size="icon" onClick={() => removeMember(m.id, m.email, !!m.invite_accepted_at)} className="text-gray-500 hover:text-red-400 h-8 w-8">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <CardHeader><CardTitle>Active Members</CardTitle></CardHeader>
+          <CardContent className="p-0">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/10 text-xs text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left font-medium">Name</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Email</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Phone</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Joined</th>
+                  <th className="px-4 py-2.5" />
+                </tr>
+              </thead>
+              <tbody>
+                {active.map(m => (
+                  <tr key={m.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02]">
+                    <td className="px-4 py-3 font-medium text-gray-100">{m.name ?? '—'}</td>
+                    <td className="px-4 py-3 text-gray-300">{m.email}</td>
+                    <td className="px-4 py-3 text-gray-300">{m.phone ?? '—'}</td>
+                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                      {new Date(m.invite_accepted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Button variant="ghost" size="icon" onClick={() => removeMember(m.id, m.email, true)} className="text-gray-500 hover:text-red-400 h-8 w-8">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
+
+      {pending.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle>Pending Invitations</CardTitle></CardHeader>
+          <CardContent className="p-0">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/10 text-xs text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left font-medium">Email</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Invited</th>
+                  <th className="px-4 py-2.5" />
+                </tr>
+              </thead>
+              <tbody>
+                {pending.map(m => (
+                  <tr key={m.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02]">
+                    <td className="px-4 py-3 text-gray-300">{m.email}</td>
+                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                      {new Date(m.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Button variant="ghost" size="icon" onClick={() => removeMember(m.id, m.email, false)} className="text-gray-500 hover:text-red-400 h-8 w-8">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </CardContent>
         </Card>
       )}

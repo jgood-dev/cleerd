@@ -46,7 +46,7 @@ export default function TeamsPage() {
     if (owner) setOwnerEmail(user.email ?? '')
     const [{ data: teamsData }, { data: membersData }] = await Promise.all([
       supabase.from('teams').select('*, team_members(*)').eq('org_id', org.id).order('created_at'),
-      supabase.from('org_members').select('id, email').eq('org_id', org.id).not('invite_accepted_at', 'is', null),
+      supabase.from('org_members').select('id, email, name').eq('org_id', org.id).not('invite_accepted_at', 'is', null),
     ])
     setTeams(teamsData ?? [])
     setOrgMembers(membersData ?? [])
@@ -78,10 +78,12 @@ export default function TeamsPage() {
   async function addMember(teamId: string) {
     const email = selectedMember[teamId]
     if (!email) return
+    const allAccounts = ownerEmail ? [{ id: 'owner', email: ownerEmail, name: ownerEmail }, ...orgMembers] : orgMembers
+    const match = allAccounts.find(om => om.email === email)
     setMemberAdding(prev => ({ ...prev, [teamId]: true }))
     await supabase.from('team_members').insert({
       team_id: teamId,
-      name: email,
+      name: match?.name ?? email,
       email,
       role: memberRole[teamId] || 'cleaner',
     })
@@ -257,7 +259,7 @@ export default function TeamsPage() {
                             <option value="">Select account…</option>
                             {available.map(om => (
                               <option key={om.id} value={om.email}>
-                                {om.email}{om.id === 'owner' ? ' (you)' : ''}
+                                {om.name ?? om.email}{om.id === 'owner' ? ' (you)' : ''}
                               </option>
                             ))}
                           </select>

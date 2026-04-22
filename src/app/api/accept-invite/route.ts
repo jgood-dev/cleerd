@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest } from 'next/server'
 
 export async function POST(request: NextRequest) {
-  const { token, userId } = await request.json()
+  const { token, userId, name, phone } = await request.json()
   if (!token || !userId) return Response.json({ error: 'Missing params' }, { status: 400 })
 
   const admin = createClient(
@@ -23,6 +23,8 @@ export async function POST(request: NextRequest) {
   await admin.from('org_members').update({
     user_id: userId,
     invite_accepted_at: new Date().toISOString(),
+    name: name ?? null,
+    phone: phone ?? null,
   }).eq('invite_token', token)
 
   return Response.json({ success: true })
