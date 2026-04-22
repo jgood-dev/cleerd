@@ -642,15 +642,17 @@ export default function SchedulePage() {
       )}
 
       <TeamTimeline
-        jobs={jobs.map(j => ({
-          id: j.id,
-          scheduled_at: j.scheduled_at,
-          duration_minutes: j.duration_minutes,
-          team_id: j.team_id,
-          property_name: j.properties?.address ?? j.properties?.name ?? 'Unknown',
-          status: j.status,
-        }))}
-        teams={teams}
+        jobs={jobs
+          .filter(j => isOwner || !teamFilter || teamFilter === 'all' || j.team_id === teamFilter)
+          .map(j => ({
+            id: j.id,
+            scheduled_at: j.scheduled_at,
+            duration_minutes: j.duration_minutes,
+            team_id: j.team_id,
+            property_name: j.properties?.address ?? j.properties?.name ?? 'Unknown',
+            status: j.status,
+          }))}
+        teams={isOwner ? teams : teams.filter(t => t.id === teamFilter)}
         timezone={timezone}
         onJobClick={handleTimelineJobClick}
       />
