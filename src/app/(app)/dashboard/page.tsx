@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { ClipboardCheck, CheckCircle, AlertTriangle, TrendingUp, Calendar, RefreshCw } from 'lucide-react'
+import { ClipboardCheck, CheckCircle, AlertTriangle, Calendar, RefreshCw } from 'lucide-react'
 import { getOrgForUser } from '@/lib/get-org'
 
 export default async function DashboardPage() {
@@ -23,13 +23,6 @@ export default async function DashboardPage() {
     .lte('scheduled_at', todayEnd.toISOString())
     .order('scheduled_at')
   if (!isOwner && memberTeamId) todayJobsQuery = todayJobsQuery.eq('team_id', memberTeamId)
-
-  let inspectionsQuery = supabase
-    .from('inspections')
-    .select('*, properties(name), jobs(team_id)')
-    .eq('org_id', org?.id)
-    .order('created_at', { ascending: false })
-    .limit(5)
 
   // For members, get their team's job IDs to scope inspection stats
   let teamJobIds: string[] | null = null
@@ -51,13 +44,8 @@ export default async function DashboardPage() {
     pendingQuery = pendingQuery.in('job_id', teamJobIds.length ? teamJobIds : [''])
   }
 
-  const [{ data: todayJobs }, { data: inspections }, { count: totalInspections }, { count: completedThisMonth }, { count: pendingCount }] =
-    await Promise.all([todayJobsQuery, inspectionsQuery, statsQuery, completedQuery, pendingQuery])
-
-  // Filter recent inspections by team if member
-  const filteredInspections = (!isOwner && memberTeamId)
-    ? (inspections ?? []).filter((i: any) => (i.jobs as any)?.team_id === memberTeamId)
-    : (inspections ?? [])
+  const [{ data: todayJobs }, { count: totalInspections }, { count: completedThisMonth }, { count: pendingCount }] =
+    await Promise.all([todayJobsQuery, statsQuery, completedQuery, pendingQuery])
 
   return (
     <div className="space-y-6">
@@ -153,38 +141,6 @@ export default async function DashboardPage() {
                   </div>
                 )
               })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader><CardTitle>Recent Jobs</CardTitle></CardHeader>
-        <CardContent>
-          {!filteredInspections.length ? (
-            <div className="py-8 text-center">
-              <TrendingUp className="mx-auto mb-3 h-10 w-10 text-gray-600" />
-              <p className="text-gray-400">No jobs yet.</p>
-              {isOwner && (
-                <Link href="/schedule?new=1">
-                  <Button className="mt-4" variant="outline">Schedule your first job</Button>
-                </Link>
-              )}
-            </div>
-          ) : (
-            <div className="divide-y divide-white/5">
-              {filteredInspections.map((inspection: any) => (
-                <Link key={inspection.id} href={`/inspections/${inspection.id}`}
-                  className="flex items-center justify-between py-3 px-2 hover:bg-white/5 rounded-lg transition-colors">
-                  <div>
-                    <p className="font-medium text-gray-100">{(inspection.properties as any)?.name ?? 'No property'}</p>
-                    <p className="text-sm text-gray-500">{new Date(inspection.created_at).toLocaleDateString()}</p>
-                  </div>
-                  <Badge variant={inspection.status === 'completed' ? 'success' : inspection.status === 'report_sent' ? 'default' : 'warning'}>
-                    {inspection.status.replace('_', ' ')}
-                  </Badge>
-                </Link>
-              ))}
             </div>
           )}
         </CardContent>
