@@ -62,8 +62,8 @@ export default function LandingPage() {
             {[
               { step: '01', icon: CalendarDays, title: 'Schedule the job', desc: 'Assign a property, team, package, and time. Booking confirmation goes to the client automatically.' },
               { step: '02', icon: ClipboardList, title: 'Team completes checklist', desc: 'Your team logs in, sees their jobs, works through the checklist, and uploads before & after photos.' },
-              { step: '03', icon: Sparkles, title: 'AI generates the report', desc: 'Claude AI analyzes photos and the completed checklist to produce a professional quality report in seconds.' },
-              { step: '04', icon: Send, title: 'Client gets notified', desc: 'Send the polished report directly to your client. Mark the job paid and send an invoice — all from one place.' },
+              { step: '03', icon: Sparkles, title: 'AI generates your QC report', desc: 'AI analyzes photos and the completed checklist to produce an internal quality report with scores and notes — in seconds.' },
+              { step: '04', icon: Send, title: 'Client gets a summary', desc: 'Send a clean job completion summary to your client. Mark the job paid and send an invoice — all from one place.' },
             ].map(({ step, icon: Icon, title, desc }) => (
               <div key={step} className="relative rounded-xl bg-[#1e2433] border border-white/10 p-6">
                 <div className="text-xs font-bold text-blue-400/60 tracking-widest uppercase mb-4">{step}</div>
@@ -107,8 +107,8 @@ export default function LandingPage() {
             {
               icon: Sparkles,
               color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20',
-              title: 'AI quality reports',
-              desc: 'AI reads your checklist and photos and writes a professional QC report — branded, scored, and ready to send.',
+              title: 'AI internal QC reports',
+              desc: 'AI reads your checklist and photos and writes a scored internal QC report — so you always know the quality of work your team delivered.',
             },
             {
               icon: Bell,
@@ -183,7 +183,7 @@ export default function LandingPage() {
         <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
           {[
             { quote: "Before CleanCheck I was texting photos and typing reports manually. Now it takes 2 minutes after every job.", name: 'Maria T.', title: 'Owner, 3-team residential cleaning co.' },
-            { quote: "My clients actually comment on the reports we send them. It's made us look so much more professional.", name: 'James R.', title: 'Owner, commercial janitorial service' },
+            { quote: "The QC scores keep my team accountable and I can catch issues before a client ever notices. It's changed how I manage quality.", name: 'James R.', title: 'Owner, commercial janitorial service' },
             { quote: "My team knows exactly where to be and what to do. No more confusion about schedules or checklists.", name: 'Sarah K.', title: 'Operations manager, 12-person cleaning crew' },
           ].map(({ quote, name, title }) => (
             <div key={name} className="rounded-xl border border-white/10 bg-[#161b27] p-6">
@@ -210,18 +210,18 @@ export default function LandingPage() {
               {
                 name: 'Solo', price: 39,
                 desc: 'Perfect for owner-operators',
-                features: ['1 team', 'Up to 30 jobs/month', 'AI quality reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations'],
+                features: ['1 team', 'Up to 30 jobs/month', 'AI internal QC reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations'],
               },
               {
                 name: 'Growth', price: 69,
                 desc: 'For growing cleaning businesses',
-                features: ['Up to 3 teams', 'Unlimited jobs', 'AI quality reports', 'Photo documentation', 'Client email delivery', 'Appointment reminders'],
+                features: ['Up to 3 teams', 'Unlimited jobs', 'AI internal QC reports', 'Photo documentation', 'Client email delivery', 'Appointment reminders'],
                 popular: true,
               },
               {
                 name: 'Pro', price: 99,
                 desc: 'For established operations',
-                features: ['Unlimited teams', 'Unlimited jobs', 'AI quality reports', 'Photo documentation', 'Client email delivery', 'Priority support'],
+                features: ['Unlimited teams', 'Unlimited jobs', 'AI internal QC reports', 'Photo documentation', 'Client email delivery', 'Priority support'],
               },
             ].map(plan => (
               <div key={plan.name} className={`rounded-xl border p-6 text-left flex flex-col ${plan.popular ? 'border-blue-500 bg-blue-500/10 shadow-xl shadow-blue-500/10' : 'border-white/10 bg-[#1e2433]'}`}>
@@ -255,7 +255,7 @@ export default function LandingPage() {
       <section className="px-6 py-24 text-center max-w-2xl mx-auto">
         <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Ready to run a tighter operation?</h2>
         <p className="text-gray-400 mb-10 leading-relaxed">
-          Join cleaning businesses using CleanCheck to schedule smarter, document every job, and deliver reports clients actually notice.
+          Join cleaning businesses using CleanCheck to schedule smarter, document every job, and keep quality high across every team.
         </p>
         <Link href="/signup">
           <Button size="lg" className="bg-blue-500 hover:bg-blue-600 text-white gap-2">
