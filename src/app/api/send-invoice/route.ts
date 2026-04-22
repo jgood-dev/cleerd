@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest } from 'next/server'
 
 export async function POST(request: NextRequest) {
-  const { jobId } = await request.json()
+  const { jobId, amount, paymentMethod } = await request.json()
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -62,8 +62,8 @@ export async function POST(request: NextRequest) {
             </thead>
             <tbody>
               <tr style="border-top:1px solid #e5e7eb;">
-                <td style="padding:14px 16px;font-size:14px;color:#374151;">Cleaning service — ${address}</td>
-                <td style="padding:14px 16px;font-size:14px;color:#374151;text-align:right;font-weight:600;">Due upon receipt</td>
+                <td style="padding:14px 16px;font-size:14px;color:#374151;">Cleaning service — ${address}${paymentMethod ? `<br><span style="font-size:12px;color:#9ca3af;">Paid via ${paymentMethod}</span>` : ''}</td>
+                <td style="padding:14px 16px;font-size:14px;color:#374151;text-align:right;font-weight:600;">${amount != null ? `$${Number(amount).toFixed(2)}` : 'See invoice'}</td>
               </tr>
             </tbody>
           </table>
@@ -86,7 +86,9 @@ export async function POST(request: NextRequest) {
 </body>
 </html>`
 
-  const plainText = `${greeting}\n\nThank you for choosing ${companyName}!\n\nInvoice for cleaning at ${address} on ${scheduledDate}.\n\nThis invoice is marked as PAID. Thank you for your payment!\n\nIf you have questions, please reach out.\n\n— ${companyName}`
+  const amountLine = amount != null ? `Amount: $${Number(amount).toFixed(2)}\n` : ''
+  const methodLine = paymentMethod ? `Payment method: ${paymentMethod}\n` : ''
+  const plainText = `${greeting}\n\nThank you for choosing ${companyName}!\n\nInvoice for cleaning at ${address} on ${scheduledDate}.\n${amountLine}${methodLine}\nThis invoice is marked as PAID. Thank you for your payment!\n\nIf you have questions, please reach out.\n\n— ${companyName}`
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -110,7 +112,12 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: 'Failed to send email' }, { status: 500 })
   }
 
-  await supabase.from('jobs').update({ paid_at: now, invoice_sent_at: now }).eq('id', jobId)
+  await supabase.from('jobs').update({
+    paid_at: now,
+    invoice_sent_at: now,
+    ...(amount != null ? { price: amount } : {}),
+    ...(paymentMethod ? { payment_method: paymentMethod } : {}),
+  }).eq('id', jobId)
 
   return Response.json({ success: true })
 }

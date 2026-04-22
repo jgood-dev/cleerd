@@ -21,6 +21,8 @@ export default function PackagesPage() {
   const [dialog, setDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
   const [durationDraft, setDurationDraft] = useState<Record<string, { base: string; small: string; large: string; xl: string }>>({})
   const [durationSaving, setDurationSaving] = useState<string | null>(null)
+  const [priceDraft, setPriceDraft] = useState<Record<string, string>>({})
+  const [priceSaving, setPriceSaving] = useState<string | null>(null)
 
   useEffect(() => { load() }, [])
 
@@ -115,6 +117,15 @@ export default function PackagesPage() {
         xl: String(m.xl ?? 2.0),
       },
     }))
+    setPriceDraft(prev => ({ ...prev, [pkg.id]: pkg.base_price != null ? String(pkg.base_price) : '' }))
+  }
+
+  async function savePrice(pkgId: string) {
+    setPriceSaving(pkgId)
+    const val = parseFloat(priceDraft[pkgId])
+    await supabase.from('packages').update({ base_price: isNaN(val) ? null : val }).eq('id', pkgId)
+    setPriceSaving(null)
+    await load()
   }
 
   async function saveDuration(pkgId: string) {
@@ -245,6 +256,28 @@ export default function PackagesPage() {
                     <Button size="sm" onClick={() => addItem(pkg.id)}>
                       <Plus className="h-4 w-4" />
                     </Button>
+                  </div>
+
+                  {/* Price */}
+                  <div className="pt-2 border-t border-white/10 space-y-3">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Base Price</p>
+                    <div>
+                      <label className="mb-1 block text-xs text-gray-400">Default price for this package <span className="text-gray-600">(auto-fills on new jobs)</span></label>
+                      <div className="flex items-center gap-2">
+                        <div className="relative w-36">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                          <Input
+                            type="number" min="0" step="0.01" className="text-sm pl-6 w-36"
+                            placeholder="0.00"
+                            value={priceDraft[pkg.id] ?? ''}
+                            onChange={e => setPriceDraft(prev => ({ ...prev, [pkg.id]: e.target.value }))}
+                          />
+                        </div>
+                        <Button size="sm" variant="outline" onClick={() => savePrice(pkg.id)} disabled={priceSaving === pkg.id}>
+                          {priceSaving === pkg.id ? 'Saving…' : 'Save'}
+                        </Button>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Duration settings */}

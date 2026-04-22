@@ -103,6 +103,7 @@ export default function SchedulePage() {
   const [templateId, setTemplateId] = useState('')
   const [durationMinutes, setDurationMinutes] = useState<string>('')
   const [recurrence, setRecurrence] = useState<string>('')
+  const [price, setPrice] = useState<string>('')
   const [teamFilter, setTeamFilter] = useState<string>('all')
   const [isOwner, setIsOwner] = useState(true)
 
@@ -154,6 +155,8 @@ export default function SchedulePage() {
     if (id) setJobItems([])
     setTemplateId('')
     setDurationMinutes(calcDuration(id, propertyId))
+    const pkg = packages.find((p: any) => p.id === id)
+    setPrice(pkg?.base_price != null ? String(pkg.base_price) : '')
   }
 
   function handleTemplateChange(id: string) {
@@ -346,6 +349,7 @@ export default function SchedulePage() {
       scheduled_at: scheduledAt,
       notes: notes || null,
       status: 'scheduled',
+      price: price ? parseFloat(price) : null,
     }).select().single()
 
     if (newJob?.id) {
@@ -613,6 +617,19 @@ export default function SchedulePage() {
                   <option value="biweekly">Every 2 weeks</option>
                   <option value="monthly">Monthly</option>
                 </select>
+              </div>
+
+              {/* Price */}
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-300">
+                  Price
+                  {price && <span className="ml-2 text-xs text-gray-500 font-normal">auto-filled from package — override if needed</span>}
+                </label>
+                <div className="relative w-36">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                  <Input type="number" min="0" step="0.01" placeholder="0.00" className="pl-6 w-36"
+                    value={price} onChange={e => setPrice(e.target.value)} />
+                </div>
               </div>
 
               {/* Notes */}

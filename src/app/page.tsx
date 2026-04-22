@@ -309,18 +309,18 @@ export default function LandingPage() {
               {
                 name: 'Solo', price: 39,
                 desc: 'Perfect for owner-operators',
-                features: ['1 team', 'Up to 30 jobs/month', 'AI internal QC reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations'],
+                features: ['1 team', 'Up to 50 jobs/month', 'AI internal QC reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations'],
               },
               {
                 name: 'Growth', price: 69,
                 desc: 'For growing cleaning businesses',
-                features: ['Up to 3 teams', 'Unlimited jobs', 'AI internal QC reports', 'Photo documentation', 'Client email delivery', 'Appointment reminders'],
+                features: ['Up to 3 teams', 'Unlimited jobs', 'AI internal QC reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations', 'Appointment reminders'],
                 popular: true,
               },
               {
                 name: 'Pro', price: 99,
                 desc: 'For established operations',
-                features: ['Unlimited teams', 'Unlimited jobs', 'AI internal QC reports', 'Photo documentation', 'Client email delivery', 'Priority support'],
+                features: ['Unlimited teams', 'Unlimited jobs', 'AI internal QC reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations', 'Appointment reminders', 'Priority support'],
               },
             ].map(plan => (
               <div key={plan.name} className={`rounded-xl border p-6 text-left flex flex-col ${plan.popular ? 'border-blue-500 bg-blue-500/10 shadow-xl shadow-blue-500/10' : 'border-white/10 bg-[#1e2433]'}`}>

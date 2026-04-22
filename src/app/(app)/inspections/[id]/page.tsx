@@ -29,6 +29,8 @@ export default function InspectionDetailPage() {
   const [noteSaved, setNoteSaved] = useState(false)
   const [job, setJob] = useState<any>(null)
   const [markingPaid, setMarkingPaid] = useState(false)
+  const [paymentAmount, setPaymentAmount] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('')
   const [dialog, setDialog] = useState<{ title: string; message: string; confirmLabel?: string; destructive?: boolean; onConfirm: () => void } | null>(null)
 
   useEffect(() => { load() }, [id])
@@ -44,8 +46,12 @@ export default function InspectionDetailPage() {
     setChecklist(cl ?? [])
     setClientNote(insp?.client_note ?? '')
     if (insp?.job_id) {
-      const { data: j } = await supabase.from('jobs').select('id, paid_at, invoice_sent_at').eq('id', insp.job_id).single()
+      const { data: j } = await supabase.from('jobs').select('id, paid_at, invoice_sent_at, price, payment_method').eq('id', insp.job_id).single()
       setJob(j)
+      if (j && !j.paid_at) {
+        setPaymentAmount(j.price != null ? String(j.price) : '')
+        setPaymentMethod(j.payment_method ?? '')
+      }
     }
   }
 
@@ -138,7 +144,11 @@ export default function InspectionDetailPage() {
     const res = await fetch('/api/send-invoice', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jobId: job.id }),
+      body: JSON.stringify({
+        jobId: job.id,
+        amount: paymentAmount ? parseFloat(paymentAmount) : null,
+        paymentMethod: paymentMethod || null,
+      }),
     })
     setMarkingPaid(false)
     if (res.ok) {
@@ -345,20 +355,58 @@ export default function InspectionDetailPage() {
               )}
             </div>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
             {job.paid_at ? (
-              <p className="text-sm text-gray-400">
-                Marked as paid on {new Date(job.paid_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}.
-                {job.invoice_sent_at && ' Invoice sent to client.'}
-              </p>
+              <div className="space-y-1">
+                <p className="text-sm text-gray-400">
+                  Marked as paid on {new Date(job.paid_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}.
+                  {job.invoice_sent_at && ' Invoice sent to client.'}
+                </p>
+                {(job.price != null || job.payment_method) && (
+                  <p className="text-sm text-gray-500">
+                    {job.price != null && <span className="text-green-400 font-semibold">${Number(job.price).toFixed(2)}</span>}
+                    {job.price != null && job.payment_method && <span> · </span>}
+                    {job.payment_method && <span>{job.payment_method}</span>}
+                  </p>
+                )}
+              </div>
             ) : (
-              <p className="text-sm text-gray-400">Mark this job as paid to send the client an invoice email.</p>
-            )}
-            {!job.paid_at && (
-              <Button onClick={markAsPaid} disabled={markingPaid} variant="outline" className="border-green-500/30 text-green-400 hover:bg-green-500/10">
-                {markingPaid ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
-                {markingPaid ? 'Sending…' : 'Mark as Paid & Send Invoice'}
-              </Button>
+              <div className="space-y-3">
+                <div className="flex gap-3 flex-wrap">
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-400">Amount</label>
+                    <div className="relative w-32">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                      <input
+                        type="number" min="0" step="0.01" placeholder="0.00"
+                        className="flex h-9 w-32 rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 pl-6 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={paymentAmount}
+                        onChange={e => setPaymentAmount(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-400">Payment method</label>
+                    <select
+                      className="flex h-9 rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={paymentMethod}
+                      onChange={e => setPaymentMethod(e.target.value)}
+                    >
+                      <option value="">Not specified</option>
+                      <option value="Cash">Cash</option>
+                      <option value="Check">Check</option>
+                      <option value="Venmo">Venmo</option>
+                      <option value="Zelle">Zelle</option>
+                      <option value="Card">Card</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+                <Button onClick={markAsPaid} disabled={markingPaid} variant="outline" className="border-green-500/30 text-green-400 hover:bg-green-500/10">
+                  {markingPaid ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
+                  {markingPaid ? 'Sending…' : 'Mark as Paid & Send Invoice'}
+                </Button>
+              </div>
             )}
           </CardContent>
         </Card>
