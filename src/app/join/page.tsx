@@ -25,7 +25,6 @@ function JoinForm() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [invalid, setInvalid] = useState(false)
-  const [checkEmail, setCheckEmail] = useState(false)
 
   useEffect(() => {
     if (!token) { setInvalid(true); return }
@@ -48,38 +47,29 @@ function JoinForm() {
     setLoading(true)
     setError('')
 
-    const { data, error: signupError } = await supabase.auth.signUp({ email, password })
-    if (signupError) {
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
-      if (signInError) {
-        setError(signupError.message)
-        setLoading(false)
-        return
-      }
-      if (signInData.user) {
-        await linkInvite(signInData.user.id)
-        router.push('/dashboard')
-        return
-      }
-    }
-    if (data.user) {
-      await linkInvite(data.user.id)
-      if (!data.session) {
-        setLoading(false)
-        setCheckEmail(true)
-        return
-      }
-      router.push('/dashboard')
-    }
-    setLoading(false)
-  }
-
-  async function linkInvite(userId: string) {
-    await fetch('/api/accept-invite', {
+    // Create user server-side with email pre-confirmed (no confirmation email)
+    const res = await fetch('/api/join-org', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, userId, name: name.trim(), phone: phone.trim() }),
+      body: JSON.stringify({ token, email, password, name: name.trim(), phone: phone.trim() }),
     })
+
+    if (!res.ok) {
+      const data = await res.json()
+      setError(data.error ?? 'Failed to create account.')
+      setLoading(false)
+      return
+    }
+
+    // Sign in immediately — no confirmation email required
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    if (signInError) {
+      setError(signInError.message)
+      setLoading(false)
+      return
+    }
+
+    router.push('/dashboard')
   }
 
   if (invalid) {
@@ -92,17 +82,7 @@ function JoinForm() {
     )
   }
 
-  if (checkEmail) {
-    return (
-      <div className="text-center max-w-sm">
-        <CheckSquare className="h-10 w-10 text-blue-400 mx-auto mb-4" />
-        <h1 className="text-xl font-bold text-white mb-2">Check your email</h1>
-        <p className="text-gray-400">We sent a confirmation link to <strong className="text-gray-200">{email}</strong>. Click it to finish joining {orgName}.</p>
-      </div>
-    )
-  }
-
-  if (!invite) {
+if (!invite) {
     return <p className="text-gray-400">Loading invitation...</p>
   }
 
