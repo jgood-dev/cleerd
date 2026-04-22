@@ -64,7 +64,7 @@ export default async function BillingPage() {
               <Button size="sm" disabled className="ml-4 flex-shrink-0">Coming soon</Button>
             </div>
           ))}
-          <p className="text-xs text-gray-500 pt-1">Online plan management coming soon. Contact josh@cleancheck.io to change your plan.</p>
+          <p className="text-xs text-gray-500 pt-1">Online plan management coming soon. Contact support@cleancheck.io to change your plan.</p>
         </CardContent>
       </Card>
     </div>

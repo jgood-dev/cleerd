@@ -108,8 +108,8 @@ export async function GET(req: NextRequest) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: `${companyName} <josh@cleancheck.io>`,
-          reply_to: 'josh@cleancheck.io',
+          from: `${companyName} <support@cleancheck.io>`,
+          reply_to: 'support@cleancheck.io',
           to: property.client_email,
           subject: `Reminder: cleaning at ${address} on ${apptFormatted}`,
           html,

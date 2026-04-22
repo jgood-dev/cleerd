@@ -79,7 +79,7 @@ export default function TermsPage() {
 
         <section>
           <h2 className="text-xl font-semibold text-gray-900">14. Contact</h2>
-          <p>For questions about these Terms, contact us at <a href="mailto:josh@cleancheck.io" className="text-blue-600 hover:underline">josh@cleancheck.io</a>.</p>
+          <p>For questions about these Terms, contact us at <a href="mailto:support@cleancheck.io" className="text-blue-600 hover:underline">support@cleancheck.io</a>.</p>
         </section>
       </div>
     </div>

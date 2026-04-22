@@ -108,8 +108,8 @@ export async function POST(request: NextRequest) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: `${companyName} <josh@cleancheck.io>`,
-      reply_to: 'josh@cleancheck.io',
+      from: `${companyName} <support@cleancheck.io>`,
+      reply_to: 'support@cleancheck.io',
       to: property.client_email,
       subject: `Your home is clean — ${address}`,
       html,
