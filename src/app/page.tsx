@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
   CheckSquare, Camera, Sparkles, Send, CheckCircle, CalendarDays,
-  Users, ClipboardList, Bell, CreditCard, Star, ArrowRight, Zap,
+  Users, ClipboardList, Bell, CreditCard, ArrowRight, Zap,
 } from 'lucide-react'
 
 export default function LandingPage() {
@@ -169,34 +169,6 @@ export default function LandingPage() {
               ))}
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Social proof */}
-      <section className="px-6 py-20 max-w-4xl mx-auto">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-white mb-3">Cleaning businesses love it</h2>
-          <div className="flex justify-center gap-1 mt-2">
-            {[...Array(5)].map((_, i) => <Star key={i} className="h-5 w-5 fill-amber-400 text-amber-400" />)}
-          </div>
-        </div>
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-          {[
-            { quote: "Before CleanCheck I was texting photos and typing reports manually. Now it takes 2 minutes after every job.", name: 'Maria T.', title: 'Owner, 3-team residential cleaning co.' },
-            { quote: "The QC scores keep my team accountable and I can catch issues before a client ever notices. It's changed how I manage quality.", name: 'James R.', title: 'Owner, commercial janitorial service' },
-            { quote: "My team knows exactly where to be and what to do. No more confusion about schedules or checklists.", name: 'Sarah K.', title: 'Operations manager, 12-person cleaning crew' },
-          ].map(({ quote, name, title }) => (
-            <div key={name} className="rounded-xl border border-white/10 bg-[#161b27] p-6">
-              <div className="flex gap-0.5 mb-4">
-                {[...Array(5)].map((_, i) => <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />)}
-              </div>
-              <p className="text-sm text-gray-300 leading-relaxed mb-4">"{quote}"</p>
-              <div>
-                <p className="text-sm font-semibold text-white">{name}</p>
-                <p className="text-xs text-gray-500">{title}</p>
-              </div>
-            </div>
-          ))}
         </div>
       </section>
 
