@@ -63,22 +63,20 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[
-          { icon: ClipboardCheck, label: 'Total Jobs', value: totalInspections ?? 0, color: 'text-blue-400', bg: 'bg-blue-500/10', href: '/inspections?filter=all' },
-          { icon: CheckCircle, label: 'Completed This Month', value: completedThisMonth ?? 0, color: 'text-green-400', bg: 'bg-green-500/10', href: '/inspections?filter=done' },
-          { icon: AlertTriangle, label: 'In Progress', value: pendingCount ?? 0, color: 'text-yellow-400', bg: 'bg-yellow-500/10', href: '/inspections?filter=in_progress' },
-        ].map(({ icon: Icon, label, value, color, bg, href }) => (
+          { icon: ClipboardCheck, label: 'Total Jobs', value: totalInspections ?? 0, iconColor: 'text-blue-400', iconBg: 'bg-blue-500/10', border: 'border-blue-500/20', href: '/inspections?filter=all' },
+          { icon: CheckCircle, label: 'Completed This Month', value: completedThisMonth ?? 0, iconColor: 'text-emerald-400', iconBg: 'bg-emerald-500/10', border: 'border-emerald-500/20', href: '/inspections?filter=done' },
+          { icon: AlertTriangle, label: 'In Progress', value: pendingCount ?? 0, iconColor: 'text-amber-400', iconBg: 'bg-amber-500/10', border: 'border-amber-500/20', href: '/inspections?filter=in_progress' },
+        ].map(({ icon: Icon, label, value, iconColor, iconBg, border, href }) => (
           <Link key={label} href={href}>
-            <Card className="hover:bg-white/5 transition-colors cursor-pointer">
-              <CardContent className="flex items-center gap-4 p-6">
-                <div className={`rounded-lg ${bg} p-3`}>
-                  <Icon className={`h-6 w-6 ${color}`} />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">{label}</p>
-                  <p className="text-2xl font-bold text-white">{value}</p>
-                </div>
-              </CardContent>
-            </Card>
+            <div className={`rounded-xl border ${border} bg-[#161b27] p-6 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer`}>
+              <div className={`rounded-lg ${iconBg} p-3 flex-shrink-0`}>
+                <Icon className={`h-6 w-6 ${iconColor}`} />
+              </div>
+              <div>
+                <p className="text-sm text-gray-400">{label}</p>
+                <p className="text-2xl font-bold text-white">{value}</p>
+              </div>
+            </div>
           </Link>
         ))}
       </div>
