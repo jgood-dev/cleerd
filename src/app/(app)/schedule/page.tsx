@@ -104,6 +104,9 @@ export default function SchedulePage() {
   const [durationMinutes, setDurationMinutes] = useState<string>('')
   const [recurrence, setRecurrence] = useState<string>('')
   const [price, setPrice] = useState<string>('')
+  const [jobSize, setJobSize] = useState<string>('medium')
+  const [editSize, setEditSize] = useState<string>('medium')
+  const [editPrice, setEditPrice] = useState<string>('')
   const [teamFilter, setTeamFilter] = useState<string>('all')
   const [isOwner, setIsOwner] = useState(true)
 
@@ -154,9 +157,20 @@ export default function SchedulePage() {
     setPackageId(id)
     if (id) setJobItems([])
     setTemplateId('')
-    setDurationMinutes(calcDuration(id, propertyId))
-    const pkg = packages.find((p: any) => p.id === id)
-    setPrice(pkg?.base_price != null ? String(pkg.base_price) : '')
+    setDurationMinutes(calcDuration(id, jobSize))
+    setPrice(calcPrice(id, jobSize) || (packages.find((p: any) => p.id === id)?.base_price != null ? String(packages.find((p: any) => p.id === id).base_price) : ''))
+  }
+
+  function handleSizeChange(size: string) {
+    setJobSize(size)
+    setDurationMinutes(calcDuration(packageId, size))
+    if (packageId) setPrice(calcPrice(packageId, size))
+  }
+
+  function handleEditSizeChange(size: string) {
+    setEditSize(size)
+    setEditDuration(calcDuration(editPackageId, size))
+    if (editPackageId) setEditPrice(calcPrice(editPackageId, size))
   }
 
   function handleTemplateChange(id: string) {
@@ -196,13 +210,18 @@ export default function SchedulePage() {
     })
   }
 
-  function calcDuration(pkgId: string, propId: string): string {
+  function calcDuration(pkgId: string, size: string): string {
     const pkg = packages.find(p => p.id === pkgId)
     if (!pkg?.base_duration_minutes) return ''
-    const prop = properties.find(p => p.id === propId)
-    const size: string = prop?.size ?? 'medium'
     const multiplier = (pkg.size_multipliers ?? {})[size] ?? 1.0
     return String(Math.round(pkg.base_duration_minutes * multiplier))
+  }
+
+  function calcPrice(pkgId: string, size: string): string {
+    const pkg = packages.find(p => p.id === pkgId)
+    if (pkg?.base_price == null) return ''
+    const multiplier = (pkg.size_multipliers ?? {})[size] ?? 1.0
+    return String(Math.round(pkg.base_price * multiplier * 100) / 100)
   }
 
   function addItem() {
@@ -227,6 +246,8 @@ export default function SchedulePage() {
     setEditTemplateId('')
     setEditDuration(job.duration_minutes ? String(job.duration_minutes) : '')
     setEditRecurrence(job.recurrence ?? '')
+    setEditSize((job as any).size ?? properties.find(p => p.id === job.property_id)?.size ?? 'medium')
+    setEditPrice((job as any).price != null ? String((job as any).price) : '')
   }
 
   function closeEdit() {
@@ -287,6 +308,8 @@ export default function SchedulePage() {
       recurrence: editRecurrence || null,
       scheduled_at: editScheduledAt,
       notes: editNotes || null,
+      size: editSize || null,
+      price: editPrice ? parseFloat(editPrice) : null,
     }).eq('id', editingJobId)
 
     // If recurrence was just enabled on a done job, create the next visit now
@@ -350,6 +373,7 @@ export default function SchedulePage() {
       notes: notes || null,
       status: 'scheduled',
       price: price ? parseFloat(price) : null,
+      size: jobSize || null,
     }).select().single()
 
     if (newJob?.id) {
@@ -362,7 +386,7 @@ export default function SchedulePage() {
 
     setAdding(false); setAddingProperty(false)
     setPropertyId(''); setTeamId(''); setPackageId(''); setScheduledAt(''); setNotes('')
-    setJobItems([]); setNewItem(''); setTemplateId(''); setDurationMinutes(''); setRecurrence('')
+    setJobItems([]); setNewItem(''); setTemplateId(''); setDurationMinutes(''); setRecurrence(''); setJobSize('medium'); setPrice('')
     setNewOwnerName(''); setNewPhone(''); setNewEmail('')
     if (addressRef.current) addressRef.current.value = ''
     setSaving(false)
@@ -459,7 +483,14 @@ export default function SchedulePage() {
                     <div className="flex gap-2">
                       <select
                         className="flex h-10 flex-1 rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={propertyId} onChange={e => { setPropertyId(e.target.value); setDurationMinutes(calcDuration(packageId, e.target.value)) }}
+                        value={propertyId} onChange={e => {
+                          setPropertyId(e.target.value)
+                          const prop = properties.find(p => p.id === e.target.value)
+                          const sz = prop?.size ?? 'medium'
+                          setJobSize(sz)
+                          setDurationMinutes(calcDuration(packageId, sz))
+                          if (packageId) setPrice(calcPrice(packageId, sz))
+                        }}
                       >
                         <option value="">Select property</option>
                         {properties.map(p => <option key={p.id} value={p.id}>{p.address ?? p.name}</option>)}
@@ -582,6 +613,25 @@ export default function SchedulePage() {
                     </div>
                   )
                 })()}
+              </div>
+
+              {/* Property Size */}
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-300">
+                  Property Size
+                  <span className="ml-2 text-xs text-gray-500 font-normal">affects duration & price</span>
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {(['small', 'medium', 'large', 'xl'] as const).map(s => (
+                    <button
+                      key={s} type="button"
+                      onClick={() => handleSizeChange(s)}
+                      className={`rounded-lg border py-2 text-sm font-medium capitalize transition-colors ${jobSize === s ? 'border-blue-500 bg-blue-500/20 text-blue-300' : 'border-white/20 bg-[#1e2433] text-gray-400 hover:border-white/40'}`}
+                    >
+                      {s === 'xl' ? 'XL' : s.charAt(0).toUpperCase() + s.slice(1)}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Date & Time */}
@@ -826,6 +876,31 @@ export default function SchedulePage() {
                                   = {Math.floor(parseInt(editDuration) / 60)}h {parseInt(editDuration) % 60 > 0 ? `${parseInt(editDuration) % 60}m` : ''}
                                 </span>
                               )}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-gray-300">
+                              Property Size
+                              <span className="ml-2 text-xs text-gray-500 font-normal">affects duration & price</span>
+                            </label>
+                            <div className="grid grid-cols-4 gap-2">
+                              {(['small', 'medium', 'large', 'xl'] as const).map(s => (
+                                <button
+                                  key={s} type="button"
+                                  onClick={() => handleEditSizeChange(s)}
+                                  className={`rounded-lg border py-2 text-sm font-medium capitalize transition-colors ${editSize === s ? 'border-blue-500 bg-blue-500/20 text-blue-300' : 'border-white/20 bg-[#1e2433] text-gray-400 hover:border-white/40'}`}
+                                >
+                                  {s === 'xl' ? 'XL' : s.charAt(0).toUpperCase() + s.slice(1)}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-gray-300">Price</label>
+                            <div className="relative w-36">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                              <Input type="number" min="0" step="0.01" placeholder="0.00" className="pl-6 w-36"
+                                value={editPrice} onChange={e => setEditPrice(e.target.value)} />
                             </div>
                           </div>
                           <div>
