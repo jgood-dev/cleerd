@@ -14,6 +14,7 @@ export default function TeamsPage() {
   const supabase = createClient()
   const [orgId, setOrgId] = useState<string>('')
   const [isOwner, setIsOwner] = useState(false)
+  const [ownerEmail, setOwnerEmail] = useState<string>('')
   const [teams, setTeams] = useState<any[]>([])
   const [orgMembers, setOrgMembers] = useState<any[]>([])
   const [newTeamName, setNewTeamName] = useState('')
@@ -42,6 +43,7 @@ export default function TeamsPage() {
     if (!org) return
     setOrgId(org.id)
     setIsOwner(owner)
+    if (owner) setOwnerEmail(user.email ?? '')
     const [{ data: teamsData }, { data: membersData }] = await Promise.all([
       supabase.from('teams').select('*, team_members(*)').eq('org_id', org.id).order('created_at'),
       supabase.from('org_members').select('id, email').eq('org_id', org.id).not('invite_accepted_at', 'is', null),
@@ -151,7 +153,11 @@ export default function TeamsPage() {
           const members: any[] = team.team_members ?? []
           const isExpanded = expandedTeam === team.id
           const teamEmails = new Set(members.map((m: any) => m.email).filter(Boolean))
-          const available = orgMembers.filter(om => !teamEmails.has(om.email))
+          const allAccounts = [
+            ...(ownerEmail ? [{ id: 'owner', email: ownerEmail }] : []),
+            ...orgMembers,
+          ]
+          const available = allAccounts.filter(om => !teamEmails.has(om.email))
           return (
             <div key={team.id} className="rounded-xl border border-white/10 bg-[#161b27] overflow-hidden">
               {/* Header */}
@@ -248,9 +254,11 @@ export default function TeamsPage() {
                             value={selectedMember[team.id] ?? ''}
                             onChange={e => setSelectedMember(prev => ({ ...prev, [team.id]: e.target.value }))}
                           >
-                            <option value="">Select a team login…</option>
+                            <option value="">Select account…</option>
                             {available.map(om => (
-                              <option key={om.id} value={om.email}>{om.email}</option>
+                              <option key={om.id} value={om.email}>
+                                {om.email}{om.id === 'owner' ? ' (you)' : ''}
+                              </option>
                             ))}
                           </select>
                           <select
