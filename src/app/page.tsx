@@ -3,7 +3,128 @@ import { Button } from '@/components/ui/button'
 import {
   CheckSquare, Camera, Sparkles, Send, CheckCircle, CalendarDays,
   Users, ClipboardList, Bell, CreditCard, ArrowRight, Zap,
+  Circle,
 } from 'lucide-react'
+
+function AppMockup() {
+  const checklistItems = [
+    { label: 'Vacuumed all carpeted areas', done: true },
+    { label: 'Mopped hard floors', done: true },
+    { label: 'Cleaned and sanitized bathrooms', done: true },
+    { label: 'Wiped down all countertops', done: true },
+    { label: 'Emptied trash and replaced liners', done: true },
+    { label: 'Cleaned kitchen appliances', done: true },
+    { label: 'Dusted blinds and ceiling fans', done: false },
+  ]
+
+  const photos = [
+    { label: 'Before', color: 'from-slate-700 to-slate-800' },
+    { label: 'After', color: 'from-emerald-900 to-slate-800' },
+    { label: 'After', color: 'from-emerald-900 to-slate-900' },
+    { label: 'Issue', color: 'from-amber-900 to-slate-800' },
+  ]
+
+  return (
+    <div className="w-full max-w-4xl mx-auto">
+      {/* Browser chrome */}
+      <div className="rounded-xl overflow-hidden border border-white/10 shadow-2xl shadow-black/50">
+        <div className="bg-[#1e2433] border-b border-white/10 px-4 py-3 flex items-center gap-3">
+          <div className="flex gap-1.5">
+            <div className="h-3 w-3 rounded-full bg-red-500/70" />
+            <div className="h-3 w-3 rounded-full bg-amber-500/70" />
+            <div className="h-3 w-3 rounded-full bg-emerald-500/70" />
+          </div>
+          <div className="flex-1 mx-4 bg-[#161b27] rounded-md px-3 py-1 text-xs text-gray-500 text-center">
+            app.cleancheck.io/inspections/job-detail
+          </div>
+        </div>
+
+        {/* App shell */}
+        <div className="flex bg-[#0f1117] min-h-[480px]">
+          {/* Sidebar */}
+          <div className="hidden sm:flex w-44 flex-col bg-[#161b27] border-r border-white/10 p-3 gap-1 flex-shrink-0">
+            <div className="flex items-center gap-2 px-2 py-3 mb-2">
+              <CheckSquare className="h-4 w-4 text-blue-400" />
+              <span className="text-sm font-bold text-white">CleanCheck</span>
+            </div>
+            {[
+              { label: 'Dashboard', active: false },
+              { label: 'Schedule', active: false },
+              { label: 'Jobs', active: true },
+              { label: 'Reports', active: false },
+              { label: 'Settings', active: false },
+            ].map(({ label, active }) => (
+              <div key={label} className={`px-3 py-2 rounded-lg text-xs font-medium ${active ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'text-gray-500'}`}>
+                {label}
+              </div>
+            ))}
+          </div>
+
+          {/* Main content */}
+          <div className="flex-1 p-5 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-start justify-between mb-5">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base font-bold text-white">247 Maple Drive — Unit 3B</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 font-medium">Completed</span>
+                </div>
+                <p className="text-xs text-gray-500">Morning Crew · Mon Apr 21, 2025 · 9:00 AM · 2h 30m</p>
+              </div>
+              <div className="flex-shrink-0 text-right">
+                <div className="text-2xl font-bold text-emerald-400">94%</div>
+                <div className="text-xs text-gray-500">QC Score</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Checklist */}
+              <div className="rounded-lg bg-[#161b27] border border-white/10 p-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Checklist</p>
+                <div className="space-y-2">
+                  {checklistItems.map(({ label, done }) => (
+                    <div key={label} className="flex items-center gap-2.5">
+                      <div className={`h-4 w-4 rounded flex-shrink-0 flex items-center justify-center ${done ? 'bg-emerald-500/20 border border-emerald-500/40' : 'border border-white/20'}`}>
+                        {done && <CheckCircle className="h-3 w-3 text-emerald-400" />}
+                      </div>
+                      <span className={`text-xs ${done ? 'text-gray-300' : 'text-gray-600'}`}>{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {/* Photos */}
+                <div className="rounded-lg bg-[#161b27] border border-white/10 p-4">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Photos</p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {photos.map(({ label, color }, i) => (
+                      <div key={i} className={`aspect-square rounded-md bg-gradient-to-br ${color} flex flex-col items-center justify-center gap-1`}>
+                        <Camera className="h-3 w-3 text-white/40" />
+                        <span className="text-[9px] text-white/40">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* AI Report excerpt */}
+                <div className="rounded-lg bg-[#161b27] border border-white/10 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sparkles className="h-3.5 w-3.5 text-blue-400" />
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">AI Quality Report</p>
+                  </div>
+                  <p className="text-xs text-gray-400 leading-relaxed line-clamp-4">
+                    Overall quality score: <span className="text-emerald-400 font-semibold">94/100</span>. All primary cleaning tasks completed to standard. Minor gap noted: ceiling fan in master bedroom not dusted. Kitchen and bathrooms show thorough sanitization. Before/after photos confirm visible improvement across all areas...
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function LandingPage() {
   return (
@@ -49,6 +170,12 @@ export default function LandingPage() {
           </Link>
         </div>
         <p className="mt-4 text-sm text-gray-500">No credit card required · Cancel anytime</p>
+      </section>
+
+      {/* App mockup */}
+      <section className="px-6 pb-20 max-w-5xl mx-auto">
+        <p className="text-center text-sm text-gray-500 mb-6">Job detail view — checklist, photos, and AI quality report</p>
+        <AppMockup />
       </section>
 
       {/* How it works */}
