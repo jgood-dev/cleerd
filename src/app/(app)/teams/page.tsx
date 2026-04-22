@@ -58,10 +58,16 @@ export default function TeamsPage() {
     e.preventDefault()
     if (!newTeamName.trim() || !orgId) return
     setLoading(true)
-    const { data } = await supabase.from('teams').insert({ org_id: orgId, name: newTeamName.trim() }).select().single()
-    setNewTeamName('')
+    const res = await fetch('/api/create-team', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ org_id: orgId, name: newTeamName.trim() }),
+    })
+    const json = await res.json()
     setLoading(false)
-    if (data) setExpandedTeam(data.id)
+    if (!res.ok) { alert(json.error); return }
+    setNewTeamName('')
+    if (json.data) setExpandedTeam(json.data.id)
     await load()
   }
 

@@ -109,6 +109,8 @@ export default function SchedulePage() {
   const [editPrice, setEditPrice] = useState<string>('')
   const [teamFilter, setTeamFilter] = useState<string>('all')
   const [isOwner, setIsOwner] = useState(true)
+  const [plan, setPlan] = useState<string>('solo')
+  const [monthlyJobCount, setMonthlyJobCount] = useState(0)
 
   // Inline new property state
   const [addingProperty, setAddingProperty] = useState(false)
@@ -126,14 +128,18 @@ export default function SchedulePage() {
     if (!org) return
     setOrgId(org.id)
     setIsOwner(owner)
+    setPlan(org.plan ?? 'solo')
     if (org.timezone) setTimezone(org.timezone)
-    const [{ data: jobData }, { data: props }, { data: tms }, { data: pkgs }] = await Promise.all([
+    const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0)
+    const [{ data: jobData }, { data: props }, { data: tms }, { data: pkgs }, { count: jobCount }] = await Promise.all([
       supabase.from('jobs').select('*, properties(name, address), teams(name), inspections(id)').eq('org_id', org.id).order('scheduled_at'),
       supabase.from('properties').select('id, name, address, size, entry_notes').eq('org_id', org.id).order('created_at'),
       supabase.from('teams').select('*').eq('org_id', org.id),
       supabase.from('packages').select('*, package_items(*)').eq('org_id', org.id).order('created_at'),
+      supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('org_id', org.id).gte('created_at', monthStart.toISOString()),
     ])
     setJobs(jobData ?? [])
+    setMonthlyJobCount(jobCount ?? 0)
     setProperties(props ?? [])
     setTeams(tms ?? [])
     setPackages((pkgs ?? []).map((p: any) => ({
@@ -361,20 +367,32 @@ export default function SchedulePage() {
     }
     setOverlapError('')
 
-    const { data: newJob } = await supabase.from('jobs').insert({
-      org_id: orgId,
-      property_id: finalPropertyId,
-      team_id: teamId || null,
-      package_id: packageId || null,
-      custom_items: jobItems.length > 0 ? jobItems : null,
-      duration_minutes: durationMinutes ? parseInt(durationMinutes) : null,
-      recurrence: recurrence || null,
-      scheduled_at: scheduledAt,
-      notes: notes || null,
-      status: 'scheduled',
-      price: price ? parseFloat(price) : null,
-      size: jobSize || null,
-    }).select().single()
+    const createRes = await fetch('/api/create-job', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        org_id: orgId,
+        property_id: finalPropertyId,
+        team_id: teamId || null,
+        package_id: packageId || null,
+        custom_items: jobItems.length > 0 ? jobItems : null,
+        duration_minutes: durationMinutes ? parseInt(durationMinutes) : null,
+        recurrence: recurrence || null,
+        scheduled_at: scheduledAt,
+        notes: notes || null,
+        price: price ? parseFloat(price) : null,
+        size: jobSize || null,
+      }),
+    })
+    if (!createRes.ok) {
+      const err = await createRes.json()
+      if (createRes.status === 403) {
+        setOverlapError(err.error ?? 'Job limit reached for your plan.')
+      }
+      setSaving(false)
+      return
+    }
+    const { data: newJob } = await createRes.json()
 
     if (newJob?.id) {
       fetch('/api/send-confirmation', {
@@ -463,12 +481,29 @@ export default function SchedulePage() {
             </select>
           )}
         </div>
-        {!adding && (
-          <Button onClick={() => setAdding(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Schedule Job
-          </Button>
-        )}
+        {!adding && (() => {
+          const jobLimit = plan === 'solo' ? 50 : null
+          const atLimit = jobLimit !== null && monthlyJobCount >= jobLimit
+          return (
+            <div className="flex items-center gap-3">
+              {jobLimit !== null && (
+                <span className={`text-xs ${atLimit ? 'text-red-400' : monthlyJobCount >= jobLimit * 0.8 ? 'text-amber-400' : 'text-gray-500'}`}>
+                  {monthlyJobCount} / {jobLimit} jobs this month
+                </span>
+              )}
+              <Button onClick={() => setAdding(true)} disabled={atLimit}>
+                <Plus className="mr-2 h-4 w-4" /> Schedule Job
+              </Button>
+            </div>
+          )
+        })()}
       </div>
+
+      {plan === 'solo' && monthlyJobCount >= 50 && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+          You've reached the 50 job/month limit on the Solo plan. <a href="/settings/billing" className="underline font-medium">Upgrade to Growth</a> for unlimited jobs.
+        </div>
+      )}
 
       {adding && (
         <Card>
