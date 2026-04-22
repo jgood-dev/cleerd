@@ -15,15 +15,14 @@ export default function TeamsPage() {
   const [orgId, setOrgId] = useState<string>('')
   const [isOwner, setIsOwner] = useState(false)
   const [teams, setTeams] = useState<any[]>([])
+  const [orgMembers, setOrgMembers] = useState<any[]>([])
   const [newTeamName, setNewTeamName] = useState('')
   const [loading, setLoading] = useState(false)
   const [dialog, setDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null)
 
   // Per-team add-member form state
-  const [memberName, setMemberName] = useState<Record<string, string>>({})
-  const [memberEmail, setMemberEmail] = useState<Record<string, string>>({})
-  const [memberPhone, setMemberPhone] = useState<Record<string, string>>({})
+  const [selectedMember, setSelectedMember] = useState<Record<string, string>>({})
   const [memberRole, setMemberRole] = useState<Record<string, string>>({})
   const [memberAdding, setMemberAdding] = useState<Record<string, boolean>>({})
 
@@ -43,8 +42,12 @@ export default function TeamsPage() {
     if (!org) return
     setOrgId(org.id)
     setIsOwner(owner)
-    const { data } = await supabase.from('teams').select('*, team_members(*)').eq('org_id', org.id).order('created_at')
-    setTeams(data ?? [])
+    const [{ data: teamsData }, { data: membersData }] = await Promise.all([
+      supabase.from('teams').select('*, team_members(*)').eq('org_id', org.id).order('created_at'),
+      supabase.from('org_members').select('id, email').eq('org_id', org.id).not('invite_accepted_at', 'is', null),
+    ])
+    setTeams(teamsData ?? [])
+    setOrgMembers(membersData ?? [])
   }
 
   async function addTeam(e: React.FormEvent) {
@@ -71,19 +74,16 @@ export default function TeamsPage() {
   }
 
   async function addMember(teamId: string) {
-    const name = memberName[teamId]?.trim()
-    if (!name) return
+    const email = selectedMember[teamId]
+    if (!email) return
     setMemberAdding(prev => ({ ...prev, [teamId]: true }))
     await supabase.from('team_members').insert({
       team_id: teamId,
-      name,
-      email: memberEmail[teamId]?.trim() || null,
-      phone: memberPhone[teamId]?.trim() || null,
+      name: email,
+      email,
       role: memberRole[teamId] || 'cleaner',
     })
-    setMemberName(prev => ({ ...prev, [teamId]: '' }))
-    setMemberEmail(prev => ({ ...prev, [teamId]: '' }))
-    setMemberPhone(prev => ({ ...prev, [teamId]: '' }))
+    setSelectedMember(prev => ({ ...prev, [teamId]: '' }))
     setMemberRole(prev => ({ ...prev, [teamId]: 'cleaner' }))
     setMemberAdding(prev => ({ ...prev, [teamId]: false }))
     await load()
@@ -150,6 +150,8 @@ export default function TeamsPage() {
         ) : teams.map(team => {
           const members: any[] = team.team_members ?? []
           const isExpanded = expandedTeam === team.id
+          const teamEmails = new Set(members.map((m: any) => m.email).filter(Boolean))
+          const available = orgMembers.filter(om => !teamEmails.has(om.email))
           return (
             <div key={team.id} className="rounded-xl border border-white/10 bg-[#161b27] overflow-hidden">
               {/* Header */}
@@ -186,7 +188,7 @@ export default function TeamsPage() {
                           {isOwner && editingMemberId === m.id ? (
                             <div className="space-y-2">
                               <div className="flex gap-2">
-                                <Input className="text-sm flex-1" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Full name *" />
+                                <Input className="text-sm flex-1" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Display name" />
                                 <select
                                   className="flex h-10 rounded-lg border border-white/20 bg-[#161b27] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 flex-shrink-0"
                                   value={editRole} onChange={e => setEditRole(e.target.value)}
@@ -197,8 +199,6 @@ export default function TeamsPage() {
                               </div>
                               <div className="flex gap-2">
                                 <PhoneInput className="flex-1 text-sm" placeholder="Phone (optional)" value={editPhone} onChange={setEditPhone} />
-                                <Input className="text-sm flex-1" type="email" placeholder="Email (optional)" value={editEmail} onChange={e => setEditEmail(e.target.value)}
-                                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveEditMember() } }} />
                                 <Button size="sm" onClick={saveEditMember} disabled={!editName.trim()} className="flex-shrink-0">
                                   <Check className="h-4 w-4" />
                                 </Button>
@@ -212,7 +212,6 @@ export default function TeamsPage() {
                               <div className="flex-1 min-w-0">
                                 <span className="text-sm font-medium text-gray-200">{m.name}</span>
                                 {m.phone && <span className="ml-2 text-xs text-gray-500">{m.phone}</span>}
-                                {m.email && <span className="ml-2 text-xs text-gray-500">{m.email}</span>}
                               </div>
                               <span className="text-xs text-gray-500 capitalize flex-shrink-0">{m.role}</span>
                               {isOwner && <>
@@ -232,51 +231,48 @@ export default function TeamsPage() {
                     </ul>
                   )}
 
-                  {/* Add member form — owner only */}
-                  {isOwner && <div className="space-y-2 pt-1">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Add Member</p>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Full name *"
-                        className="text-sm flex-1"
-                        value={memberName[team.id] ?? ''}
-                        onChange={e => setMemberName(prev => ({ ...prev, [team.id]: e.target.value }))}
-                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addMember(team.id) } }}
-                      />
-                      <select
-                        className="flex h-10 rounded-lg border border-white/20 bg-[#161b27] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 flex-shrink-0"
-                        value={memberRole[team.id] ?? 'cleaner'}
-                        onChange={e => setMemberRole(prev => ({ ...prev, [team.id]: e.target.value }))}
-                      >
-                        <option value="cleaner">Cleaner</option>
-                        <option value="supervisor">Supervisor</option>
-                      </select>
+                  {/* Add member — owner only, picks from org invitees */}
+                  {isOwner && (
+                    <div className="space-y-2 pt-1">
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Add Member</p>
+                      {available.length === 0 ? (
+                        <p className="text-sm text-gray-500">
+                          {orgMembers.length === 0
+                            ? 'No active team logins yet. Invite someone first in Settings → Team Logins.'
+                            : 'All team logins are already on this team.'}
+                        </p>
+                      ) : (
+                        <div className="flex gap-2">
+                          <select
+                            className="flex-1 h-10 rounded-lg border border-white/20 bg-[#161b27] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            value={selectedMember[team.id] ?? ''}
+                            onChange={e => setSelectedMember(prev => ({ ...prev, [team.id]: e.target.value }))}
+                          >
+                            <option value="">Select a team login…</option>
+                            {available.map(om => (
+                              <option key={om.id} value={om.email}>{om.email}</option>
+                            ))}
+                          </select>
+                          <select
+                            className="h-10 rounded-lg border border-white/20 bg-[#161b27] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 flex-shrink-0"
+                            value={memberRole[team.id] ?? 'cleaner'}
+                            onChange={e => setMemberRole(prev => ({ ...prev, [team.id]: e.target.value }))}
+                          >
+                            <option value="cleaner">Cleaner</option>
+                            <option value="supervisor">Supervisor</option>
+                          </select>
+                          <Button
+                            size="sm"
+                            onClick={() => addMember(team.id)}
+                            disabled={memberAdding[team.id] || !selectedMember[team.id]}
+                            className="flex-shrink-0"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex gap-2">
-                      <PhoneInput
-                        className="flex-1 text-sm"
-                        placeholder="Phone (optional)"
-                        value={memberPhone[team.id] ?? ''}
-                        onChange={v => setMemberPhone(prev => ({ ...prev, [team.id]: v }))}
-                      />
-                      <Input
-                        placeholder="Email (optional)"
-                        type="email"
-                        className="text-sm flex-1"
-                        value={memberEmail[team.id] ?? ''}
-                        onChange={e => setMemberEmail(prev => ({ ...prev, [team.id]: e.target.value }))}
-                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addMember(team.id) } }}
-                      />
-                      <Button
-                        size="sm"
-                        onClick={() => addMember(team.id)}
-                        disabled={memberAdding[team.id] || !memberName[team.id]?.trim()}
-                        className="flex-shrink-0"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>}
+                  )}
                 </div>
               )}
             </div>
