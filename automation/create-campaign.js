@@ -4,7 +4,7 @@ const https = require('https')
 const INSTANTLY_KEY = process.env.INSTANTLY_API_KEY
 
 const payload = {
-  name: 'CleanCheck Outreach',
+  name: 'Cleerd Outreach',
   daily_limit: 30,
   stop_on_reply: true,
   open_tracking: false,
@@ -23,8 +23,8 @@ const payload = {
         delay: 0,
         delay_unit: 'days',
         variants: [{
-          subject: 'Quick question about your QC process, {{first_name}}',
-          body: `Hi {{first_name}},\n\nDo you use Google Forms or WhatsApp to track cleaning quality at {{company_name}}?\n\nMost owners I talk to spend 20-30 minutes per job on documentation. I built CleanCheck to cut that to under 5 minutes — your team takes photos on their phone, and AI generates a professional report automatically.\n\nWorth a quick look? cleancheck.io\n\nBest,\nJason`
+          subject: 'Quick question about your job documentation, {{first_name}}',
+          body: `Hi {{first_name}},\n\nDo you use Google Forms or WhatsApp to track job quality at {{company_name}}?\n\nMost owners I talk to spend 20-30 minutes per job on documentation. I built Cleerd to cut that to under 5 minutes — your team takes photos on their phone, and AI generates a professional report automatically.\n\nWorth a quick look? cleerd.io\n\nBest,\nJosh`
         }]
       },
       {
@@ -33,7 +33,7 @@ const payload = {
         delay_unit: 'days',
         variants: [{
           subject: '',
-          body: `Hi {{first_name}},\n\nJust following up — I know running a cleaning business keeps you busy.\n\nCleanCheck replaces your inspection paperwork with a mobile app. Your team documents with photos, AI writes the report, and you can send it directly to the client.\n\nOrangeQC charges $250+/month for the same thing. CleanCheck starts at $49.\n\n14-day free trial at cleancheck.io — no card required.\n\nJason`
+          body: `Hi {{first_name}},\n\nJust following up — I know running a service business keeps you busy.\n\nCleerd replaces your inspection paperwork with a mobile app. Your team documents with photos, AI writes the report, and you can send it directly to the client.\n\nJobber charges $69+/month for the same thing. Cleerd starts at $39.\n\n14-day free trial at cleerd.io — no card required.\n\nJosh`
         }]
       },
       {
@@ -42,7 +42,7 @@ const payload = {
         delay_unit: 'days',
         variants: [{
           subject: '',
-          body: `Hi {{first_name}},\n\nLast one — I promise.\n\nWhat does your team do when a client complains about quality? If the answer involves digging through WhatsApp photos or trying to remember who cleaned what, CleanCheck solves that.\n\nEvery job gets timestamped photos and an AI-written report. Takes 5 minutes. Clients love it.\n\nFree trial: cleancheck.io\n\nJason`
+          body: `Hi {{first_name}},\n\nLast one — I promise.\n\nWhat does your team do when a client complains about quality? If the answer involves digging through WhatsApp photos or trying to remember who did what, Cleerd solves that.\n\nEvery job gets timestamped photos and an AI-written report. Takes 5 minutes. Clients love it.\n\nFree trial: cleerd.io\n\nJosh`
         }]
       }
     ]
