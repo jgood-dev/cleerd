@@ -20,9 +20,10 @@ export async function getOrgForUser(supabase: any, userId: string, userEmail?: s
     // Use SECURITY DEFINER RPC to bypass RLS — invitees can't read organizations directly
     const { data: org } = await supabase.rpc('get_org_by_id', { p_org_id: membership.org_id })
     if (org) {
+      const isAdmin = membership.role === 'admin'
       let memberTeamId: string | null = null
       let memberTeamName: string | null = null
-      if (userEmail) {
+      if (!isAdmin && userEmail) {
         const { data: tm } = await supabase
           .from('team_members')
           .select('team_id, teams(name)')
@@ -33,7 +34,7 @@ export async function getOrgForUser(supabase: any, userId: string, userEmail?: s
           memberTeamName = (tm.teams as any)?.name ?? null
         }
       }
-      return { org, isOwner: false, memberTeamId, memberTeamName }
+      return { org, isOwner: isAdmin, memberTeamId, memberTeamName }
     }
   }
 
