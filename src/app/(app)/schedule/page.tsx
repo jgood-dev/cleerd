@@ -90,6 +90,7 @@ export default function SchedulePage() {
   const [editRecurrence, setEditRecurrence] = useState('')
   const [overlapError, setOverlapError] = useState('')
   const [editOverlapError, setEditOverlapError] = useState('')
+  const [jobError, setJobError] = useState('')
 
   // New job form state
   const [propertyId, setPropertyId] = useState('')
@@ -344,13 +345,17 @@ export default function SchedulePage() {
   async function addJob(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
+    setJobError('')
+    setOverlapError('')
     let finalPropertyId = propertyId
 
-    if (addingProperty) {
+    if (addingProperty && !finalPropertyId) {
       const id = await saveNewProperty()
       if (!id) { setSaving(false); return }
       finalPropertyId = id
-      await load() // refresh properties list
+      setPropertyId(id) // prevent duplicate save on retry
+      setAddingProperty(false)
+      await load()
     }
 
     if (!finalPropertyId || !scheduledAt) { setSaving(false); return }
@@ -365,7 +370,6 @@ export default function SchedulePage() {
         return
       }
     }
-    setOverlapError('')
 
     const createRes = await fetch('/api/create-job', {
       method: 'POST',
@@ -388,6 +392,8 @@ export default function SchedulePage() {
       const err = await createRes.json()
       if (createRes.status === 403) {
         setOverlapError(err.error ?? 'Job limit reached for your plan.')
+      } else {
+        setJobError(err.error ?? 'Failed to schedule job. Please try again.')
       }
       setSaving(false)
       return
@@ -730,6 +736,11 @@ export default function SchedulePage() {
               {overlapError && (
                 <div className="rounded-lg bg-red-500/10 border border-red-500/30 px-3 py-2 text-sm text-red-400">
                   {overlapError}
+                </div>
+              )}
+              {jobError && (
+                <div className="rounded-lg bg-red-500/10 border border-red-500/30 px-3 py-2 text-sm text-red-400">
+                  {jobError}
                 </div>
               )}
               <div className="flex gap-2 pt-1">
