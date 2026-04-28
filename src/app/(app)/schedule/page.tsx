@@ -313,7 +313,7 @@ export default function SchedulePage() {
       custom_items: !editPackageId && editItems.length > 0 ? editItems : null,
       duration_minutes: editDuration ? parseInt(editDuration) : null,
       recurrence: editRecurrence || null,
-      scheduled_at: editScheduledAt,
+      scheduled_at: new Date(editScheduledAt).toISOString(),
       notes: editNotes || null,
       size: editSize || null,
       price: editPrice ? parseFloat(editPrice) : null,
@@ -322,7 +322,7 @@ export default function SchedulePage() {
     // If recurrence was just enabled on a done job, create the next visit now
     const currentJob = jobs.find(j => j.id === editingJobId)
     if (editRecurrence && !currentJob?.recurrence && currentJob?.status === 'done') {
-      await spawnNextJob({ ...currentJob, recurrence: editRecurrence, scheduled_at: editScheduledAt })
+      await spawnNextJob({ ...currentJob, recurrence: editRecurrence, scheduled_at: new Date(editScheduledAt).toISOString() })
     }
     setEditSaving(false)
     closeEdit()
@@ -387,7 +387,7 @@ export default function SchedulePage() {
         custom_items: jobItems.length > 0 ? jobItems : null,
         duration_minutes: durationMinutes ? parseInt(durationMinutes) : null,
         recurrence: recurrence || null,
-        scheduled_at: scheduledAt,
+        scheduled_at: new Date(scheduledAt).toISOString(),
         notes: notes || null,
         price: price ? parseFloat(price) : null,
         size: jobSize || null,
