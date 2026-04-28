@@ -270,7 +270,7 @@ export default function TeamsPage() {
                       {available.length === 0 ? (
                         <p className="text-sm text-gray-500">
                           {orgMembers.length === 0
-                            ? 'No active team logins yet. Invite someone first in Settings → Team Logins.'
+                            ? 'No active team logins yet. Invite someone first in Settings → Team Members.'
                             : 'All team logins are already on this team.'}
                         </p>
                       ) : (

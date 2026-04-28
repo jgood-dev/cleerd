@@ -33,7 +33,7 @@ export default async function SettingsPage() {
     {
       href: '/settings/members',
       icon: Users,
-      title: 'Team Logins',
+      title: 'Team Members',
       description: 'Invite team members to access your Cleerd account.',
       ownerOnly: true,
     },

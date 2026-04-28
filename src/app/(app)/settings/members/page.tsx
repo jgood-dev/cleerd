@@ -143,7 +143,7 @@ export default function MembersPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-white">Team Logins</h1>
+          <h1 className="text-2xl font-bold text-white">Team Members</h1>
           <p className="text-sm text-gray-400 mt-0.5">Invite team members and manage their access level.</p>
         </div>
       </div>
