@@ -11,7 +11,7 @@ export async function getOrgForUser(supabase: any, userId: string, userEmail?: s
   // Check if user is an invited member
   const { data: membership } = await supabase
     .from('org_members')
-    .select('org_id')
+    .select('org_id, role')
     .eq('user_id', userId)
     .not('invite_accepted_at', 'is', null)
     .single()
