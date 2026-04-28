@@ -202,18 +202,21 @@ export default function SchedulePage() {
 
   async function spawnNextJob(job: Job) {
     if (!job.recurrence) return
-    await supabase.from('jobs').insert({
-      org_id: orgId,
-      property_id: job.property_id,
-      team_id: job.team_id,
-      package_id: job.package_id,
-      custom_items: (job as any).custom_items ?? null,
-      duration_minutes: job.duration_minutes,
-      recurrence: job.recurrence,
-      recurrence_parent_id: job.id,
-      scheduled_at: nextScheduledAt(job.scheduled_at, job.recurrence),
-      notes: job.notes,
-      status: 'scheduled',
+    await fetch('/api/create-job', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        org_id: orgId,
+        property_id: job.property_id,
+        team_id: job.team_id,
+        package_id: job.package_id,
+        custom_items: (job as any).custom_items ?? null,
+        duration_minutes: job.duration_minutes,
+        recurrence: job.recurrence,
+        recurrence_parent_id: job.id,
+        scheduled_at: nextScheduledAt(job.scheduled_at, job.recurrence),
+        notes: job.notes,
+      }),
     })
   }
 
@@ -541,9 +544,11 @@ export default function SchedulePage() {
                         <option value="">Select property</option>
                         {properties.map(p => <option key={p.id} value={p.id}>{p.address ?? p.name}</option>)}
                       </select>
-                      <Button type="button" variant="outline" onClick={() => { setAddingProperty(true); setPropertyId('') }}>
-                        <Plus className="h-4 w-4" />
-                      </Button>
+                      {isOwner && (
+                        <Button type="button" variant="outline" onClick={() => { setAddingProperty(true); setPropertyId('') }}>
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                     {propertyId && properties.find(p => p.id === propertyId)?.entry_notes && (
                       <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-2 text-xs text-amber-300">
