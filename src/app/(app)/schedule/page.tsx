@@ -661,10 +661,10 @@ export default function SchedulePage() {
                 })()}
               </div>
 
-              {/* Property Size */}
+              {/* Job Size */}
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-300">
-                  Property Size
+                  Job Size
                   <span className="ml-2 text-xs text-gray-500 font-normal">affects duration & price</span>
                 </label>
                 <div className="grid grid-cols-4 gap-2">
