@@ -26,8 +26,8 @@ export default async function SettingsPage() {
     {
       href: '/settings/properties',
       icon: MapPin,
-      title: 'Properties',
-      description: 'Manage client locations and their contact emails.',
+      title: 'Clients',
+      description: 'Manage client locations and their contact details.',
       ownerOnly: false,
     },
     {

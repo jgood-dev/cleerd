@@ -62,8 +62,8 @@ export default function PropertiesPage() {
 
   function deleteProperty(id: string) {
     setDialog({
-      title: 'Delete property?',
-      message: 'This property will be permanently removed. Past inspections will remain.',
+      title: 'Delete client?',
+      message: 'This client will be permanently removed. Past inspections will remain.',
       onConfirm: async () => {
         await supabase.from('properties').delete().eq('id', id)
         setDialog(null)
@@ -79,22 +79,22 @@ export default function PropertiesPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-white">Properties</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Manage client locations and report delivery emails.</p>
+          <h1 className="text-2xl font-bold text-white">Clients</h1>
+          <p className="text-sm text-gray-400 mt-0.5">Manage client locations and their contact details.</p>
         </div>
       </div>
 
       <div className="flex justify-end">
         {!adding && (
           <Button onClick={() => setAdding(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Add Property
+            <Plus className="mr-2 h-4 w-4" /> Add Client
           </Button>
         )}
       </div>
 
       {adding && (
         <Card>
-          <CardHeader><CardTitle>New Property</CardTitle></CardHeader>
+          <CardHeader><CardTitle>New Client</CardTitle></CardHeader>
           <CardContent>
             <form onSubmit={addProperty} className="space-y-3">
               <div>
@@ -153,7 +153,7 @@ export default function PropertiesPage() {
               </div>
               {error && <p className="text-sm text-red-400">{error}</p>}
               <div className="flex gap-2 pt-1">
-                <Button type="submit">Save Property</Button>
+                <Button type="submit">Save Client</Button>
                 <Button type="button" variant="outline" onClick={() => {
                   setAdding(false)
                   if (addressRef.current) addressRef.current.value = ''
@@ -171,8 +171,8 @@ export default function PropertiesPage() {
         <Card>
           <CardContent className="py-12 text-center">
             <MapPin className="mx-auto mb-3 h-10 w-10 text-gray-600" />
-            <p className="text-gray-400">No properties yet.</p>
-            <p className="text-sm text-gray-500 mt-1">Add your first client location to get started.</p>
+            <p className="text-gray-400">No clients yet.</p>
+            <p className="text-sm text-gray-500 mt-1">Add your first client to get started.</p>
           </CardContent>
         </Card>
       ) : (

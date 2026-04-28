@@ -526,7 +526,7 @@ export default function SchedulePage() {
             <form onSubmit={addJob} className="space-y-4">
               {/* Property */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-300">Property <span className="text-red-400">*</span></label>
+                <label className="mb-1.5 block text-sm font-medium text-gray-300">Client <span className="text-red-400">*</span></label>
                 {!addingProperty ? (
                   <div className="space-y-2">
                     <div className="flex gap-2">
@@ -541,7 +541,7 @@ export default function SchedulePage() {
                           if (packageId) setPrice(calcPrice(packageId, sz))
                         }}
                       >
-                        <option value="">Select property</option>
+                        <option value="">Select client</option>
                         {properties.map(p => <option key={p.id} value={p.id}>{p.address ?? p.name}</option>)}
                       </select>
                       {isOwner && (
@@ -560,7 +560,7 @@ export default function SchedulePage() {
                 ) : (
                   <div className="space-y-2 rounded-lg border border-white/10 bg-white/5 p-3">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-gray-400">New Property</span>
+                      <span className="text-xs font-medium text-gray-400">New Client</span>
                       <button type="button" onClick={() => { setAddingProperty(false); setPropError('') }} className="text-xs text-gray-500 hover:text-gray-300">Cancel</button>
                     </div>
                     <div>
@@ -791,7 +791,7 @@ export default function SchedulePage() {
           ) : (
             <div className="space-y-2">
               {sectionJobs.map(job => {
-                const displayName = job.properties?.address ?? job.properties?.name ?? 'Unknown property'
+                const displayName = job.properties?.address ?? job.properties?.name ?? 'Unknown client'
                 const inspection = job.inspections?.[0]
                 const isDone = job.status === 'done'
                 const isStarting = startingJobId === job.id
@@ -854,10 +854,10 @@ export default function SchedulePage() {
                       <div className="border-t border-white/10 px-5 py-4">
                         <form onSubmit={saveEdit} className="space-y-3">
                           <div>
-                            <label className="mb-1.5 block text-sm font-medium text-gray-300">Property</label>
+                            <label className="mb-1.5 block text-sm font-medium text-gray-300">Client</label>
                             <select className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                               value={editPropertyId} onChange={e => setEditPropertyId(e.target.value)}>
-                              <option value="">No property</option>
+                              <option value="">No client</option>
                               {properties.map(p => <option key={p.id} value={p.id}>{p.address ?? p.name}</option>)}
                             </select>
                           </div>

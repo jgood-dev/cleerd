@@ -18,7 +18,7 @@ const ROLE_LABELS: Record<string, string> = {
 }
 
 const ROLE_DESCRIPTIONS: Record<string, string> = {
-  member: 'Can view schedules, jobs, and reports. Cannot manage billing, properties, or invite others.',
+  member: 'Can view schedules, jobs, and reports. Cannot manage billing, clients, or invite others.',
   admin: 'Full access — same as owner. Can manage everything except billing and transferring ownership.',
 }
 

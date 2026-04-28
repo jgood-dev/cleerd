@@ -161,7 +161,7 @@ export default function InspectionDetailPage() {
   async function sendReport() {
     const clientEmail = (inspection?.properties as any)?.client_email
     if (!clientEmail) {
-      alert('No client email on this property. Add one in Settings → Properties.')
+      alert('No client email on this client. Add one in Settings → Clients.')
       return
     }
     const res = await fetch('/api/send-report', {
