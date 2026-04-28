@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
   const property = inspection.properties as any
   const team = inspection.teams as any
-  const companyName = org?.name ?? 'Your Cleaning Service'
+  const companyName = org?.name ?? 'Your Service Company'
   const reportUrl = `${process.env.NEXT_PUBLIC_APP_URL}/report/${token}`
   const address = property.address ?? property.name ?? 'your property'
   const ownerFirst = property.owner_name ? property.owner_name.split(' ')[0] : null
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr>
               <td style="color:#ffffff;font-size:17px;font-weight:700;">${companyName}</td>
-              <td align="right" style="color:#6b7280;font-size:13px;">Cleaning Summary</td>
+              <td align="right" style="color:#6b7280;font-size:13px;">Job Summary</td>
             </tr>
           </table>
         </td></tr>
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
           <p style="margin:0 0 6px;font-size:20px;font-weight:700;color:#111827;">${greeting}</p>
           <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.6;">
-            Your home at <strong>${address}</strong> has been cleaned. We've put together a quick summary for you.
+            Your job at <strong>${address}</strong> is complete. We've put together a quick summary for you.
           </p>
 
           ${inspection.client_note ? `
@@ -77,13 +77,13 @@ export async function POST(request: NextRequest) {
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
             <tr><td align="center">
               <a href="${reportUrl}" style="display:inline-block;background:#3b82f6;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 32px;border-radius:8px;">
-                View Your Cleaning Summary
+                View Your Job Summary
               </a>
             </td></tr>
           </table>
 
           <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.6;">
-            Your summary includes after photos, a full checklist of completed items, and any notes from the team. The link above will always show the latest version.
+            Your summary includes photos, completed task items, and any notes from the team. The link above will always show the latest version.
           </p>
 
         </td></tr>
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
 </body>
 </html>`
 
-  const plainText = `${greeting}\n\nYour home at ${address} has been cleaned.${inspection.client_note ? `\n\n${inspection.client_note}` : ''}\n\nView your cleaning summary here:\n${reportUrl}\n\nYour summary includes after photos, a completed checklist, and notes from the team.\n\n— ${companyName}`
+  const plainText = `${greeting}\n\nYour job at ${address} is complete.${inspection.client_note ? `\n\n${inspection.client_note}` : ''}\n\nView your job summary here:\n${reportUrl}\n\nYour summary includes photos, completed items, and notes from the team.\n\n— ${companyName}`
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
       from: `${companyName} <support@cleerd.io>`,
       reply_to: 'support@cleerd.io',
       to: property.client_email,
-      subject: `Your home is clean — ${address}`,
+      subject: `Job complete — ${address}`,
       html,
       text: plainText,
     }),

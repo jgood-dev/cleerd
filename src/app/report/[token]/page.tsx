@@ -66,7 +66,7 @@ export default async function ClientReportPage({ params }: { params: Promise<{ t
   const afterPhotos = photos.filter(p => p.photo_type === 'after')
   const completedAt = inspection.completed_at ?? inspection.created_at
   const timeOnSite = inspection.completed_at ? fmtDuration(inspection.created_at, inspection.completed_at) : null
-  const companyName = org?.name ?? 'Your Cleaning Service'
+  const companyName = org?.name ?? 'Your Service Company'
   const ownerName = property?.owner_name ? property.owner_name.split(' ')[0] : null
 
   return (
@@ -75,7 +75,7 @@ export default async function ClientReportPage({ params }: { params: Promise<{ t
       <header style={{ background: '#161b27', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '18px 24px' }}>
         <div style={{ maxWidth: 640, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ color: '#ffffff', fontWeight: 700, fontSize: 18 }}>{companyName}</span>
-          <span style={{ color: '#6b7280', fontSize: 13 }}>Cleaning Summary</span>
+          <span style={{ color: '#6b7280', fontSize: 13 }}>Job Summary</span>
         </div>
       </header>
 
@@ -84,7 +84,7 @@ export default async function ClientReportPage({ params }: { params: Promise<{ t
         {/* Greeting */}
         <div style={{ marginBottom: 32 }}>
           <h1 style={{ fontSize: 26, fontWeight: 700, color: '#111827', margin: '0 0 6px' }}>
-            {ownerName ? `Hi ${ownerName} — your home is clean!` : 'Your home is clean!'}
+            {ownerName ? `Hi ${ownerName} — your job is complete!` : 'Your job is complete!'}
           </h1>
           <p style={{ color: '#6b7280', fontSize: 15, margin: 0 }}>
             {property?.address ?? property?.name} · {fmtDate(completedAt)}
@@ -128,7 +128,7 @@ export default async function ClientReportPage({ params }: { params: Promise<{ t
             <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '16px 18px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                 <Users size={16} color="#8b5cf6" />
-                <span style={{ fontSize: 13, color: '#6b7280', fontWeight: 500 }}>Cleaned by</span>
+                <span style={{ fontSize: 13, color: '#6b7280', fontWeight: 500 }}>Completed by</span>
               </div>
               <p style={{ fontSize: 15, fontWeight: 600, color: '#111827', margin: 0 }}>{team.name}</p>
               {members.length > 0 && (
@@ -156,7 +156,7 @@ export default async function ClientReportPage({ params }: { params: Promise<{ t
           </div>
         )}
 
-        {/* Checklist */}
+        {/* Completed items */}
         {completedItems.length > 0 && (
           <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 12, padding: '20px 22px', marginBottom: 20 }}>
             <h2 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: '0 0 14px' }}>What We Completed</h2>

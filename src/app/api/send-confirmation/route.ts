@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
   const org = job.organizations as any
   const team = job.teams as any
-  const companyName = org?.name ?? 'Your Cleaning Service'
+  const companyName = org?.name ?? 'Your Service Company'
   const address = property.address ?? property.name ?? 'your property'
   const ownerFirst = property.owner_name ? property.owner_name.split(' ')[0] : null
   const greeting = ownerFirst ? `Hi ${ownerFirst},` : 'Hi,'
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         <tr><td style="background:#ffffff;padding:32px;">
           <p style="margin:0 0 6px;font-size:20px;font-weight:700;color:#111827;">${greeting}</p>
           <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.6;">
-            Your cleaning appointment at <strong>${address}</strong> has been confirmed.
+            Your appointment at <strong>${address}</strong> has been confirmed.
           </p>
 
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;">
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
           </table>` : ''}
 
           <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.6;">
-            After the cleaning is complete, we'll send you a full summary with photos and a checklist of everything we took care of.
+            After the job is complete, we'll send you a full summary with photos and a list of everything completed.
           </p>
         </td></tr>
 
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
 </body>
 </html>`
 
-  const plainText = `${greeting}\n\nYour cleaning appointment at ${address} has been confirmed.\n\nDate & Time: ${scheduledDate}${team?.name ? `\nTeam: ${team.name}` : ''}${durationText ? `\nEstimated Duration: ${durationText}` : ''}${job.notes ? `\n\nNote: ${job.notes}` : ''}\n\nAfter the cleaning is complete, we'll send you a full summary.\n\n— ${companyName}`
+  const plainText = `${greeting}\n\nYour appointment at ${address} has been confirmed.\n\nDate & Time: ${scheduledDate}${team?.name ? `\nTeam: ${team.name}` : ''}${durationText ? `\nEstimated Duration: ${durationText}` : ''}${job.notes ? `\n\nNote: ${job.notes}` : ''}\n\nAfter the job is complete, we'll send you a full summary.\n\n— ${companyName}`
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',

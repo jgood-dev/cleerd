@@ -591,7 +591,7 @@ export default function SchedulePage() {
 
               {/* Checklist */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-300">Checklist</label>
+                <label className="mb-1.5 block text-sm font-medium text-gray-300">Service Template</label>
                 {/* Primary: Custom or named package */}
                 <select
                   className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
@@ -628,7 +628,7 @@ export default function SchedulePage() {
                       ))}
                       <div className="flex gap-2 pt-1">
                         <Input
-                          placeholder="Add checklist item..."
+                          placeholder="Add task..."
                           value={newItem}
                           onChange={e => setNewItem(e.target.value)}
                           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addItem() } }}
@@ -818,7 +818,7 @@ export default function SchedulePage() {
                         {!isDone && inspection && (
                           <Link href={`/inspections/${inspection.id}`}>
                             <Button size="sm" variant="outline" className="text-xs">
-                              <ClipboardCheck className="mr-1.5 h-3.5 w-3.5" /> View Checklist
+                              <ClipboardCheck className="mr-1.5 h-3.5 w-3.5" /> View Tasks
                             </Button>
                           </Link>
                         )}
@@ -865,7 +865,7 @@ export default function SchedulePage() {
                             </select>
                           </div>
                           <div>
-                            <label className="mb-1.5 block text-sm font-medium text-gray-300">Checklist</label>
+                            <label className="mb-1.5 block text-sm font-medium text-gray-300">Service Template</label>
                             <select className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
                               value={editPackageId} onChange={e => handleEditPackageChange(e.target.value)}>
                               <option value="">Custom</option>

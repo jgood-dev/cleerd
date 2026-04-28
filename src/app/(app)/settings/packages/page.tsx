@@ -153,23 +153,23 @@ export default function PackagesPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-white">Packages</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Define checklist templates for each type of clean.</p>
+          <h1 className="text-2xl font-bold text-white">Service Templates</h1>
+          <p className="text-sm text-gray-400 mt-0.5">Define task templates for each type of job.</p>
         </div>
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Create Package</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Create Service Template</CardTitle></CardHeader>
         <CardContent>
           <form onSubmit={addPackage} className="space-y-3">
             <Input
-              placeholder="e.g. Standard Clean, Deep Clean, Move-Out"
+              placeholder="e.g. Standard Service, Deep Service, Move-Out"
               value={newPackageName}
               onChange={e => setNewPackageName(e.target.value)}
             />
             {packages.length > 0 && (
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-400">Start from existing package <span className="text-gray-600">(optional)</span></label>
+                <label className="mb-1.5 block text-sm font-medium text-gray-400">Start from existing template <span className="text-gray-600">(optional)</span></label>
                 <select
                   className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={copyFromId}
@@ -182,7 +182,7 @@ export default function PackagesPage() {
                 </select>
               </div>
             )}
-            <Button type="submit"><Plus className="mr-2 h-4 w-4" />Create Package</Button>
+            <Button type="submit"><Plus className="mr-2 h-4 w-4" />Create Template</Button>
           </form>
         </CardContent>
       </Card>
@@ -190,7 +190,7 @@ export default function PackagesPage() {
       {packages.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-gray-500">
-            <p>No packages yet. Create your first one above.</p>
+            <p>No templates yet. Create your first one above.</p>
           </CardContent>
         </Card>
       ) : (
@@ -222,7 +222,7 @@ export default function PackagesPage() {
               {expandedPackage === pkg.id && (
                 <div className="border-t border-white/10 px-4 py-4 space-y-4 bg-[#1e2433]">
                   {pkg.package_items?.length === 0 && (
-                    <p className="text-sm text-gray-500">No items yet. Add checklist items below.</p>
+                    <p className="text-sm text-gray-500">No items yet. Add tasks below.</p>
                   )}
                   <ul className="space-y-1">
                     {pkg.package_items?.map((item: any, idx: number) => (
@@ -247,7 +247,7 @@ export default function PackagesPage() {
                   </ul>
                   <div className="flex gap-2">
                     <Input
-                      placeholder="Add checklist item..."
+                      placeholder="Add task..."
                       value={newItemLabel[pkg.id] ?? ''}
                       onChange={e => setNewItemLabel(prev => ({ ...prev, [pkg.id]: e.target.value }))}
                       onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addItem(pkg.id) } }}

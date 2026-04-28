@@ -8,13 +8,13 @@ import {
 
 function AppMockup() {
   const checklistItems = [
-    { label: 'Vacuumed all carpeted areas', done: true },
-    { label: 'Mopped hard floors', done: true },
-    { label: 'Cleaned and sanitized bathrooms', done: true },
-    { label: 'Wiped down all countertops', done: true },
-    { label: 'Emptied trash and replaced liners', done: true },
-    { label: 'Cleaned kitchen appliances', done: true },
-    { label: 'Dusted blinds and ceiling fans', done: false },
+    { label: 'Initial walkthrough completed', done: true },
+    { label: 'All primary tasks completed', done: true },
+    { label: 'Before photos uploaded', done: true },
+    { label: 'After photos uploaded', done: true },
+    { label: 'Client area secured', done: true },
+    { label: 'Equipment returned', done: true },
+    { label: 'Final quality check', done: false },
   ]
 
   const photos = [
@@ -114,7 +114,7 @@ function AppMockup() {
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">AI Quality Report</p>
                   </div>
                   <p className="text-xs text-gray-400 leading-relaxed line-clamp-4">
-                    Overall quality score: <span className="text-emerald-400 font-semibold">94/100</span>. All primary cleaning tasks completed to standard. Minor gap noted: ceiling fan in master bedroom not dusted. Kitchen and bathrooms show thorough sanitization. Before/after photos confirm visible improvement across all areas...
+                    Overall quality score: <span className="text-emerald-400 font-semibold">94/100</span>. All primary tasks completed to standard. Minor gap noted: final quality check item not marked complete. Before/after photos confirm work completed across all areas. Team performance rated excellent...
                   </p>
                 </div>
               </div>
@@ -150,14 +150,14 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="px-6 py-24 text-center max-w-4xl mx-auto">
         <div className="inline-flex items-center gap-2 rounded-full bg-blue-500/10 border border-blue-500/20 px-4 py-1.5 text-sm text-blue-400 mb-8">
-          <Zap className="h-3.5 w-3.5" /> Built for small cleaning businesses
+          <Zap className="h-3.5 w-3.5" /> Built for field service businesses
         </div>
         <h1 className="text-4xl sm:text-6xl font-bold text-white leading-tight mb-6 tracking-tight">
           Schedule jobs. Document work.<br className="hidden sm:block" />
           <span className="text-blue-400">Impress your clients.</span>
         </h1>
         <p className="text-lg sm:text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-          Cleerd gives your cleaning business a complete operations platform — scheduling, team management, photo documentation, AI quality reports, and automated client communication.
+          Cleerd gives your field service business a complete operations platform — scheduling, team management, photo documentation, AI quality reports, and automated client communication.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link href="/signup">
@@ -174,7 +174,7 @@ export default function LandingPage() {
 
       {/* App mockup */}
       <section className="px-6 pb-20 max-w-5xl mx-auto">
-        <p className="text-center text-sm text-gray-500 mb-6">Job detail view — checklist, photos, and AI quality report</p>
+        <p className="text-center text-sm text-gray-500 mb-6">Job detail view — tasks, photos, and AI quality report</p>
         <AppMockup />
       </section>
 
@@ -188,8 +188,8 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { step: '01', icon: CalendarDays, title: 'Schedule the job', desc: 'Assign a property, team, package, and time. Booking confirmation goes to the client automatically.' },
-              { step: '02', icon: ClipboardList, title: 'Team completes checklist', desc: 'Your team logs in, sees their jobs, works through the checklist, and uploads before & after photos.' },
-              { step: '03', icon: Sparkles, title: 'AI generates your QC report', desc: 'AI analyzes photos and the completed checklist to produce an internal quality report with scores and notes — in seconds.' },
+              { step: '02', icon: ClipboardList, title: 'Team completes the visit', desc: 'Your team logs in, sees their jobs, works through the task list, and uploads before & after photos.' },
+              { step: '03', icon: Sparkles, title: 'AI generates a quality report', desc: 'AI analyzes photos and completed tasks to produce an internal quality report with scores and notes — in seconds.' },
               { step: '04', icon: Send, title: 'Client gets a summary', desc: 'Send a clean job completion summary to your client. Mark the job paid and send an invoice — all from one place.' },
             ].map(({ step, icon: Icon, title, desc }) => (
               <div key={step} className="relative rounded-xl bg-[#1e2433] border border-white/10 p-6">
@@ -209,7 +209,7 @@ export default function LandingPage() {
       <section className="px-6 py-20 max-w-5xl mx-auto">
         <div className="text-center mb-14">
           <h2 className="text-3xl font-bold text-white mb-3">Everything in one place</h2>
-          <p className="text-gray-400 max-w-xl mx-auto">Replace the spreadsheets, group chats, and paper checklists with one clean platform.</p>
+          <p className="text-gray-400 max-w-xl mx-auto">Replace the spreadsheets, group chats, and paper task lists with one modern platform.</p>
         </div>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {[
@@ -234,8 +234,8 @@ export default function LandingPage() {
             {
               icon: Sparkles,
               color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20',
-              title: 'AI internal QC reports',
-              desc: 'AI reads your checklist and photos and writes a scored internal QC report — so you always know the quality of work your team delivered.',
+              title: 'AI quality reports',
+              desc: 'AI reads your task list and photos and writes a scored internal quality report — so you always know the standard of work your team delivered.',
             },
             {
               icon: Bell,
@@ -268,7 +268,7 @@ export default function LandingPage() {
             <div>
               <h2 className="text-3xl font-bold text-white mb-4">Built for teams of 1–20, not enterprise</h2>
               <p className="text-gray-400 mb-8 leading-relaxed">
-                Most QC software costs $250+/month and is designed for large janitorial companies with IT departments. Cleerd is purpose-built for independent cleaning businesses that want to look professional without the overhead.
+                Most field service software costs $250+/month and is designed for large enterprise companies with IT departments. Cleerd is purpose-built for independent service businesses that want to look professional without the overhead.
               </p>
               <ul className="space-y-3">
                 {[
@@ -286,7 +286,7 @@ export default function LandingPage() {
             </div>
             <div className="space-y-4">
               {[
-                { label: 'Replace', items: ['Google Forms · WhatsApp threads · Paper checklists · Manual email updates'] },
+                { label: 'Replace', items: ['Google Forms · WhatsApp threads · Paper task lists · Manual email updates'] },
                 { label: 'With', items: ['One platform your whole team actually uses'] },
               ].map(({ label, items }) => (
                 <div key={label} className={`rounded-xl border p-5 ${label === 'Replace' ? 'border-red-500/20 bg-red-500/5' : 'border-emerald-500/20 bg-emerald-500/5'}`}>
@@ -309,18 +309,18 @@ export default function LandingPage() {
               {
                 name: 'Solo', price: 39,
                 desc: 'Perfect for owner-operators',
-                features: ['1 team', 'Up to 50 jobs/month', 'AI internal QC reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations'],
+                features: ['1 team', 'Up to 50 jobs/month', 'AI quality reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations'],
               },
               {
                 name: 'Growth', price: 69,
-                desc: 'For growing cleaning businesses',
-                features: ['Up to 3 teams', 'Unlimited jobs', 'AI internal QC reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations', 'Appointment reminders'],
+                desc: 'For growing service businesses',
+                features: ['Up to 3 teams', 'Unlimited jobs', 'AI quality reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations', 'Appointment reminders'],
                 popular: true,
               },
               {
                 name: 'Pro', price: 99,
                 desc: 'For established operations',
-                features: ['Unlimited teams', 'Unlimited jobs', 'AI internal QC reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations', 'Appointment reminders'],
+                features: ['Unlimited teams', 'Unlimited jobs', 'AI quality reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations', 'Appointment reminders'],
               },
             ].map(plan => (
               <div key={plan.name} className={`rounded-xl border p-6 text-left flex flex-col ${plan.popular ? 'border-blue-500 bg-blue-500/10 shadow-xl shadow-blue-500/10' : 'border-white/10 bg-[#1e2433]'}`}>
@@ -354,7 +354,7 @@ export default function LandingPage() {
       <section className="px-6 py-24 text-center max-w-2xl mx-auto">
         <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Ready to run a tighter operation?</h2>
         <p className="text-gray-400 mb-10 leading-relaxed">
-          Join cleaning businesses using Cleerd to schedule smarter, document every job, and keep quality high across every team.
+          Join service businesses using Cleerd to schedule smarter, document every job, and keep quality high across every team.
         </p>
         <Link href="/signup">
           <Button size="lg" className="bg-blue-500 hover:bg-blue-600 text-white gap-2">

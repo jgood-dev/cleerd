@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
   if (!property?.client_email) return Response.json({ error: 'No client email' }, { status: 400 })
 
   const org = job.organizations as any
-  const companyName = org?.name ?? 'Your Cleaning Service'
+  const companyName = org?.name ?? 'Your Service Company'
   const address = property.address ?? property.name ?? 'your property'
   const ownerFirst = property.owner_name ? property.owner_name.split(' ')[0] : null
   const greeting = ownerFirst ? `Hi ${ownerFirst},` : 'Hi,'
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         <tr><td style="background:#ffffff;padding:32px;">
           <p style="margin:0 0 6px;font-size:20px;font-weight:700;color:#111827;">${greeting}</p>
           <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.6;">
-            Thank you for choosing ${companyName}! Here is your invoice for the cleaning completed at <strong>${address}</strong> on ${scheduledDate}.
+            Thank you for choosing ${companyName}! Here is your invoice for the service completed at <strong>${address}</strong> on ${scheduledDate}.
           </p>
 
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
             </thead>
             <tbody>
               <tr style="border-top:1px solid #e5e7eb;">
-                <td style="padding:14px 16px;font-size:14px;color:#374151;">Cleaning service — ${address}${paymentMethod ? `<br><span style="font-size:12px;color:#9ca3af;">Paid via ${paymentMethod}</span>` : ''}</td>
+                <td style="padding:14px 16px;font-size:14px;color:#374151;">Service — ${address}${paymentMethod ? `<br><span style="font-size:12px;color:#9ca3af;">Paid via ${paymentMethod}</span>` : ''}</td>
                 <td style="padding:14px 16px;font-size:14px;color:#374151;text-align:right;font-weight:600;">${amount != null ? `$${Number(amount).toFixed(2)}` : 'See invoice'}</td>
               </tr>
             </tbody>
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
 
   const amountLine = amount != null ? `Amount: $${Number(amount).toFixed(2)}\n` : ''
   const methodLine = paymentMethod ? `Payment method: ${paymentMethod}\n` : ''
-  const plainText = `${greeting}\n\nThank you for choosing ${companyName}!\n\nInvoice for cleaning at ${address} on ${scheduledDate}.\n${amountLine}${methodLine}\nThis invoice is marked as PAID. Thank you for your payment!\n\nIf you have questions, please reach out.\n\n— ${companyName}`
+  const plainText = `${greeting}\n\nThank you for choosing ${companyName}!\n\nInvoice for service at ${address} on ${scheduledDate}.\n${amountLine}${methodLine}\nThis invoice is marked as PAID. Thank you for your payment!\n\nIf you have questions, please reach out.\n\n— ${companyName}`
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       from: `${companyName} <support@cleerd.io>`,
       reply_to: 'support@cleerd.io',
       to: property.client_email,
-      subject: `Invoice — cleaning at ${address}`,
+      subject: `Invoice — service at ${address}`,
       html,
       text: plainText,
     }),

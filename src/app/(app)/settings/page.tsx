@@ -19,8 +19,8 @@ export default async function SettingsPage() {
     {
       href: '/settings/packages',
       icon: ClipboardList,
-      title: 'Packages',
-      description: 'Create and manage checklist packages for different types of cleans.',
+      title: 'Service Templates',
+      description: 'Create and manage task templates for different types of jobs.',
       ownerOnly: false,
     },
     {

@@ -57,7 +57,7 @@ export default function ReportsPage() {
           {!inspections.length ? (
             <div className="py-12 text-center text-gray-400">
               <FileText className="mx-auto mb-3 h-10 w-10 text-gray-600" />
-              <p>No reports yet. Complete an inspection and generate an AI report.</p>
+              <p>No reports yet. Complete a job visit and generate a quality report.</p>
             </div>
           ) : (
             <div className="divide-y divide-white/5">
