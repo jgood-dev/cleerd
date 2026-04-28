@@ -30,8 +30,8 @@ export async function POST(request: NextRequest) {
 
   if (createError) {
     // User already exists — just link the invite
-    const { data: existingData } = await admin.auth.admin.getUserByEmail(email)
-    const existingUser = existingData?.user
+    const { data: existingData } = await admin.auth.admin.listUsers()
+    const existingUser = existingData?.users?.find((u: any) => u.email === email)
     if (!existingUser) return Response.json({ error: createError.message }, { status: 400 })
 
     await admin.from('org_members').update({
