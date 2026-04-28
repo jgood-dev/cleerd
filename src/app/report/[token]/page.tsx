@@ -57,7 +57,7 @@ export default async function ClientReportPage({ params }: { params: Promise<{ t
   // Generate signed URLs for photos
   const photoUrls: Record<string, string> = {}
   for (const photo of photos) {
-    const { data } = await supabase.storage.from('inspection-photos').createSignedUrl(photo.storage_path, 86400)
+    const { data } = await supabase.storage.from('inspection-photos').createSignedUrl(photo.storage_path, 604800)
     if (data?.signedUrl) photoUrls[photo.id] = data.signedUrl
   }
 

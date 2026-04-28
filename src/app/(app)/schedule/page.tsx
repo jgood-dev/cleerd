@@ -395,11 +395,11 @@ export default function SchedulePage() {
     const { data: newJob } = await createRes.json()
 
     if (newJob?.id) {
-      fetch('/api/send-confirmation', {
+      await fetch('/api/send-confirmation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ jobId: newJob.id }),
-      }).catch(() => {})
+      }).catch(err => console.error('Confirmation email failed:', err))
     }
 
     setAdding(false); setAddingProperty(false)

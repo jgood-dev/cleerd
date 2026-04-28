@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { CheckSquare } from 'lucide-react'
+import { CheckSquare, Mail } from 'lucide-react'
 
 export default function SignupPage() {
   const [businessName, setBusinessName] = useState('')
@@ -14,6 +14,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [confirmPending, setConfirmPending] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -25,7 +26,10 @@ export default function SignupPage() {
     const { data, error: signupError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { business_name: businessName } },
+      options: {
+        data: { business_name: businessName },
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/confirm`,
+      },
     })
 
     if (signupError) {
@@ -34,14 +38,42 @@ export default function SignupPage() {
       return
     }
 
-    if (data.user) {
+    if (data.session) {
+      // Email confirmation not required — create org and go
       await supabase.from('organizations').insert({
         name: businessName,
-        owner_id: data.user.id,
+        owner_id: data.user!.id,
         plan: 'solo',
       })
       router.push('/dashboard')
+    } else if (data.user) {
+      // Email confirmation required — org will be created in /auth/confirm
+      setConfirmPending(true)
+      setLoading(false)
     }
+  }
+
+  if (confirmPending) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0f1117]">
+        <div className="w-full max-w-md px-4 text-center">
+          <div className="mb-6 flex justify-center">
+            <div className="rounded-full bg-blue-500/10 p-4">
+              <Mail className="h-10 w-10 text-blue-400" />
+            </div>
+          </div>
+          <h1 className="text-2xl font-bold text-white">Check your email</h1>
+          <p className="mt-3 text-gray-400">
+            We sent a confirmation link to <span className="text-white">{email}</span>.
+            Click it to activate your account and get started.
+          </p>
+          <p className="mt-6 text-sm text-gray-500">
+            Already confirmed?{' '}
+            <Link href="/login" className="font-medium text-blue-400 hover:text-blue-300">Sign in</Link>
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (
