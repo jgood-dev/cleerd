@@ -133,7 +133,7 @@ export default async function DashboardPage() {
                       </Badge>
                       {inspection
                         ? <Link href={`/inspections/${inspection.id}`}><Button size="sm" variant="ghost" className="text-xs">View</Button></Link>
-                        : <Link href="/schedule"><Button size="sm" variant="ghost" className="text-xs text-gray-500">Schedule</Button></Link>
+                        : <Link href="/schedule?new=1"><Button size="sm" variant="ghost" className="text-xs text-gray-500">Schedule</Button></Link>
                       }
                     </div>
                   </div>

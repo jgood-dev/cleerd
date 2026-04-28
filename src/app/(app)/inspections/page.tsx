@@ -103,7 +103,7 @@ export default function JobsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-white">Jobs</h1>
-        <Link href="/schedule">
+        <Link href="/schedule?new=1">
           <Button><Plus className="mr-2 h-4 w-4" />Schedule Job</Button>
         </Link>
       </div>
@@ -161,7 +161,7 @@ export default function JobsPage() {
           {!filtered.length ? (
             <div className="py-12 text-center">
               <p className="text-gray-500">No {filter === 'all' ? '' : filter.replace('_', ' ')} jobs found.</p>
-              <Link href="/schedule">
+              <Link href="/schedule?new=1">
                 <Button className="mt-4">Schedule a job</Button>
               </Link>
             </div>
@@ -227,7 +227,7 @@ export default function JobsPage() {
                           <div className="flex items-center justify-end gap-1">
                             {inspection
                               ? <Link href={`/inspections/${inspection.id}`}><Button variant="ghost" size="sm">View</Button></Link>
-                              : <Link href="/schedule"><Button variant="ghost" size="sm" className="text-gray-500">Schedule</Button></Link>
+                              : <Link href="/schedule?new=1"><Button variant="ghost" size="sm" className="text-gray-500">Schedule</Button></Link>
                             }
                             <Button variant="ghost" size="icon"
                               onClick={() => deleteJob(job.id)}
