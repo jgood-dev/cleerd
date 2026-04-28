@@ -693,7 +693,7 @@ export default function SchedulePage() {
                   {durationMinutes && <span className="ml-2 text-xs text-gray-500 font-normal">auto-calculated — override if needed</span>}
                 </label>
                 <div className="flex items-center gap-2">
-                  <Input type="number" min="1" step="1" placeholder="e.g. 120" className="w-36"
+                  <Input type="number" min="5" step="5" placeholder="e.g. 120" className="w-36"
                     value={durationMinutes} onChange={e => setDurationMinutes(e.target.value)} />
                   {durationMinutes && (
                     <span className="text-sm text-gray-400">
@@ -920,7 +920,7 @@ export default function SchedulePage() {
                           <div>
                             <label className="mb-1.5 block text-sm font-medium text-gray-300">Duration (minutes)</label>
                             <div className="flex items-center gap-2">
-                              <Input type="number" min="1" step="1" placeholder="e.g. 120" className="w-36"
+                              <Input type="number" min="5" step="5" placeholder="e.g. 120" className="w-36"
                                 value={editDuration} onChange={e => setEditDuration(e.target.value)} />
                               {editDuration && (
                                 <span className="text-sm text-gray-400">
