@@ -12,7 +12,7 @@ export default function TermsPage() {
 
         <section>
           <h2 className="text-xl font-semibold text-gray-900">2. Description of Service</h2>
-          <p>Cleerd is a quality control documentation platform for cleaning businesses. The Service allows users to document inspections with photos, generate AI-powered reports, and deliver those reports to clients.</p>
+          <p>Cleerd is a field-service management platform for small service businesses. The Service allows users to schedule jobs, document work with photos and task lists, generate AI-powered quality reports, send client updates, and manage related business workflows.</p>
         </section>
 
         <section>

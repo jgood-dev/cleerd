@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
         <tr><td style="background:#ffffff;padding:32px;">
           <p style="margin:0 0 8px;font-size:20px;font-weight:700;color:#111827;">${greeting}</p>
           <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.6;">
-            Just a friendly reminder — your cleaning is coming up in <strong>${leadLabel}</strong>.
+            Just a friendly reminder — your service appointment is coming up in <strong>${leadLabel}</strong>.
           </p>
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
             <tr><td style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:20px 24px;">
@@ -99,7 +99,7 @@ export async function GET(req: NextRequest) {
 </body>
 </html>`
 
-      const text = `${greeting}\n\nYour cleaning at ${address} is coming up in ${leadLabel}.\n\n${apptFormatted} at ${apptTime}${teamName ? `\nTeam: ${teamName}` : ''}\n\nIf you need to reschedule, just reply to this email.\n\n— ${companyName}`
+      const text = `${greeting}\n\nYour service appointment at ${address} is coming up in ${leadLabel}.\n\n${apptFormatted} at ${apptTime}${teamName ? `\nTeam: ${teamName}` : ''}\n\nIf you need to reschedule, just reply to this email.\n\n— ${companyName}`
 
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
           from: `${companyName} <support@cleerd.io>`,
           reply_to: 'support@cleerd.io',
           to: property.client_email,
-          subject: `Reminder: cleaning at ${address} on ${apptFormatted}`,
+          subject: `Reminder: service appointment at ${address} on ${apptFormatted}`,
           html,
           text,
         }),

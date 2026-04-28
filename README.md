@@ -1,59 +1,49 @@
-# CleanCheck
+# Cleerd
 
-Job scheduling and quality tracking software for residential cleaning companies. CleanCheck helps cleaning businesses schedule jobs, manage teams, track checklists and photos, and deliver professional client summaries.
+Cleerd is a business-agnostic, mobile-first field-service SaaS for small operators who need to schedule jobs, manage teams, document work with photos, generate AI quality reports, send client updates, and invoice from one practical workspace.
 
-## Features
+The product is positioned as a leaner alternative to Jobber for owner-operators and small service teams that want clarity without enterprise bloat or confusing add-ons.
 
-- **Job Scheduling** — Schedule jobs with property, team, package, date/time, and duration. Recurring jobs (weekly, bi-weekly, monthly) auto-schedule the next visit on completion.
-- **Team Availability** — Weekly timeline showing all teams' bookings with overlap detection. Prevents double-booking.
-- **Packages & Checklists** — Pre-built cleaning packages with editable checklists per job. Size-based duration multipliers (small/medium/large/XL homes).
-- **Photo Documentation** — Before, after, and issue photos captured during the job.
-- **Client Reports** — Branded, customer-friendly summaries sent via email: after photos, completed checklist, team info, time on-site, next visit, and a review link.
-- **AI Quality Report** — Internal-only AI assessment and score for company use.
-- **Appointment Reminders** — Automated email reminders sent to clients before their scheduled appointment (configurable lead time).
-- **Booking Confirmation Email** — Automatically emailed to the client when a job is scheduled (date/time, team, duration).
-- **Invoice & Payment Tracking** — Mark a job as paid to send the client a paid invoice email. Status shown on the job detail page.
-- **Team Management** — Teams with members (name, phone, email, role).
-- **Team Logins** — Invite team members by email to access the account. Invites create a CleanCheck account linked to your organization.
-- **Properties** — Client locations with owner info, home size, entry instructions, and email for report delivery.
+## Core Product Areas
 
-## Stack
-
-- **Framework** — Next.js (App Router)
-- **Database & Auth** — Supabase (Postgres + RLS)
-- **Email** — Resend
-- **Address Autocomplete** — Google Places API (server-side)
-- **AI Reports** — Anthropic Claude API
-- **Hosting** — Vercel (with Cron for daily reminders)
+- **Scheduling:** one-time and recurring jobs, team assignment, duration tracking, monthly plan limits, and conflict warnings.
+- **Teams:** owner/admin/member access, team limits by plan, and field-worker-focused navigation.
+- **Clients and properties:** customer contact details, service addresses, notes, and Google Places autocomplete.
+- **Packages and checklists:** reusable service templates with editable task lists and price/duration defaults.
+- **Proof of work:** before/after/issue photos, checklist completion, client notes, and shareable public job summaries.
+- **AI reports:** Claude-powered quality reports based on job data, checklist completion, and photos.
+- **Communication:** booking confirmations, reminders, completion reports, invoices, and review-link requests.
+- **Billing:** Stripe checkout, customer portal, and webhook-based subscription sync are staged in code and require live Stripe configuration.
 
 ## Environment Variables
 
-```
+Copy `.env.example` to `.env.local` for local development. Do not commit real secrets.
+
+```bash
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
-RESEND_API_KEY=
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+CRON_SECRET=
 ANTHROPIC_API_KEY=
-NEXT_PUBLIC_APP_URL=
+RESEND_API_KEY=
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRICE_SOLO=
+STRIPE_PRICE_GROWTH=
+STRIPE_PRICE_PRO=
 ```
 
-## Database Migrations
+## Database Setup
 
-Run these SQL files in order in the Supabase SQL Editor:
+Run the base schema and follow-up migrations in Supabase SQL Editor. For billing, run:
 
-1. `supabase-schema.sql` — base schema
-2. `supabase-add-property-fields.sql` — owner name, phone on properties
-3. `supabase-packages.sql` — packages and package items
-4. `supabase-jobs.sql` — jobs table
-5. `supabase-jobs-package.sql` — package_id on jobs
-6. `supabase-jobs-items.sql` — custom_items on jobs
-7. `supabase-duration.sql` — duration and size multipliers
-8. `supabase-timezone.sql` — timezone on organizations
-9. `supabase-client-report.sql` — client_note, review_link
-10. `supabase-recurrence.sql` — recurrence and reminder tracking
-11. `supabase-team-member-phone.sql` — phone on team members
-12. `supabase-new-features.sql` — entry_notes on properties, payment tracking on jobs, org_members for multi-user login
+```sql
+-- supabase-billing-stripe.sql
+```
+
+The billing migration adds Stripe customer/subscription fields to `organizations` so webhook events can keep plan status in sync.
 
 ## Local Development
 
@@ -62,4 +52,11 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+## Validation
+
+```bash
+npm run lint
+npm run build
+```
+
+The current launch track prioritizes secure credentials, Stripe activation, mobile-first job workflow polish, and automation that can run safely without human babysitting. In other words: less “spreadsheet rodeo,” more “business runs while Josh drinks coffee.”

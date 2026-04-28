@@ -93,7 +93,7 @@ export default function SignupPage() {
           <form onSubmit={handleSignup} className="space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-300">Business name</label>
-              <Input placeholder="Sparkle Clean Co." value={businessName} onChange={e => setBusinessName(e.target.value)} required />
+              <Input placeholder="Acme Services" value={businessName} onChange={e => setBusinessName(e.target.value)} required />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-300">Email</label>

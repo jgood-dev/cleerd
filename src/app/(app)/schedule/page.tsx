@@ -398,8 +398,8 @@ export default function SchedulePage() {
     })
     if (!createRes.ok) {
       const err = await createRes.json()
-      if (createRes.status === 403) {
-        setOverlapError(err.error ?? 'Job limit reached for your plan.')
+      if (createRes.status === 403 || createRes.status === 409) {
+        setOverlapError(err.error ?? (createRes.status === 409 ? 'This team is already booked at the selected time.' : 'Job limit reached for your plan.'))
       } else {
         setJobError(err.error ?? 'Failed to schedule job. Please try again.')
       }

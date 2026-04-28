@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   }
 
   const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/join?token=${inviteToken}`
-  const companyName = org.name ?? 'a cleaning company'
+  const companyName = org.name ?? 'a service business'
 
   const html = `<!DOCTYPE html>
 <html>

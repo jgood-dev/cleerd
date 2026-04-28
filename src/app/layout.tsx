@@ -15,11 +15,13 @@ const geistMono = Geist_Mono({
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  themeColor: '#3b82f6',
 }
 
 export const metadata: Metadata = {
   title: "Cleerd – Field Service Management Software",
   description: "Schedule jobs, manage teams, document work with photos, and deliver professional client reports. Built for small service businesses.",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({

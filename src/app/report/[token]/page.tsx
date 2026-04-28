@@ -149,7 +149,7 @@ export default async function ClientReportPage({ params }: { params: Promise<{ t
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
               {afterPhotos.map((photo: any) => photoUrls[photo.id] && (
-                <img key={photo.id} src={photoUrls[photo.id]} alt="After cleaning"
+                <img key={photo.id} src={photoUrls[photo.id]} alt="After work"
                   style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 8, border: '1px solid #e5e7eb' }} />
               ))}
             </div>

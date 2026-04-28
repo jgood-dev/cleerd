@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 
   content.push({
     type: 'text',
-    text: `You are a professional cleaning quality inspector. Analyze this cleaning inspection and write a concise professional report.
+    text: `You are a professional field-service quality inspector. Analyze this completed job and write a concise professional quality report.
 
 Property: ${inspection.properties?.name ?? 'Unknown'}
 Address: ${inspection.properties?.address ?? 'Not provided'}

@@ -21,7 +21,7 @@ export default function ReportsPage() {
     const { data: { user } } = await supabase.auth.getUser()
     const { org, isOwner, memberTeamId } = await getOrgForUser(supabase, user!.id, user!.email)
     if (!org) return
-    let query = supabase
+    const query = supabase
       .from('inspections')
       .select('*, properties(name, address), jobs(team_id)')
       .eq('org_id', org.id)
