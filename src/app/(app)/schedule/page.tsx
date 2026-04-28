@@ -335,6 +335,11 @@ export default function SchedulePage() {
     if (!newOwnerName.trim()) { setPropError('Owner name is required.'); return null }
     if (!newPhone.trim()) { setPropError('Phone is required.'); return null }
     if (!newEmail.trim()) { setPropError('Email is required.'); return null }
+
+    // Return existing property if address already exists for this org
+    const existing = properties.find(p => p.address?.toLowerCase() === address.toLowerCase())
+    if (existing) return existing.id
+
     const { data } = await supabase.from('properties').insert({
       org_id: orgId, name: address, address,
       owner_name: newOwnerName.trim(), phone: newPhone.trim(), client_email: newEmail.trim(),
