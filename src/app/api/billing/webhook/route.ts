@@ -1,8 +1,8 @@
+import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { inferPlanFromPriceId } from '@/lib/billing'
 import { getStripe } from '@/lib/stripe'
 import { trackServerEvent } from '@/lib/analytics'
-import Stripe from 'stripe'
 
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -11,8 +11,53 @@ function getAdminClient() {
   return createClient(url, serviceRole)
 }
 
+function getStripeCustomerId(customer: string | Stripe.Customer | Stripe.DeletedCustomer) {
+  return typeof customer === 'string' ? customer : customer.id
+}
+
+type SyncedOrganization = {
+  id: string
+  owner_id: string | null
+  plan: string | null
+}
+
+async function updateOrganizationSubscription(
+  match: { orgId?: string | null; customerId: string },
+  update: Record<string, string | null>
+) {
+  const admin = getAdminClient()
+  const selectColumns = 'id, owner_id, plan'
+  const updateWithCustomer = {
+    ...update,
+    stripe_customer_id: match.customerId,
+  }
+
+  if (match.orgId) {
+    const { data, error } = await admin
+      .from('organizations')
+      .update(updateWithCustomer)
+      .eq('id', match.orgId)
+      .select(selectColumns)
+      .maybeSingle()
+
+    if (error) throw error
+    if (data) return data as SyncedOrganization
+  }
+
+  const { data, error } = await admin
+    .from('organizations')
+    .update(updateWithCustomer)
+    .eq('stripe_customer_id', match.customerId)
+    .select(selectColumns)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data as SyncedOrganization | null) ?? null
+}
+
 async function syncSubscription(subscription: Stripe.Subscription) {
-  const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id
+  const customerId = getStripeCustomerId(subscription.customer)
+  const metadataOrgId = subscription.metadata.org_id?.trim() || null
   const firstItem = subscription.items.data[0]
   const priceId = firstItem?.price.id
   const plan = (subscription.metadata.plan as string | undefined) ?? inferPlanFromPriceId(priceId) ?? undefined
@@ -26,14 +71,17 @@ async function syncSubscription(subscription: Stripe.Subscription) {
 
   if (plan) update.plan = plan
 
-  const { data: org, error } = await getAdminClient()
-    .from('organizations')
-    .update(update)
-    .eq('stripe_customer_id', customerId)
-    .select('id, owner_id, plan')
-    .maybeSingle()
+  const org = await updateOrganizationSubscription({ orgId: metadataOrgId, customerId }, update)
 
-  if (error) throw error
+  if (!org) {
+    console.warn('Stripe webhook subscription did not match an organization', {
+      stripe_subscription_id: subscription.id,
+      stripe_customer_id: customerId,
+      metadata_org_id: metadataOrgId,
+      subscription_status: subscription.status,
+    })
+  }
+
   return { org, customerId, plan }
 }
 
@@ -100,11 +148,20 @@ export async function POST(request: Request) {
 
     if (event.type === 'customer.subscription.deleted') {
       const subscription = event.data.object as Stripe.Subscription
-      const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id
-      await getAdminClient()
-        .from('organizations')
-        .update({ subscription_status: subscription.status })
-        .eq('stripe_customer_id', customerId)
+      const { org, customerId, plan } = await syncSubscription(subscription)
+      await trackServerEvent({
+        eventName: 'subscription_cancelled',
+        eventSource: 'stripe_webhook',
+        orgId: org?.id,
+        userId: org?.owner_id,
+        dedupeKey: `subscription_cancelled:${event.id}`,
+        properties: {
+          plan: plan ?? org?.plan ?? null,
+          stripe_customer_id: customerId,
+          stripe_subscription_id: subscription.id,
+          subscription_status: subscription.status,
+        },
+      })
     }
 
     return Response.json({ received: true })
