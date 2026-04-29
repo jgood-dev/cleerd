@@ -69,12 +69,13 @@ export default function SignupPage() {
     setLoading(true)
     setError('')
 
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
     const { data, error: signupError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { business_name: businessName, selected_plan: selectedPlan },
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/confirm`,
+        emailRedirectTo: `${appUrl}/auth/confirm`,
       },
     })
 
