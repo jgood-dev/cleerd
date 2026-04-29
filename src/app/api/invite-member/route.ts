@@ -27,7 +27,8 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: error.message }, { status: 500 })
   }
 
-  const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/join?token=${inviteToken}`
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin
+  const inviteUrl = `${appUrl}/join?token=${inviteToken}`
   const companyName = org.name ?? 'a service business'
 
   const html = `<!DOCTYPE html>

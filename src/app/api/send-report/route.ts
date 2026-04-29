@@ -45,7 +45,8 @@ export async function POST(request: NextRequest) {
   const property = inspection.properties as any
   const team = inspection.teams as any
   const companyName = org?.name ?? 'Your Service Company'
-  const reportUrl = `${process.env.NEXT_PUBLIC_APP_URL}/report/${token}`
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin
+  const reportUrl = `${appUrl}/report/${token}`
   const address = property.address ?? property.name ?? 'your property'
   const ownerFirst = property.owner_name ? property.owner_name.split(' ')[0] : null
   const greeting = ownerFirst ? `Hi ${ownerFirst},` : 'Hi,'
