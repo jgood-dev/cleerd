@@ -115,25 +115,25 @@ export async function GET(request: NextRequest) {
               brandName: 'Cleerd',
               eyebrow: 'Welcome',
               heading: `Welcome to Cleerd, ${businessName}`,
-              intro: `Your ${selectedPlan === 'solo' ? 'Starter' : selectedPlan === 'growth' ? 'Growth' : 'Pro'} trial is ready. The fastest path to value is to add one client, schedule one job, and send one confirmation email today.`,
+              intro: `Your ${selectedPlan === 'solo' ? 'Starter' : selectedPlan === 'growth' ? 'Growth' : 'Pro'} trial is ready. The fastest path to value is to add one real client, create one reusable service template, and schedule one job today.`,
               bodyHtml: `
           <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;">
             <tr><td style="padding:18px 20px;">
-              <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:#111827;">Your quick-start checklist</p>
-              <p style="margin:0 0 8px;font-size:14px;color:#374151;line-height:1.6;">1. Add your first client or service location.</p>
-              <p style="margin:0 0 8px;font-size:14px;color:#374151;line-height:1.6;">2. Create one team, even if it is just you.</p>
-              <p style="margin:0;font-size:14px;color:#374151;line-height:1.6;">3. Schedule a job and send the client confirmation.</p>
+              <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:#111827;">Your first 10-minute win</p>
+              <p style="margin:0 0 8px;font-size:14px;color:#374151;line-height:1.6;">1. Add one real client or service location with contact details.</p>
+              <p style="margin:0 0 8px;font-size:14px;color:#374151;line-height:1.6;">2. Create one reusable service template for work you do often.</p>
+              <p style="margin:0;font-size:14px;color:#374151;line-height:1.6;">3. Schedule the next job so Cleerd can guide the follow-up.</p>
             </td></tr>
           </table>
-          <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">Cleerd is built to replace spreadsheet chaos, text-message scheduling, and manual customer follow-ups for field-service businesses.</p>`,
-              cta: { label: 'Open Cleerd Dashboard', url: `${appUrl}/dashboard` },
+          <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">Once the first job is scheduled, the dashboard will keep the next best action visible: complete the checklist, capture proof, and send the first client-ready report.</p>`,
+              cta: { label: 'Start the 10-minute setup', url: `${appUrl}/dashboard` },
               footerNote: 'You are receiving this because you created a Cleerd account.',
             })
             await sendTransactionalEmail({
               to: data.user.email,
               subject: 'Welcome to Cleerd — your account is ready',
               html,
-              text: `Welcome to Cleerd, ${businessName}.\n\nYour ${selectedPlan === 'solo' ? 'Starter' : selectedPlan === 'growth' ? 'Growth' : 'Pro'} trial is ready. Start by adding one client, creating one team, and scheduling one job.\n\nOpen your dashboard: ${appUrl}/dashboard`,
+              text: `Welcome to Cleerd, ${businessName}.\n\nYour ${selectedPlan === 'solo' ? 'Starter' : selectedPlan === 'growth' ? 'Growth' : 'Pro'} trial is ready. Start by adding one real client, creating one reusable service template, and scheduling one job.\n\nStart the 10-minute setup: ${appUrl}/dashboard`,
               fromName: 'Cleerd',
             })
           } catch (welcomeError) {

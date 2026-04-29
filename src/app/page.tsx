@@ -283,7 +283,7 @@ export default function LandingPage() {
               { icon: Camera, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', title: 'Photo documentation', desc: 'Capture before, after, and issue photos on any phone so callbacks become conversations instead of arguments.' },
               { icon: Sparkles, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', title: 'AI quality reports', desc: 'Turn task completion and photos into a scored internal quality report that helps owners spot issues faster.' },
               { icon: MessageSquare, color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/20', title: 'Client communication', desc: 'Send booking confirmations, reminders, completion reports, invoices, and review requests from a repeatable workflow.' },
-              { icon: CreditCard, color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20', title: 'Billing-ready operations', desc: 'Stripe-backed subscriptions, plan limits, and customer portal flow are ready for production once account credentials are connected.' },
+              { icon: CreditCard, color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20', title: 'Billing-ready operations', desc: 'Track plan limits, keep payments in view, and give owners a clean upgrade path as the business grows.' },
             ].map(({ icon: Icon, color, bg, border, title, desc }) => (
               <div key={title} className={`rounded-xl border ${border} bg-[#0f1117] p-6`}>
                 <div className={`mb-4 inline-flex rounded-lg ${bg} p-3`}>
@@ -334,6 +334,29 @@ export default function LandingPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#161b27] border-y border-white/10 px-6 py-20">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-white mb-3">Built for operators who need proof, not another toy dashboard</h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">Cleerd is still early, so the promise is simple: get one real workflow live fast, document the work clearly, and make the client follow-up feel professional from day one.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+            {[
+              { title: 'Owner-first setup', desc: 'The dashboard points you to the next useful action instead of dumping you into empty software.', metric: '10 min setup target' },
+              { title: 'Customer-ready proof', desc: 'Checklists, photos, and AI summaries turn field work into a recap clients can understand.', metric: 'Reports in the workflow' },
+              { title: 'Revenue-aware trial', desc: 'Start without a card, then upgrade when Cleerd is actually helping run jobs.', metric: '14 days free' },
+            ].map(({ title, desc, metric }) => (
+              <div key={title} className="rounded-xl border border-white/10 bg-[#0f1117] p-6">
+                <Star className="mb-4 h-5 w-5 text-blue-400" />
+                <p className="text-xs font-bold uppercase tracking-widest text-blue-300">{metric}</p>
+                <h3 className="mt-2 text-base font-semibold text-white">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-gray-400">{desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>

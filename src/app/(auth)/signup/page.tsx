@@ -6,15 +6,36 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { CheckCircle, CheckSquare, Mail } from 'lucide-react'
+import { ArrowRight, CheckCircle, CheckSquare, Mail } from 'lucide-react'
 
 type PlanId = 'solo' | 'growth' | 'pro'
 
-const planOptions: Record<PlanId, { name: string; price: number; note: string }> = {
-  solo: { name: 'Starter', price: 39, note: 'Best for owner-operators and first workflows.' },
-  growth: { name: 'Growth', price: 69, note: 'Best value for recurring clients and small teams.' },
-  pro: { name: 'Pro', price: 99, note: 'Best for established teams that want more automation.' },
+const planOptions: Record<PlanId, { name: string; price: number; note: string; fit: string }> = {
+  solo: {
+    name: 'Starter',
+    price: 39,
+    note: '1 team · 50 jobs/month',
+    fit: 'Best for owner-operators and first workflows.',
+  },
+  growth: {
+    name: 'Growth',
+    price: 69,
+    note: '3 teams · unlimited jobs',
+    fit: 'Best value for recurring clients and small teams.',
+  },
+  pro: {
+    name: 'Pro',
+    price: 99,
+    note: 'Unlimited teams · priority support',
+    fit: 'Best for established teams that want more automation.',
+  },
 }
+
+const trialSteps = [
+  'Create your account',
+  'Confirm your email',
+  'Add one client and schedule one job',
+]
 
 function normalizePlan(value: string | null): PlanId {
   if (value === 'growth' || value === 'pro' || value === 'solo') return value
@@ -35,6 +56,13 @@ export default function SignupPage() {
   useEffect(() => {
     setSelectedPlan(normalizePlan(new URLSearchParams(window.location.search).get('plan')))
   }, [])
+
+  function choosePlan(planId: PlanId) {
+    setSelectedPlan(planId)
+    const params = new URLSearchParams(window.location.search)
+    params.set('plan', planId)
+    window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`)
+  }
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
@@ -87,6 +115,12 @@ export default function SignupPage() {
             We sent a confirmation link to <span className="text-white">{email}</span>.
             Click it to activate your account and start your {plan.name} trial.
           </p>
+          <div className="mt-6 rounded-xl border border-white/10 bg-[#161b27] p-4 text-left">
+            <p className="text-sm font-semibold text-white">Your first win after confirming</p>
+            <p className="mt-1 text-sm text-gray-400">
+              Open the dashboard, add one client location, and schedule one real job. Cleerd will keep the next step visible so you are not hunting around like it is a tax portal.
+            </p>
+          </div>
           <p className="mt-6 text-sm text-gray-500">
             Already confirmed?{' '}
             <Link href="/login" className="font-medium text-blue-400 hover:text-blue-300">Sign in</Link>
@@ -98,7 +132,7 @@ export default function SignupPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#0f1117] py-10">
-      <div className="w-full max-w-md px-4">
+      <div className="w-full max-w-lg px-4">
         <div className="mb-8 text-center">
           <div className="mb-4 flex justify-center">
             <div className="flex items-center gap-2">
@@ -111,15 +145,45 @@ export default function SignupPage() {
         </div>
         <div className="rounded-xl border border-white/10 bg-[#161b27] p-8 shadow-xl">
           <div className="mb-5 rounded-lg border border-blue-500/20 bg-blue-500/10 p-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-blue-300">Selected trial plan</p>
-            <div className="mt-2 flex items-start justify-between gap-4">
-              <div>
-                <p className="font-semibold text-white">{plan.name} · ${plan.price}/month after trial</p>
-                <p className="mt-1 text-sm text-gray-400">{plan.note}</p>
-              </div>
-              <CheckCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-300" />
+            <p className="text-xs font-bold uppercase tracking-widest text-blue-300">Pick your trial plan</p>
+            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {(Object.keys(planOptions) as PlanId[]).map(planId => {
+                const option = planOptions[planId]
+                const active = selectedPlan === planId
+                return (
+                  <button
+                    key={planId}
+                    type="button"
+                    onClick={() => choosePlan(planId)}
+                    className={`rounded-lg border p-3 text-left transition-colors ${active ? 'border-blue-400 bg-blue-500/20' : 'border-white/10 bg-[#0f1117] hover:border-blue-500/40 hover:bg-white/5'}`}
+                    aria-pressed={active}
+                  >
+                    <span className="flex items-center justify-between gap-2 text-sm font-semibold text-white">
+                      {option.name}
+                      {active && <CheckCircle className="h-4 w-4 text-blue-300" />}
+                    </span>
+                    <span className="mt-1 block text-xs text-gray-400">${option.price}/mo after trial</span>
+                  </button>
+                )
+              })}
             </div>
-            <Link href="/#pricing" className="mt-3 inline-block text-xs font-medium text-blue-300 hover:text-blue-200">Change plan</Link>
+            <div className="mt-4 rounded-lg border border-white/10 bg-[#0f1117]/70 p-3">
+              <p className="font-semibold text-white">{plan.name} · ${plan.price}/month after trial</p>
+              <p className="mt-1 text-sm text-blue-200">{plan.note}</p>
+              <p className="mt-1 text-sm text-gray-400">{plan.fit}</p>
+            </div>
+          </div>
+
+          <div className="mb-5 rounded-lg border border-white/10 bg-[#0f1117] p-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400">What happens next</p>
+            <div className="mt-3 space-y-2">
+              {trialSteps.map((step, index) => (
+                <div key={step} className="flex items-center gap-3 text-sm text-gray-300">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/10 text-xs font-semibold text-blue-300">{index + 1}</span>
+                  <span>{step}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           <form onSubmit={handleSignup} className="space-y-4">
@@ -136,10 +200,14 @@ export default function SignupPage() {
               <Input type="password" placeholder="At least 8 characters" value={password} onChange={e => setPassword(e.target.value)} minLength={8} required />
             </div>
             {error && <p className="text-sm text-red-400">{error}</p>}
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full gap-2" disabled={loading}>
               {loading ? 'Creating account...' : `Start free on ${plan.name}`}
+              {!loading && <ArrowRight className="h-4 w-4" />}
             </Button>
           </form>
+          <p className="mt-3 text-center text-xs text-gray-500">
+            No credit card · Cancel anytime · Takes about 2 minutes to get into the dashboard
+          </p>
           <p className="mt-4 text-center text-sm text-gray-500">
             Already have an account?{' '}
             <Link href="/login" className="font-medium text-blue-400 hover:text-blue-300">Sign in</Link>

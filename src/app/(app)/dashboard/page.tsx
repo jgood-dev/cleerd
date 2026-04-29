@@ -117,6 +117,7 @@ export default async function DashboardPage() {
   ]
   const completedSetupTasks = setupTasks.filter(task => task.done).length
   const setupProgress = Math.round((completedSetupTasks / setupTasks.length) * 100)
+  const nextSetupTask = setupTasks.find(task => !task.done)
 
   const firstReportTasks = [
     {
@@ -190,7 +191,7 @@ export default async function DashboardPage() {
                   Send your first client report
                 </CardTitle>
                 <p className="mt-2 max-w-2xl text-sm text-gray-400">
-                  Cleerd becomes sticky when a customer receives a clean completion recap with proof photos, notes, and an easy path to rebook or leave a review. This checklist keeps the next revenue-producing action front and center.
+                  Cleerd becomes valuable when a real customer receives a clean completion recap with proof photos, notes, and an easy path to rebook or leave a review. Finish this path first so the product proves itself before the trial clock gets annoying.
                 </p>
               </div>
               <div className="min-w-[160px] rounded-xl border border-white/10 bg-[#111722]/80 px-4 py-3 text-center">
@@ -243,6 +244,14 @@ export default async function DashboardPage() {
                   Launch Checklist
                 </CardTitle>
                 <p className="mt-1 text-sm text-gray-400">Finish these setup steps to turn Cleerd into a sellable, repeatable operating system for your service business.</p>
+                {nextSetupTask && (
+                  <Link href={nextSetupTask.href} className="mt-3 inline-flex">
+                    <Button size="sm" variant="outline" className="border-blue-500/30 text-blue-200 hover:bg-blue-500/10 hover:text-white">
+                      Next: {nextSetupTask.title}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                )}
               </div>
               <div className="min-w-[130px] rounded-lg border border-white/10 bg-[#161b27] px-3 py-2 text-center">
                 <p className="text-2xl font-bold text-white">{setupProgress}%</p>
@@ -307,12 +316,23 @@ export default async function DashboardPage() {
         </CardHeader>
         <CardContent>
           {!todayJobs?.length ? (
-            <div className="py-6 text-center">
-              <p className="text-gray-500 text-sm">No jobs scheduled for today.</p>
+            <div className="rounded-xl border border-dashed border-white/10 bg-[#111722]/60 px-4 py-8 text-center">
+              <p className="font-medium text-white">No jobs scheduled for today.</p>
+              <p className="mx-auto mt-2 max-w-md text-sm text-gray-500">
+                New account? Start with one real client, one reusable service template, and one scheduled job. That is enough to test the complete Cleerd workflow without accidentally building a NASA launch sequence.
+              </p>
               {isOwner && (
-                <Link href="/schedule?new=1">
-                  <Button className="mt-3" variant="outline" size="sm">Schedule a job</Button>
-                </Link>
+                <div className="mt-4 flex flex-col items-center justify-center gap-2 sm:flex-row">
+                  <Link href="/settings/properties">
+                    <Button variant="outline" size="sm">Add client</Button>
+                  </Link>
+                  <Link href="/settings/packages">
+                    <Button variant="outline" size="sm">Create template</Button>
+                  </Link>
+                  <Link href="/schedule?new=1">
+                    <Button size="sm">Schedule job</Button>
+                  </Link>
+                </div>
               )}
             </div>
           ) : (
