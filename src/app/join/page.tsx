@@ -123,7 +123,7 @@ if (!invite) {
         </form>
         <p className="mt-4 text-center text-sm text-gray-500">
           Already have an account?{' '}
-          <Link href={`/login?redirect=/join?token=${token}`} className="font-medium text-blue-400 hover:text-blue-300">Sign in instead</Link>
+          <Link href={`/login?redirect=${encodeURIComponent(`/join?token=${token}`)}`} className="font-medium text-blue-400 hover:text-blue-300">Sign in instead</Link>
         </p>
       </div>
     </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -8,13 +8,25 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CheckSquare } from 'lucide-react'
 
+function getSafeRedirect(value: string | null) {
+  if (!value) return '/dashboard'
+  if (!value.startsWith('/') || value.startsWith('//') || value.includes('://')) return '/dashboard'
+  return value
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [redirectTo, setRedirectTo] = useState('/dashboard')
   const router = useRouter()
   const supabase = createClient()
+
+  useEffect(() => {
+    const redirect = new URLSearchParams(window.location.search).get('redirect')
+    setRedirectTo(getSafeRedirect(redirect))
+  }, [])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -25,7 +37,7 @@ export default function LoginPage() {
       setError(error.message)
       setLoading(false)
     } else {
-      router.push('/dashboard')
+      router.push(redirectTo)
     }
   }
 
@@ -40,7 +52,7 @@ export default function LoginPage() {
             </div>
           </div>
           <h1 className="text-2xl font-bold text-white">Welcome back</h1>
-          <p className="mt-1 text-gray-400">Sign in to your account</p>
+          <p className="mt-1 text-gray-400">{redirectTo.startsWith('/join') ? 'Sign in to finish accepting your invitation' : 'Sign in to your account'}</p>
         </div>
         <div className="rounded-xl border border-white/10 bg-[#161b27] p-8 shadow-xl">
           <form onSubmit={handleLogin} className="space-y-4">
