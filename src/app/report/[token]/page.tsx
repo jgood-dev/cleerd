@@ -1,6 +1,6 @@
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
-import { CheckCircle, Clock, Users, Calendar, Star, Camera, AlertCircle } from 'lucide-react'
+import { CheckCircle, Clock, Users, Calendar, Star, Camera, AlertCircle, ShieldCheck, Send, Share2 } from 'lucide-react'
 
 function fmtDuration(start: string, end: string) {
   const ms = new Date(end).getTime() - new Date(start).getTime()
@@ -15,6 +15,11 @@ function fmtDuration(start: string, end: string) {
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+function fmtShortDateTime(iso: string) {
+  const date = new Date(iso)
+  return `${date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} at ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
 }
 
 export default async function ClientReportPage({ params }: { params: Promise<{ token: string }> }) {
@@ -68,26 +73,41 @@ export default async function ClientReportPage({ params }: { params: Promise<{ t
   const timeOnSite = inspection.completed_at ? fmtDuration(inspection.created_at, inspection.completed_at) : null
   const companyName = org?.name ?? 'Your Service Company'
   const ownerName = property?.owner_name ? property.owner_name.split(' ')[0] : null
+  const address = property?.address ?? property?.name ?? 'your property'
+  const reportUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/report/${token}`
+  const shareSubject = encodeURIComponent(`${companyName} completed the job at ${address}`)
+  const shareBody = encodeURIComponent(`Here is the completed job summary from ${companyName}:\n\n${reportUrl}`)
+  const completionRate = checklist.length ? Math.round((completedItems.length / checklist.length) * 100) : null
 
   return (
     <div className="min-h-screen bg-[#f8f9fb] text-gray-800" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
       {/* Header */}
       <header style={{ background: '#161b27', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '18px 24px' }}>
-        <div style={{ maxWidth: 640, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ maxWidth: 680, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ color: '#ffffff', fontWeight: 700, fontSize: 18 }}>{companyName}</span>
-          <span style={{ color: '#6b7280', fontSize: 13 }}>Job Summary</span>
+          <span style={{ color: '#9ca3af', fontSize: 13 }}>Verified Job Summary</span>
         </div>
       </header>
 
-      <main style={{ maxWidth: 640, margin: '0 auto', padding: '32px 20px 60px' }}>
+      <main style={{ maxWidth: 680, margin: '0 auto', padding: '32px 20px 60px' }}>
 
         {/* Greeting */}
-        <div style={{ marginBottom: 32 }}>
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: '#111827', margin: '0 0 6px' }}>
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: '#dcfce7', border: '1px solid #bbf7d0', color: '#166534', borderRadius: 999, padding: '6px 10px', fontSize: 12, fontWeight: 700, marginBottom: 14 }}>
+            <ShieldCheck size={14} /> Work completed and documented
+          </div>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: '#111827', margin: '0 0 8px', letterSpacing: '-0.02em' }}>
             {ownerName ? `Hi ${ownerName} — your job is complete!` : 'Your job is complete!'}
           </h1>
           <p style={{ color: '#6b7280', fontSize: 15, margin: 0 }}>
-            {property?.address ?? property?.name} · {fmtDate(completedAt)}
+            {address} · {fmtDate(completedAt)}
+          </p>
+        </div>
+
+        {/* Summary promise */}
+        <div style={{ background: 'linear-gradient(135deg, #eff6ff, #ffffff)', border: '1px solid #bfdbfe', borderRadius: 14, padding: '18px 20px', marginBottom: 24 }}>
+          <p style={{ color: '#1e3a8a', fontSize: 15, lineHeight: 1.6, margin: 0 }}>
+            This summary gives you a clean record of what was completed, who handled the visit, and any photos or notes captured by the team. If anything looks off, reply to the email that brought you here and {companyName} can take care of it.
           </p>
         </div>
 
@@ -100,7 +120,7 @@ export default async function ClientReportPage({ params }: { params: Promise<{ t
         )}
 
         {/* Stats row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 28 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 28 }}>
           {/* Items completed */}
           <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '16px 18px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -110,6 +130,7 @@ export default async function ClientReportPage({ params }: { params: Promise<{ t
             <p style={{ fontSize: 22, fontWeight: 700, color: '#111827', margin: 0 }}>
               {completedItems.length}<span style={{ fontSize: 14, color: '#9ca3af', fontWeight: 400 }}>/{checklist.length}</span>
             </p>
+            {completionRate !== null && <p style={{ fontSize: 12, color: '#16a34a', margin: '4px 0 0', fontWeight: 600 }}>{completionRate}% complete</p>}
           </div>
 
           {/* Time on site */}
@@ -190,41 +211,59 @@ export default async function ClientReportPage({ params }: { params: Promise<{ t
           </div>
         )}
 
-        {/* Next visit */}
-        {nextJob && (
-          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12, padding: '18px 22px', marginBottom: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Calendar size={18} color="#2563eb" />
-              <div>
-                <p style={{ fontSize: 14, fontWeight: 600, color: '#1e40af', margin: 0 }}>Next Visit Scheduled</p>
-                <p style={{ fontSize: 14, color: '#3b82f6', margin: '2px 0 0' }}>
-                  {new Date(nextJob.scheduled_at).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                  {' at '}
-                  {new Date(nextJob.scheduled_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                </p>
-              </div>
+        {/* Next visit and rebooking */}
+        <div style={{ background: nextJob ? '#eff6ff' : '#f0fdf4', border: nextJob ? '1px solid #bfdbfe' : '1px solid #bbf7d0', borderRadius: 12, padding: '18px 22px', marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <Calendar size={18} color={nextJob ? '#2563eb' : '#16a34a'} style={{ marginTop: 1, flexShrink: 0 }} />
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 700, color: nextJob ? '#1e40af' : '#166534', margin: 0 }}>
+                {nextJob ? 'Next Visit Scheduled' : 'Need another visit?'}
+              </p>
+              <p style={{ fontSize: 14, color: nextJob ? '#3b82f6' : '#15803d', margin: '4px 0 0', lineHeight: 1.5 }}>
+                {nextJob ? fmtShortDateTime(nextJob.scheduled_at) : `Reply to your summary email and ${companyName} can help schedule the next appointment while the details are fresh.`}
+              </p>
             </div>
           </div>
-        )}
+        </div>
+
+        {/* Share/referral prompt */}
+        <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 12, padding: '22px', marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <div style={{ background: '#eef2ff', borderRadius: 10, padding: 10, flexShrink: 0 }}>
+              <Share2 size={20} color="#4f46e5" />
+            </div>
+            <div>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: '0 0 6px' }}>Want to keep or share this proof of work?</h2>
+              <p style={{ fontSize: 14, color: '#6b7280', margin: '0 0 14px', lineHeight: 1.55 }}>
+                Save this page for your records, forward it to a property manager, or share it with someone who asked who handled the job.
+              </p>
+              <a href={`mailto:?subject=${shareSubject}&body=${shareBody}`}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#4f46e5', color: '#ffffff', textDecoration: 'none', fontWeight: 700, fontSize: 14, padding: '11px 16px', borderRadius: 8 }}>
+                <Send size={14} /> Share summary
+              </a>
+            </div>
+          </div>
+        </div>
 
         {/* Review request */}
         {org?.review_link && (
-          <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 12, padding: '24px 22px', marginBottom: 20, textAlign: 'center' }}>
-            <Star size={28} color="#f59e0b" style={{ margin: '0 auto 10px' }} />
-            <h2 style={{ fontSize: 17, fontWeight: 600, color: '#111827', margin: '0 0 8px' }}>How did we do?</h2>
-            <p style={{ fontSize: 14, color: '#6b7280', margin: '0 0 16px' }}>
-              We'd love to hear your feedback. A quick review means the world to our small team.
+          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '24px 22px', marginBottom: 20, textAlign: 'center' }}>
+            <Star size={30} color="#f59e0b" style={{ margin: '0 auto 10px' }} />
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: '0 0 8px' }}>Happy with the work?</h2>
+            <p style={{ fontSize: 14, color: '#6b7280', margin: '0 0 16px', lineHeight: 1.55 }}>
+              A quick review helps other customers find a team they can trust. It also helps {companyName} know what went well.
             </p>
             <a href={org.review_link} target="_blank" rel="noopener noreferrer"
-              style={{ display: 'inline-block', background: '#f59e0b', color: '#ffffff', textDecoration: 'none', fontWeight: 600, fontSize: 14, padding: '12px 28px', borderRadius: 8 }}>
+              style={{ display: 'inline-block', background: '#f59e0b', color: '#ffffff', textDecoration: 'none', fontWeight: 700, fontSize: 14, padding: '12px 28px', borderRadius: 8 }}>
               Leave a Review
             </a>
           </div>
         )}
 
         {/* Footer */}
-        <p style={{ textAlign: 'center', fontSize: 13, color: '#9ca3af', margin: '32px 0 0' }}>
-          Summary prepared by <strong style={{ color: '#6b7280' }}>{companyName}</strong> · Powered by Cleerd
+        <p style={{ textAlign: 'center', fontSize: 13, color: '#9ca3af', margin: '32px 0 0', lineHeight: 1.6 }}>
+          Summary prepared by <strong style={{ color: '#6b7280' }}>{companyName}</strong> · Powered by Cleerd<br />
+          Private job link with photos, tasks, and notes captured for your records.
         </p>
       </main>
     </div>
