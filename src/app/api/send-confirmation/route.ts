@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { trackServerEvent } from '@/lib/analytics'
 import { NextRequest } from 'next/server'
 
 export async function POST(request: NextRequest) {
@@ -123,6 +124,20 @@ export async function POST(request: NextRequest) {
   }
 
   await supabase.from('jobs').update({ confirmation_sent_at: new Date().toISOString() }).eq('id', jobId)
+
+  await trackServerEvent({
+    eventName: 'first_confirmation_email_sent',
+    eventSource: 'send_confirmation',
+    orgId: job.org_id ?? property.org_id,
+    userId: user.id,
+    dedupeKey: `first_confirmation_email_sent:${job.org_id ?? property.org_id}`,
+    properties: {
+      job_id: jobId,
+      property_id: job.property_id ?? null,
+      has_team: Boolean(job.team_id),
+      has_duration: Boolean(job.duration_minutes),
+    },
+  })
 
   return Response.json({ success: true })
 }

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { trackServerEvent } from '@/lib/analytics'
 import { NextRequest } from 'next/server'
 import { randomUUID } from 'crypto'
 
@@ -122,6 +123,20 @@ export async function POST(request: NextRequest) {
     console.error('Resend error:', err)
     return Response.json({ error: 'Failed to send email' }, { status: 500 })
   }
+
+  await trackServerEvent({
+    eventName: 'first_client_report_sent',
+    eventSource: 'send_report',
+    orgId: (inspection.properties as any).org_id ?? inspection.org_id,
+    userId: user.id,
+    dedupeKey: `first_client_report_sent:${(inspection.properties as any).org_id ?? inspection.org_id}`,
+    properties: {
+      inspection_id: inspectionId,
+      property_id: inspection.property_id ?? null,
+      has_client_note: Boolean(inspection.client_note),
+      report_url_created: Boolean(token),
+    },
+  })
 
   return Response.json({ success: true })
 }

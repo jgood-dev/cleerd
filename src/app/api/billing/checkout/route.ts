@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getOrgForUser } from '@/lib/get-org'
 import { BILLING_PLANS, getBillingPlan, getStripePriceId, type PlanId } from '@/lib/billing'
 import { getStripe } from '@/lib/stripe'
+import { trackServerEvent } from '@/lib/analytics'
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,6 +51,21 @@ export async function POST(request: NextRequest) {
       metadata: { org_id: org.id, plan: plan.id },
       success_url: `${appUrl}/settings/billing?checkout=success`,
       cancel_url: `${appUrl}/settings/billing?checkout=cancelled`,
+    })
+
+    await trackServerEvent({
+      eventName: 'checkout_session_created',
+      eventSource: 'stripe_checkout',
+      orgId: org.id,
+      userId: user.id,
+      dedupeKey: `checkout_session_created:${session.id}`,
+      properties: {
+        plan: plan.id,
+        price: plan.price,
+        price_id: priceId,
+        stripe_customer_id: customerId,
+        checkout_session_id: session.id,
+      },
     })
 
     return Response.json({ url: session.url })

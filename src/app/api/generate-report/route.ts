@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { trackServerEvent } from '@/lib/analytics'
 import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest } from 'next/server'
 
@@ -93,6 +94,22 @@ REPORT:
   const reportMatch = responseText.match(/REPORT:\s*([\s\S]+)/)
   const score = scoreMatch ? Math.min(100, Math.max(0, parseInt(scoreMatch[1]))) : checklistScore
   const report = reportMatch ? reportMatch[1].trim() : responseText
+
+  await trackServerEvent({
+    eventName: 'first_ai_report_generated',
+    eventSource: 'generate_report',
+    orgId: inspection.org_id,
+    userId: user.id,
+    dedupeKey: `first_ai_report_generated:${inspection.org_id}`,
+    properties: {
+      inspection_id: inspectionId,
+      score,
+      checklist_items: totalItems,
+      completed_items: completedItems.length,
+      photo_count: photos?.length ?? 0,
+      photos_analyzed: photoUrls.length,
+    },
+  })
 
   return Response.json({ report, score })
 }

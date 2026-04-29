@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextRequest } from 'next/server'
 import { escapeHtml, formatDuration, renderEmailShell, sendTransactionalEmail } from '@/lib/email'
+import { trackServerEvent } from '@/lib/analytics'
 
 const JOB_LIMITS: Record<string, number | null> = {
   solo: 50,
@@ -114,6 +115,22 @@ export async function POST(request: NextRequest) {
   }).select().single()
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
+
+  await trackServerEvent({
+    eventName: 'first_job_created',
+    eventSource: 'create_job',
+    orgId: org_id,
+    userId: user.id,
+    dedupeKey: `first_job_created:${org_id}`,
+    properties: {
+      job_id: data.id,
+      plan: org.plan ?? null,
+      has_team: Boolean(data.team_id),
+      has_package: Boolean(data.package_id),
+      has_price: data.price != null,
+      recurrence: data.recurrence ?? null,
+    },
+  })
 
   if (data?.team_id) {
     try {

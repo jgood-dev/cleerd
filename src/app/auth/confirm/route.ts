@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import { renderEmailShell, sendTransactionalEmail } from '@/lib/email'
+import { trackServerEvent } from '@/lib/analytics'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -43,6 +44,13 @@ export async function GET(request: NextRequest) {
         .eq('user_id', data.user.id)
 
       if (memberCount && memberCount > 0) {
+        await trackServerEvent({
+          eventName: 'account_confirmed_existing_member',
+          eventSource: 'auth_confirm',
+          userId: data.user.id,
+          dedupeKey: `account_confirmed_existing_member:${data.user.id}`,
+          properties: { email_domain: data.user.email?.split('@')[1] ?? null },
+        })
         return NextResponse.redirect(new URL('/dashboard', request.url))
       }
 
@@ -55,10 +63,18 @@ export async function GET(request: NextRequest) {
         .maybeSingle()
 
       if (pendingInvite) {
-        await admin.from('org_members').update({
+        const { data: acceptedInvite } = await admin.from('org_members').update({
           user_id: data.user.id,
           invite_accepted_at: new Date().toISOString(),
-        }).eq('id', pendingInvite.id)
+        }).eq('id', pendingInvite.id).select('org_id').single()
+        await trackServerEvent({
+          eventName: 'invite_accepted',
+          eventSource: 'auth_confirm',
+          orgId: acceptedInvite?.org_id,
+          userId: data.user.id,
+          dedupeKey: `invite_accepted:${data.user.id}`,
+          properties: { email_domain: data.user.email?.split('@')[1] ?? null },
+        })
         return NextResponse.redirect(new URL('/dashboard', request.url))
       }
 
@@ -70,10 +86,23 @@ export async function GET(request: NextRequest) {
 
       if (count === 0) {
         const businessName = data.user.user_metadata?.business_name ?? 'My Business'
-        await admin.from('organizations').insert({
+        const { data: org } = await admin.from('organizations').insert({
           name: businessName,
           owner_id: data.user.id,
           plan: 'solo',
+        }).select('id, plan').single()
+
+        await trackServerEvent({
+          eventName: 'owner_signup_activated',
+          eventSource: 'auth_confirm',
+          orgId: org?.id,
+          userId: data.user.id,
+          dedupeKey: `owner_signup_activated:${data.user.id}`,
+          properties: {
+            plan: org?.plan ?? 'solo',
+            business_name_provided: Boolean(data.user.user_metadata?.business_name),
+            email_domain: data.user.email?.split('@')[1] ?? null,
+          },
         })
 
         if (data.user.email) {

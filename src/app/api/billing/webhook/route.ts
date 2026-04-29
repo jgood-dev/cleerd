@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { inferPlanFromPriceId } from '@/lib/billing'
 import { getStripe } from '@/lib/stripe'
+import { trackServerEvent } from '@/lib/analytics'
 import Stripe from 'stripe'
 
 function getAdminClient() {
@@ -25,12 +26,15 @@ async function syncSubscription(subscription: Stripe.Subscription) {
 
   if (plan) update.plan = plan
 
-  const { error } = await getAdminClient()
+  const { data: org, error } = await getAdminClient()
     .from('organizations')
     .update(update)
     .eq('stripe_customer_id', customerId)
+    .select('id, owner_id, plan')
+    .maybeSingle()
 
   if (error) throw error
+  return { org, customerId, plan }
 }
 
 export async function POST(request: Request) {
@@ -56,12 +60,42 @@ export async function POST(request: Request) {
       const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id
       if (subscriptionId) {
         const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-        await syncSubscription(subscription)
+        const { org, customerId, plan } = await syncSubscription(subscription)
+        await trackServerEvent({
+          eventName: 'checkout_completed',
+          eventSource: 'stripe_webhook',
+          orgId: org?.id,
+          userId: org?.owner_id,
+          dedupeKey: `checkout_completed:${session.id}`,
+          properties: {
+            plan: plan ?? org?.plan ?? null,
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscription.id,
+            checkout_session_id: session.id,
+            payment_status: session.payment_status,
+            subscription_status: subscription.status,
+          },
+        })
       }
     }
 
     if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.created') {
-      await syncSubscription(event.data.object as Stripe.Subscription)
+      const subscription = event.data.object as Stripe.Subscription
+      const { org, customerId, plan } = await syncSubscription(subscription)
+      await trackServerEvent({
+        eventName: 'subscription_synced',
+        eventSource: 'stripe_webhook',
+        orgId: org?.id,
+        userId: org?.owner_id,
+        dedupeKey: `subscription_synced:${event.id}`,
+        properties: {
+          plan: plan ?? org?.plan ?? null,
+          stripe_customer_id: customerId,
+          stripe_subscription_id: subscription.id,
+          subscription_status: subscription.status,
+          stripe_event_type: event.type,
+        },
+      })
     }
 
     if (event.type === 'customer.subscription.deleted') {
