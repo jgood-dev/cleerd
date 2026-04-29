@@ -17,7 +17,7 @@ export default function PropertiesPage() {
   const [orgId, setOrgId] = useState('')
   const [properties, setProperties] = useState<any[]>([])
   const [newEmail, setNewEmail] = useState('')
-  const [newOwnerName, setNewOwnerName] = useState('')
+  const [newContactName, setNewContactName] = useState('')
   const [newPhone, setNewPhone] = useState('')
   const [newSize, setNewSize] = useState('medium')
   const [newEntryNotes, setNewEntryNotes] = useState('')
@@ -42,28 +42,28 @@ export default function PropertiesPage() {
     setError('')
     const address = addressRef.current?.value?.trim() ?? ''
     if (!address) { setError('Address is required.'); return }
-    if (!newOwnerName.trim()) { setError('Owner name is required.'); return }
+    if (!newContactName.trim()) { setError('Primary contact is required.'); return }
     if (!newPhone.trim()) { setError('Phone number is required.'); return }
     if (!newEmail.trim()) { setError('Client email is required.'); return }
     await supabase.from('properties').insert({
       org_id: orgId,
       name: address,
       address,
-      owner_name: newOwnerName.trim(),
+      owner_name: newContactName.trim(),
       phone: newPhone.trim(),
       client_email: newEmail.trim(),
       size: newSize,
       entry_notes: newEntryNotes.trim() || null,
     })
     if (addressRef.current) addressRef.current.value = ''
-    setNewEmail(''); setNewOwnerName(''); setNewPhone(''); setNewSize('medium'); setNewEntryNotes(''); setAdding(false)
+    setNewEmail(''); setNewContactName(''); setNewPhone(''); setNewSize('medium'); setNewEntryNotes(''); setAdding(false)
     await load()
   }
 
   function deleteProperty(id: string) {
     setDialog({
-      title: 'Delete client?',
-      message: 'This client will be permanently removed. Past inspections will remain.',
+      title: 'Delete client location?',
+      message: 'This client location will be permanently removed. Past jobs and reports will remain.',
       onConfirm: async () => {
         await supabase.from('properties').delete().eq('id', id)
         setDialog(null)
@@ -79,22 +79,22 @@ export default function PropertiesPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-white">Clients</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Manage client locations and their contact details.</p>
+          <h1 className="text-2xl font-bold text-white">Client Locations</h1>
+          <p className="text-sm text-gray-400 mt-0.5">Manage customers, service sites, contacts, and access notes.</p>
         </div>
       </div>
 
       <div className="flex justify-end">
         {!adding && (
           <Button onClick={() => setAdding(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Add Client
+            <Plus className="mr-2 h-4 w-4" /> Add Location
           </Button>
         )}
       </div>
 
       {adding && (
         <Card>
-          <CardHeader><CardTitle>New Client</CardTitle></CardHeader>
+          <CardHeader><CardTitle>New Client Location</CardTitle></CardHeader>
           <CardContent>
             <form onSubmit={addProperty} className="space-y-3">
               <div>
@@ -105,12 +105,12 @@ export default function PropertiesPage() {
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-300">
-                  Owner name <span className="text-red-400">*</span>
+                  Primary contact <span className="text-red-400">*</span>
                 </label>
                 <Input
                   placeholder="Jane Smith"
-                  value={newOwnerName}
-                  onChange={e => setNewOwnerName(e.target.value)}
+                  value={newContactName}
+                  onChange={e => setNewContactName(e.target.value)}
                 />
               </div>
               <div>
@@ -120,20 +120,20 @@ export default function PropertiesPage() {
                 <PhoneInput value={newPhone} onChange={setNewPhone} />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-300">Home size</label>
+                <label className="mb-1.5 block text-sm font-medium text-gray-300">Job or location size</label>
                 <select
                   className="flex h-10 w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={newSize} onChange={e => setNewSize(e.target.value)}
                 >
-                  <option value="small">Small (studio / 1BR, under 800 sq ft)</option>
-                  <option value="medium">Medium (2–3BR, 800–2,000 sq ft)</option>
-                  <option value="large">Large (4BR, 2,000–3,500 sq ft)</option>
-                  <option value="xl">XL (5BR+, over 3,500 sq ft)</option>
+                  <option value="small">Small — quick visit or compact site</option>
+                  <option value="medium">Standard — typical recurring service</option>
+                  <option value="large">Large — extended visit or larger site</option>
+                  <option value="xl">Extra large — multi-zone or complex site</option>
                 </select>
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-300">
-                  Client email <span className="text-red-400">*</span>
+                  Client email for updates <span className="text-red-400">*</span>
                 </label>
                 <Input
                   type="email"
@@ -143,21 +143,21 @@ export default function PropertiesPage() {
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-300">Entry instructions (optional)</label>
+                <label className="mb-1.5 block text-sm font-medium text-gray-300">Access or service notes (optional)</label>
                 <textarea
                   className="flex min-h-[70px] w-full rounded-lg border border-white/20 bg-[#1e2433] text-gray-200 px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g. Key under mat, gate code is 1234, dog is friendly..."
+                  placeholder="e.g. Gate code, lockbox details, preferred entrance, site-specific notes..."
                   value={newEntryNotes}
                   onChange={e => setNewEntryNotes(e.target.value)}
                 />
               </div>
               {error && <p className="text-sm text-red-400">{error}</p>}
               <div className="flex gap-2 pt-1">
-                <Button type="submit">Save Client</Button>
+                <Button type="submit">Save Location</Button>
                 <Button type="button" variant="outline" onClick={() => {
                   setAdding(false)
                   if (addressRef.current) addressRef.current.value = ''
-                  setNewEmail(''); setNewOwnerName(''); setNewPhone(''); setNewEntryNotes(''); setError('')
+                  setNewEmail(''); setNewContactName(''); setNewPhone(''); setNewEntryNotes(''); setError('')
                 }}>
                   Cancel
                 </Button>
@@ -171,8 +171,8 @@ export default function PropertiesPage() {
         <Card>
           <CardContent className="py-12 text-center">
             <MapPin className="mx-auto mb-3 h-10 w-10 text-gray-600" />
-            <p className="text-gray-400">No clients yet.</p>
-            <p className="text-sm text-gray-500 mt-1">Add your first client to get started.</p>
+            <p className="text-gray-400">No client locations yet.</p>
+            <p className="text-sm text-gray-500 mt-1">Add one customer or service site to unlock scheduling and client updates.</p>
           </CardContent>
         </Card>
       ) : (
@@ -188,10 +188,10 @@ export default function PropertiesPage() {
                 </p>
                 <p className="text-sm text-gray-500 mt-0.5">
                   {p.size && <span className="capitalize mr-2">{p.size}</span>}
-                  {p.client_email ?? <span className="text-yellow-400">No email — reports cannot be sent</span>}
+                  {p.client_email ?? <span className="text-yellow-400">No email — client updates cannot be sent</span>}
                 </p>
                 {p.entry_notes && (
-                  <p className="text-xs text-amber-400 mt-1">🔑 {p.entry_notes}</p>
+                  <p className="text-xs text-amber-400 mt-1">Access notes: {p.entry_notes}</p>
                 )}
               </div>
               <Button variant="ghost" size="icon" onClick={() => deleteProperty(p.id)} className="text-gray-500 hover:text-red-400 flex-shrink-0 ml-4">

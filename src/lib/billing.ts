@@ -14,12 +14,12 @@ export type BillingPlan = {
 export const BILLING_PLANS: BillingPlan[] = [
   {
     id: 'solo',
-    name: 'Solo',
+    name: 'Starter',
     price: 39,
     priceEnv: 'STRIPE_PRICE_SOLO',
     teamLimit: 1,
     jobLimit: 50,
-    description: 'For owner-operators who need scheduling, proof, and clean client updates.',
+    description: 'For owner-operators who need scheduling, proof, and polished client updates.',
     features: ['1 team', 'Up to 50 jobs/month', 'Photo documentation', 'AI quality reports', 'Client email delivery', 'Booking confirmations'],
   },
   {

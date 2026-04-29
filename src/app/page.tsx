@@ -303,28 +303,29 @@ export default function LandingPage() {
       <section id="pricing" className="bg-[#161b27] border-y border-white/10 px-6 py-20">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-white mb-3">Simple, transparent pricing</h2>
-          <p className="text-gray-400 mb-12">Start free for 14 days. No credit card required.</p>
+          <p className="text-gray-400 mb-4">Start free for 14 days. No credit card required.</p>
+          <p className="mx-auto mb-12 max-w-2xl text-sm text-gray-500">Most small service teams recover the monthly cost with one saved admin hour, one avoided callback, or one extra review-driven booking.</p>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             {[
               {
-                name: 'Solo', price: 39,
-                desc: 'Perfect for owner-operators',
+                name: 'Starter', price: 39,
+                desc: 'Perfect for owner-operators proving every job',
                 features: ['1 team', 'Up to 50 jobs/month', 'AI quality reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations'],
               },
               {
                 name: 'Growth', price: 69,
-                desc: 'For growing service businesses',
+                desc: 'Best value for recurring service revenue',
                 features: ['Up to 3 teams', 'Unlimited jobs', 'AI quality reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations', 'Appointment reminders'],
                 popular: true,
               },
               {
                 name: 'Pro', price: 99,
-                desc: 'For established operations',
+                desc: 'For established operations that want automation leverage',
                 features: ['Unlimited teams', 'Unlimited jobs', 'AI quality reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations', 'Appointment reminders'],
               },
             ].map(plan => (
               <div key={plan.name} className={`rounded-xl border p-6 text-left flex flex-col ${plan.popular ? 'border-blue-500 bg-blue-500/10 shadow-xl shadow-blue-500/10' : 'border-white/10 bg-[#1e2433]'}`}>
-                {plan.popular && <div className="mb-3 text-xs font-bold uppercase tracking-widest text-blue-400">Most popular</div>}
+                {plan.popular && <div className="mb-3 text-xs font-bold uppercase tracking-widest text-blue-400">Most popular · built for revenue growth</div>}
                 <h3 className="text-lg font-bold text-white mb-1">{plan.name}</h3>
                 <p className="text-sm text-gray-500 mb-4">{plan.desc}</p>
                 <div className="mb-6">

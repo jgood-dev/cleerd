@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { ClipboardCheck, CheckCircle, AlertTriangle, Calendar, RefreshCw } from 'lucide-react'
+import { ClipboardCheck, CheckCircle, AlertTriangle, Calendar, RefreshCw, MapPin, PackageCheck, Users, CreditCard, Settings, ArrowRight } from 'lucide-react'
 import { getOrgForUser } from '@/lib/get-org'
 
 export default async function DashboardPage() {
@@ -44,8 +44,65 @@ export default async function DashboardPage() {
     pendingQuery = pendingQuery.in('job_id', teamJobIds.length ? teamJobIds : [''])
   }
 
-  const [{ data: todayJobs }, { count: totalInspections }, { count: completedThisMonth }, { count: pendingCount }] =
-    await Promise.all([todayJobsQuery, statsQuery, completedQuery, pendingQuery])
+  const [
+    { data: todayJobs },
+    { count: totalInspections },
+    { count: completedThisMonth },
+    { count: pendingCount },
+    { count: clientCount },
+    { count: templateCount },
+    { count: teamCount },
+  ] = await Promise.all([
+    todayJobsQuery,
+    statsQuery,
+    completedQuery,
+    pendingQuery,
+    supabase.from('properties').select('*', { count: 'exact', head: true }).eq('org_id', org?.id),
+    supabase.from('packages').select('*', { count: 'exact', head: true }).eq('org_id', org?.id),
+    supabase.from('teams').select('*', { count: 'exact', head: true }).eq('org_id', org?.id),
+  ])
+
+  const hasBillingSetup = Boolean(org?.stripe_customer_id || org?.subscription_status === 'active' || org?.subscription_status === 'trialing')
+  const hasClientCommunicationSetup = Boolean(org?.review_link || org?.reminder_lead_hours)
+  const setupTasks = [
+    {
+      title: 'Add your first client location',
+      description: 'Store the contact, address, access notes, and email needed to send polished job updates.',
+      href: '/settings/properties',
+      icon: MapPin,
+      done: (clientCount ?? 0) > 0,
+    },
+    {
+      title: 'Create a service template',
+      description: 'Turn repeat work into a reusable checklist so every crew follows the same standard.',
+      href: '/settings/packages',
+      icon: PackageCheck,
+      done: (templateCount ?? 0) > 0,
+    },
+    {
+      title: 'Set up a field team',
+      description: 'Assign jobs to a crew or technician so the schedule is ready for real work.',
+      href: '/teams',
+      icon: Users,
+      done: (teamCount ?? 0) > 0,
+    },
+    {
+      title: 'Configure reminders and reviews',
+      description: 'Automate client reminders and collect more Google reviews from completed jobs.',
+      href: '/settings/business',
+      icon: Settings,
+      done: hasClientCommunicationSetup,
+    },
+    {
+      title: 'Choose your launch plan',
+      description: 'Connect billing early so the business can keep running after the free trial.',
+      href: '/settings/billing',
+      icon: CreditCard,
+      done: hasBillingSetup,
+    },
+  ]
+  const completedSetupTasks = setupTasks.filter(task => task.done).length
+  const setupProgress = Math.round((completedSetupTasks / setupTasks.length) * 100)
 
   return (
     <div className="space-y-6">
@@ -60,6 +117,46 @@ export default async function DashboardPage() {
           </Link>
         )}
       </div>
+
+      {isOwner && completedSetupTasks < setupTasks.length && (
+        <Card className="border-blue-500/20 bg-blue-500/5">
+          <CardHeader>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-blue-400" />
+                  Launch Checklist
+                </CardTitle>
+                <p className="mt-1 text-sm text-gray-400">Finish these setup steps to turn Cleerd into a sellable, repeatable operating system for your service business.</p>
+              </div>
+              <div className="min-w-[130px] rounded-lg border border-white/10 bg-[#161b27] px-3 py-2 text-center">
+                <p className="text-2xl font-bold text-white">{setupProgress}%</p>
+                <p className="text-xs text-gray-500">ready to launch</p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+              {setupTasks.map(({ title, description, href, icon: Icon, done }) => (
+                <Link key={title} href={href} className="group rounded-xl border border-white/10 bg-[#161b27] p-4 transition-colors hover:border-blue-500/40 hover:bg-white/5">
+                  <div className="flex items-start gap-3">
+                    <div className={`rounded-lg p-2 ${done ? 'bg-emerald-500/10' : 'bg-blue-500/10'}`}>
+                      {done ? <CheckCircle className="h-4 w-4 text-emerald-400" /> : <Icon className="h-4 w-4 text-blue-400" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className={`font-medium ${done ? 'text-gray-400 line-through' : 'text-gray-100'}`}>{title}</p>
+                        <ArrowRight className="h-4 w-4 flex-shrink-0 text-gray-600 transition-colors group-hover:text-blue-400" />
+                      </div>
+                      <p className="mt-1 text-sm text-gray-500">{description}</p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[
