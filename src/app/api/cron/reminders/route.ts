@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
       const property = job.properties as any
       if (!property?.client_email) continue
 
-      const companyName = org.name ?? 'Your Cleaning Service'
+      const companyName = org.name ?? 'Your Service Company'
       const address = property.address ?? property.name ?? 'your property'
       const ownerFirst = property.owner_name ? property.owner_name.split(' ')[0] : null
       const greeting = ownerFirst ? `Hi ${ownerFirst},` : 'Hi,'

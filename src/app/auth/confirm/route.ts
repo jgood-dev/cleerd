@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
+import { renderEmailShell, sendTransactionalEmail } from '@/lib/email'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -74,6 +75,39 @@ export async function GET(request: NextRequest) {
           owner_id: data.user.id,
           plan: 'solo',
         })
+
+        if (data.user.email) {
+          try {
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL('/dashboard', request.url).origin
+            const html = renderEmailShell({
+              brandName: 'Cleerd',
+              eyebrow: 'Welcome',
+              heading: `Welcome to Cleerd, ${businessName}`,
+              intro: 'Your account is ready. The fastest path to value is to add one client, schedule one job, and send one confirmation email today.',
+              bodyHtml: `
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;">
+            <tr><td style="padding:18px 20px;">
+              <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:#111827;">Your quick-start checklist</p>
+              <p style="margin:0 0 8px;font-size:14px;color:#374151;line-height:1.6;">1. Add your first client or service location.</p>
+              <p style="margin:0 0 8px;font-size:14px;color:#374151;line-height:1.6;">2. Create one team, even if it is just you.</p>
+              <p style="margin:0;font-size:14px;color:#374151;line-height:1.6;">3. Schedule a job and send the client confirmation.</p>
+            </td></tr>
+          </table>
+          <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">Cleerd is built to replace spreadsheet chaos, text-message scheduling, and manual customer follow-ups for field-service businesses.</p>`,
+              cta: { label: 'Open Cleerd Dashboard', url: `${appUrl}/dashboard` },
+              footerNote: 'You are receiving this because you created a Cleerd account.',
+            })
+            await sendTransactionalEmail({
+              to: data.user.email,
+              subject: 'Welcome to Cleerd — your account is ready',
+              html,
+              text: `Welcome to Cleerd, ${businessName}.\n\nYour account is ready. Start by adding one client, creating one team, and scheduling one job.\n\nOpen your dashboard: ${appUrl}/dashboard`,
+              fromName: 'Cleerd',
+            })
+          } catch (welcomeError) {
+            console.warn('Welcome email failed', welcomeError)
+          }
+        }
       }
 
       return NextResponse.redirect(new URL('/dashboard', request.url))

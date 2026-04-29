@@ -33,7 +33,7 @@ export default function TeamsPage() {
   const [editName, setEditName] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [editPhone, setEditPhone] = useState('')
-  const [editRole, setEditRole] = useState('cleaner')
+  const [editRole, setEditRole] = useState('technician')
 
   useEffect(() => { load() }, [])
 
@@ -93,10 +93,10 @@ export default function TeamsPage() {
       team_id: teamId,
       name: match?.name ?? email,
       email,
-      role: memberRole[teamId] || 'cleaner',
+      role: memberRole[teamId] || 'technician',
     })
     setSelectedMember(prev => ({ ...prev, [teamId]: '' }))
-    setMemberRole(prev => ({ ...prev, [teamId]: 'cleaner' }))
+    setMemberRole(prev => ({ ...prev, [teamId]: 'technician' }))
     setMemberAdding(prev => ({ ...prev, [teamId]: false }))
     await load()
   }
@@ -106,7 +106,7 @@ export default function TeamsPage() {
     setEditName(m.name)
     setEditEmail(m.email ?? '')
     setEditPhone(m.phone ?? '')
-    setEditRole(m.role ?? 'cleaner')
+    setEditRole(m.role ?? 'technician')
   }
 
   async function saveEditMember() {
@@ -225,7 +225,7 @@ export default function TeamsPage() {
                                   className="flex h-10 rounded-lg border border-white/20 bg-[#161b27] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 flex-shrink-0"
                                   value={editRole} onChange={e => setEditRole(e.target.value)}
                                 >
-                                  <option value="cleaner">Cleaner</option>
+                                  <option value="technician">Technician</option>
                                   <option value="supervisor">Supervisor</option>
                                 </select>
                               </div>
@@ -289,10 +289,10 @@ export default function TeamsPage() {
                           </select>
                           <select
                             className="h-10 rounded-lg border border-white/20 bg-[#161b27] text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 flex-shrink-0"
-                            value={memberRole[team.id] ?? 'cleaner'}
+                            value={memberRole[team.id] ?? 'technician'}
                             onChange={e => setMemberRole(prev => ({ ...prev, [team.id]: e.target.value }))}
                           >
-                            <option value="cleaner">Cleaner</option>
+                            <option value="technician">Technician</option>
                             <option value="supervisor">Supervisor</option>
                           </select>
                           <Button

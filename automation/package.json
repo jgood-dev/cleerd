@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "check": "node --check pipeline.js",
+    "dry-run": "DRY_RUN=true node pipeline.js",
+    "start": "node pipeline.js"
   },
   "keywords": [],
   "author": "",

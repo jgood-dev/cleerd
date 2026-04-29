@@ -7,8 +7,10 @@ const APOLLO_KEY = process.env.APOLLO_API_KEY
 const INSTANTLY_KEY = process.env.INSTANTLY_API_KEY
 const CAMPAIGN_ID = process.env.INSTANTLY_CAMPAIGN_ID
 const CONTACTED_FILE = process.env.CONTACTED_FILE || path.join(__dirname, 'contacted.json')
-const LEADS_PER_RUN = Number.parseInt(process.env.LEADS_PER_RUN || '25', 10)
+const requestedLeadsPerRun = Number.parseInt(process.env.LEADS_PER_RUN || '25', 10)
+const LEADS_PER_RUN = Number.isFinite(requestedLeadsPerRun) ? Math.min(Math.max(requestedLeadsPerRun, 1), 50) : 25
 const DRY_RUN = process.env.DRY_RUN !== 'false'
+const LIVE_OUTREACH_APPROVED = process.env.LIVE_OUTREACH_APPROVED === 'true'
 
 const STATE_ROTATION = [
   'Florida', 'Texas', 'California', 'Georgia', 'North Carolina',
@@ -117,6 +119,9 @@ async function enrichLead(apolloId) {
 async function addLeadToInstantly(lead) {
   requireEnv('INSTANTLY_API_KEY', INSTANTLY_KEY)
   requireEnv('INSTANTLY_CAMPAIGN_ID', CAMPAIGN_ID)
+  if (!DRY_RUN && !LIVE_OUTREACH_APPROVED) {
+    throw new Error('LIVE_OUTREACH_APPROVED=true is required before adding leads to Instantly with DRY_RUN=false.')
+  }
 
   const vertical = getCurrentVertical()
   const body = {
@@ -151,6 +156,9 @@ async function run() {
   console.log(`Run time: ${new Date().toISOString()}`)
   console.log(`Mode: ${DRY_RUN ? 'dry-run' : 'live-send'}`)
   console.log(`Lead cap: ${LEADS_PER_RUN}`)
+  if (!DRY_RUN && !LIVE_OUTREACH_APPROVED) {
+    throw new Error('Refusing live outreach: set LIVE_OUTREACH_APPROVED=true only after sender domain, copy, opt-out language, and daily limits are approved.')
+  }
 
   const contacted = loadContacted()
   console.log(`Already contacted: ${contacted.size} leads`)

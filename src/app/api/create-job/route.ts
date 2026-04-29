@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextRequest } from 'next/server'
+import { escapeHtml, formatDuration, renderEmailShell, sendTransactionalEmail } from '@/lib/email'
 
 const JOB_LIMITS: Record<string, number | null> = {
   solo: 50,
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
   // Verify user owns this org
   const { data: org } = await admin
     .from('organizations')
-    .select('id, plan, owner_id')
+    .select('id, plan, owner_id, name')
     .eq('id', org_id)
     .single()
 
@@ -113,5 +114,52 @@ export async function POST(request: NextRequest) {
   }).select().single()
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
+
+  if (data?.team_id) {
+    try {
+      const [{ data: property }, { data: members }] = await Promise.all([
+        data.property_id
+          ? admin.from('properties').select('name, address').eq('id', data.property_id).maybeSingle()
+          : Promise.resolve({ data: null }),
+        admin.from('team_members').select('name, email').eq('team_id', data.team_id),
+      ])
+
+      const recipients = Array.from(new Set((members ?? []).map((member: any) => member.email).filter(Boolean)))
+      if (recipients.length) {
+        const address = (property as any)?.address ?? (property as any)?.name ?? 'the scheduled service location'
+        const scheduledDate = new Date(data.scheduled_at).toLocaleString('en-US', {
+          weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
+        })
+        const durationText = formatDuration(data.duration_minutes)
+        const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin}/schedule`
+        const html = renderEmailShell({
+          brandName: org.name || 'Cleerd',
+          eyebrow: 'New job assigned',
+          heading: 'A new job has been added to your schedule',
+          intro: `You have a job scheduled for ${scheduledDate}.`,
+          bodyHtml: `
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;">
+            <tr><td style="padding:18px 20px;">
+              <p style="margin:0 0 8px;font-size:14px;color:#374151;line-height:1.6;"><strong>Location:</strong> ${escapeHtml(address)}</p>
+              ${durationText ? `<p style="margin:0 0 8px;font-size:14px;color:#374151;line-height:1.6;"><strong>Estimated duration:</strong> ${escapeHtml(durationText)}</p>` : ''}
+              ${data.notes ? `<p style="margin:0;font-size:14px;color:#374151;line-height:1.6;"><strong>Notes:</strong> ${escapeHtml(data.notes)}</p>` : ''}
+            </td></tr>
+          </table>`,
+          cta: { label: 'View Schedule', url: dashboardUrl },
+          footerNote: 'You are receiving this because your team was assigned a Cleerd job.',
+        })
+        await Promise.allSettled(recipients.map((to: string) => sendTransactionalEmail({
+          to,
+          subject: `New job assigned — ${scheduledDate}`,
+          html,
+          text: `A new job has been added to your schedule.\n\nWhen: ${scheduledDate}\nLocation: ${address}${durationText ? `\nEstimated duration: ${durationText}` : ''}${data.notes ? `\nNotes: ${data.notes}` : ''}\n\nView schedule: ${dashboardUrl}`,
+          fromName: org.name || 'Cleerd',
+        })))
+      }
+    } catch (assignmentEmailError) {
+      console.warn('Job assignment email failed', assignmentEmailError)
+    }
+  }
+
   return Response.json({ data })
 }
