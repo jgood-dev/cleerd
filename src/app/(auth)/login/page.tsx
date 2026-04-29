@@ -14,18 +14,27 @@ function getSafeRedirect(value: string | null) {
   return value
 }
 
+function getAuthMessage(value: string | null) {
+  if (value === 'confirmation-failed') {
+    return 'That confirmation link is expired or invalid. Try signing in, or start a new trial if you never finished creating your account.'
+  }
+  return ''
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [redirectTo, setRedirectTo] = useState('/dashboard')
+  const [authMessage, setAuthMessage] = useState('')
   const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
-    const redirect = new URLSearchParams(window.location.search).get('redirect')
-    setRedirectTo(getSafeRedirect(redirect))
+    const params = new URLSearchParams(window.location.search)
+    setRedirectTo(getSafeRedirect(params.get('redirect')))
+    setAuthMessage(getAuthMessage(params.get('message')))
   }, [])
 
   async function handleLogin(e: React.FormEvent) {
@@ -64,6 +73,7 @@ export default function LoginPage() {
               <label className="mb-1.5 block text-sm font-medium text-gray-300">Password</label>
               <Input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
             </div>
+            {authMessage && <p className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-3 text-sm text-yellow-100">{authMessage}</p>}
             {error && <p className="text-sm text-red-400">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Signing in...' : 'Sign in'}
