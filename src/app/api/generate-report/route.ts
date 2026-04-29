@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
   const checklistScore = totalItems > 0 ? Math.round((completedItems.length / totalItems) * 100) : 100
 
   const checklistSummary = checklist?.map(c => `${c.completed ? '✓' : '✗'} ${c.label}`).join('\n') ?? ''
+  const photoSummary = photos?.map(p => `- ${p.photo_type ?? 'photo'} photo${p.caption ? `: ${p.caption}` : ''}`).join('\n') ?? 'No photo metadata.'
 
   // Get signed URLs for photos to pass to Claude vision
   const photoUrls: string[] = []
@@ -65,19 +66,25 @@ ${checklistSummary}
 
 ${photoUrls.length > 0 ? `${photoUrls.length} inspection photo(s) have been provided above.` : 'No photos were provided for this inspection.'}
 
-Write a professional quality control report with:
-1. Overall assessment (1-2 sentences)
-2. What was done well
-3. Areas for improvement (if any)
-4. Specific observations from photos (if provided)
-5. Recommendation for client communication
+Photo metadata:
+${photoSummary}
+
+Write two clearly separated outputs:
+
+1. CLIENT-SAFE SUMMARY SUGGESTION: A short, polished customer-facing note the owner can copy into the client note field. Keep it friendly, specific, and confidence-building. Mention only completed work, helpful observations, and suggested next steps that would be appropriate for a customer to read. Do not mention quality score, internal defects, team performance, missed checklist items, or coaching language.
+
+2. INTERNAL QUALITY COACHING: A concise internal-only quality control report for the business owner. Include the overall assessment, what went well, areas for improvement, specific photo observations, checklist concerns, and suggested follow-up before sending the report. This section may be candid because customers will not see it.
 
 Also provide a numeric quality score from 0-100 based on checklist completion and photo evidence.
 
-Format your response as:
+Format your response exactly as:
 SCORE: [number]
 REPORT:
-[your report text]`,
+CLIENT-SAFE SUMMARY SUGGESTION:
+[your customer-safe note]
+
+INTERNAL QUALITY COACHING:
+[your internal quality report]`,
   })
 
   if (!process.env.ANTHROPIC_API_KEY) return Response.json({ error: 'ANTHROPIC_API_KEY not set in environment' }, { status: 500 })

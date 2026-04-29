@@ -43,3 +43,11 @@ next-env.d.ts
 automation/node_modules/
 automation/.env
 automation/contacted.json
+
+# local destructive utilities and private secret-bearing scratch files
+scripts/*.local.mjs
+scripts/*.local.js
+*.secret
+*.secrets
+
+scripts/reset-supabase.mjs

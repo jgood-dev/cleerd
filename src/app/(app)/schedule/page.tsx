@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { AddressAutocomplete } from '@/components/ui/address-autocomplete'
 import { PhoneInput } from '@/components/ui/phone-input'
-import { Plus, Calendar, Trash2, ClipboardCheck, CheckCircle, Loader2, Pencil } from 'lucide-react'
+import { Plus, Calendar, Trash2, ClipboardCheck, CheckCircle, Loader2, Pencil, RotateCw, ArrowRight, MailCheck } from 'lucide-react'
 import { getOrgForUser } from '@/lib/get-org'
 import { TeamTimeline } from '@/components/ui/team-timeline'
 import Link from 'next/link'
@@ -28,6 +28,10 @@ type Job = {
   properties: { name: string; address: string } | null
   teams: { name: string } | null
   inspections: { id: string }[]
+  custom_items?: string[] | null
+  size?: string | null
+  price?: number | null
+  confirmation_sent_at?: string | null
 }
 
 function nextScheduledAt(from: string, recurrence: string): string {
@@ -63,8 +67,21 @@ function formatDateTime(iso: string, tz: string) {
   return new Date(iso).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: tz })
 }
 
+function toDateTimeLocalInput(date: Date) {
+  const offsetMs = date.getTimezoneOffset() * 60000
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16)
+}
+
+function nextMonthlyFollowUp(from: string) {
+  const next = new Date(from)
+  const now = new Date()
+  next.setMonth(next.getMonth() + 1)
+  while (next <= now) next.setMonth(next.getMonth() + 1)
+  return next
+}
+
 export default function SchedulePage() {
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
   const router = useRouter()
   const searchParams = useSearchParams()
   const [orgId, setOrgId] = useState('')
@@ -121,9 +138,7 @@ export default function SchedulePage() {
   const [propError, setPropError] = useState('')
   const addressRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { load() }, [])
-
-  async function load() {
+  const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     const { org, isOwner: owner } = await getOrgForUser(supabase, user!.id, user!.email)
     if (!org) return
@@ -158,7 +173,12 @@ export default function SchedulePage() {
     if (memberMatch?.team_id) {
       setTeamFilter(memberMatch.team_id)
     }
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void load() }, 0)
+    return () => window.clearTimeout(timer)
+  }, [load])
 
   function handlePackageChange(id: string) {
     setPackageId(id)
@@ -451,6 +471,26 @@ export default function SchedulePage() {
     setStartingJobId(null)
   }
 
+  function bookFollowUp(job: Job) {
+    const followUpDate = nextMonthlyFollowUp(job.scheduled_at)
+    setPropertyId(job.property_id ?? '')
+    setTeamId(job.team_id ?? '')
+    setPackageId(job.package_id ?? '')
+    setJobItems(job.custom_items ?? [])
+    setTemplateId('')
+    setDurationMinutes(job.duration_minutes ? String(job.duration_minutes) : '')
+    setRecurrence(job.recurrence ?? '')
+    setScheduledAt(toDateTimeLocalInput(followUpDate))
+    setNotes(job.notes ?? '')
+    setJobSize(job.size ?? properties.find(p => p.id === job.property_id)?.size ?? 'medium')
+    setPrice(job.price != null ? String(job.price) : '')
+    setAddingProperty(false)
+    setAdding(true)
+    setTimeout(() => {
+      document.getElementById('schedule-new-job')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 50)
+  }
+
   async function markDone(job: Job) {
     await supabase.from('jobs').update({ status: 'done' }).eq('id', job.id)
     await spawnNextJob(job)
@@ -469,6 +509,12 @@ export default function SchedulePage() {
   }
 
   const visibleJobs = teamFilter === 'all' ? jobs : jobs.filter(j => j.team_id === teamFilter)
+  const followUpCandidates = visibleJobs
+    .filter(job => job.status === 'done' && !job.recurrence)
+    .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime())
+  const nextFollowUpCandidate = followUpCandidates[0]
+  const upcomingBookedCount = visibleJobs.filter(job => job.status !== 'done' && new Date(job.scheduled_at) >= new Date()).length
+  const missingConfirmationCount = visibleJobs.filter(job => job.status === 'scheduled' && !job.confirmation_sent_at).length
   const groups = groupJobs(visibleJobs)
   const sections = [
     { label: 'Today', jobs: groups.today, showEmpty: true },
@@ -519,8 +565,39 @@ export default function SchedulePage() {
         </div>
       )}
 
+      {nextFollowUpCandidate && (
+        <Card className="border-blue-500/30 bg-blue-500/10">
+          <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
+            <div className="min-w-0">
+              <div className="mb-2 flex items-center gap-2">
+                <Badge variant="default" className="bg-blue-500/20 text-blue-200">Repeat revenue</Badge>
+                <span className="text-xs text-blue-200/80">{followUpCandidates.length} completed one-time {followUpCandidates.length === 1 ? 'job' : 'jobs'} ready for follow-up</span>
+              </div>
+              <h2 className="text-lg font-semibold text-white">Book the next visit for {nextFollowUpCandidate.properties?.address ?? nextFollowUpCandidate.properties?.name ?? 'this client'}</h2>
+              <p className="mt-1 text-sm text-blue-100/80">
+                Last completed {formatDateTime(nextFollowUpCandidate.scheduled_at, timezone)}. Prefill a follow-up from the same client, team, package, duration, price, and notes so repeat bookings do not wander off into the tall grass.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs text-blue-100/70">
+                <span className="rounded-full bg-white/10 px-2 py-1">{upcomingBookedCount} upcoming booked</span>
+                {missingConfirmationCount > 0 && <span className="rounded-full bg-amber-500/20 px-2 py-1 text-amber-200">{missingConfirmationCount} awaiting confirmation tracking</span>}
+              </div>
+            </div>
+            <Button onClick={() => bookFollowUp(nextFollowUpCandidate)} className="shrink-0">
+              <RotateCw className="mr-2 h-4 w-4" /> Book Follow-up
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {!nextFollowUpCandidate && visibleJobs.some(job => job.status !== 'done') && (
+        <div className="rounded-xl border border-white/10 bg-[#161b27] px-4 py-3 text-sm text-gray-400">
+          <MailCheck className="mr-2 inline h-4 w-4 text-green-400" />
+          Your schedule is focused on active work. Once a one-time job is marked done, Cleerd will surface it here for a quick repeat-booking follow-up.
+        </div>
+      )}
+
       {adding && (
-        <Card>
+        <Card id="schedule-new-job">
           <CardHeader><CardTitle>Schedule New Job</CardTitle></CardHeader>
           <CardContent>
             <form onSubmit={addJob} className="space-y-4">
@@ -809,6 +886,11 @@ export default function SchedulePage() {
                           <p className="text-xs text-blue-400 mt-0.5">↻ {RECURRENCE_LABELS[job.recurrence] ?? job.recurrence}</p>
                         )}
                         {job.notes && <p className="text-xs text-gray-500 mt-0.5 italic">{job.notes}</p>}
+                        {isDone && !job.recurrence && (
+                          <p className="mt-1 flex items-center gap-1 text-xs text-blue-400">
+                            <RotateCw className="h-3 w-3" /> Ready to rebook when the client needs another visit
+                          </p>
+                        )}
                         {(() => {
                           const prop = properties.find(p => p.id === job.property_id)
                           return prop?.entry_notes ? (
@@ -832,6 +914,11 @@ export default function SchedulePage() {
                             {isStarting
                               ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Starting...</>
                               : <><ClipboardCheck className="mr-1.5 h-3.5 w-3.5" /> Start Job</>}
+                          </Button>
+                        )}
+                        {isDone && !job.recurrence && (
+                          <Button size="sm" variant="outline" className="text-xs" onClick={() => bookFollowUp(job)}>
+                            <ArrowRight className="mr-1.5 h-3.5 w-3.5" /> Rebook
                           </Button>
                         )}
                         {!isDone && (

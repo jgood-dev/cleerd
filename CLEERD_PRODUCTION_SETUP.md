@@ -62,6 +62,21 @@ The following values should be configured in Vercel for Production, Preview, and
 
 The app now includes a shared transactional email helper at `src/lib/email.ts`, non-blocking welcome email delivery after owner signup confirmation, non-blocking team assignment emails when jobs are scheduled, business-agnostic technician role wording, and a corrected Resend sender configuration in `.env.example`. These updates reduce manual customer/team communication while preserving the rule that missing email provider credentials must not block account creation or job scheduling.
 
+## Supabase Secret Key Handling
+
+Supabase secret keys and legacy `service_role` keys are **server-only credentials**. Supabase documents that secret keys provide elevated access and bypass Row Level Security, so they must only live in trusted backend environments such as Vercel environment variables, secured jobs, or private local shells.[^supabase-api-keys] They must never be pasted into source files, committed scripts, logs, chats, screenshots, browser code, or public documents.
+
+| Situation | Required action |
+|---|---|
+| A key is needed by the deployed app | Store it in Vercel as `SUPABASE_SERVICE_ROLE_KEY`, then redeploy. |
+| A key is needed by a one-off local script | Export it in the local shell or load it from a private ignored env file. Do not paste it into the script. |
+| A secret key is exposed in GitHub, logs, chat, or screenshots | Create a replacement key in Supabase, update all runtime environments, redeploy/restart consumers, then delete the exposed key. |
+| A developer wants to check for obvious committed secrets | Run `npm run scan:secrets` before preparing a patch or commit. |
+
+The destructive reset helper is now committed only as `scripts/reset-supabase.example.mjs`. If a local reset is ever needed, copy it to the ignored path `scripts/reset-supabase.mjs`, then provide `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `RESET_SUPABASE_CONFIRM=delete-all-data` through the local shell. This keeps the utility available for controlled maintenance while avoiding hardcoded credentials, tracked local reset scripts, and accidental resets.
+
 ## Live Automation Gate
 
 Growth automation must remain in `DRY_RUN=true` until Josh explicitly approves live sending. Before switching it off, confirm sender-domain health, unsubscribe language, target vertical/state, daily limits, campaign copy, and dedupe behavior. In practical terms: let the robot write drafts, but do not let it sprint into strangers’ inboxes wearing a fake mustache.
+
+[^supabase-api-keys]: Supabase, “Understanding API keys,” https://supabase.com/docs/guides/api/api-keys.

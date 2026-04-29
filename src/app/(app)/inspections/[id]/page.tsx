@@ -1,41 +1,73 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Camera, Sparkles, Send, CheckSquare, Square, Loader2, CheckCircle, Trash2, MessageSquare, DollarSign } from 'lucide-react'
+import { Camera, Sparkles, Send, CheckSquare, Square, Loader2, CheckCircle, Trash2, MessageSquare, DollarSign, ExternalLink, Copy } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+
+type InspectionRecord = {
+  id: string
+  job_id?: string | null
+  client_note?: string | null
+  share_token?: string | null
+  ai_report?: string | null
+  overall_score?: number | null
+  status: string
+  created_at: string
+  properties?: { name?: string | null; client_email?: string | null } | null
+  teams?: { name?: string | null } | null
+}
+
+type InspectionPhoto = {
+  id: string
+  storage_path: string
+  photo_type: 'before' | 'after' | 'issue' | string
+}
+
+type ChecklistItem = {
+  id: string
+  label: string
+  completed: boolean
+}
+
+type JobRecord = {
+  id: string
+  paid_at?: string | null
+  invoice_sent_at?: string | null
+  price?: number | null
+  payment_method?: string | null
+}
 
 export default function InspectionDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const router = useRouter()
   const supabase = createClient()
 
   const beforeRef = useRef<HTMLInputElement>(null)
   const afterRef = useRef<HTMLInputElement>(null)
   const issueRef = useRef<HTMLInputElement>(null)
 
-  const [inspection, setInspection] = useState<any>(null)
-  const [photos, setPhotos] = useState<any[]>([])
-  const [checklist, setChecklist] = useState<any[]>([])
+  const [inspection, setInspection] = useState<InspectionRecord | null>(null)
+  const [photos, setPhotos] = useState<InspectionPhoto[]>([])
+  const [checklist, setChecklist] = useState<ChecklistItem[]>([])
   const [generatingReport, setGeneratingReport] = useState(false)
   const [uploadingType, setUploadingType] = useState<string | null>(null)
   const [reportSent, setReportSent] = useState(false)
+  const [sendingReport, setSendingReport] = useState(false)
+  const [copyingSummary, setCopyingSummary] = useState(false)
   const [clientNote, setClientNote] = useState('')
   const [savingNote, setSavingNote] = useState(false)
   const [noteSaved, setNoteSaved] = useState(false)
-  const [job, setJob] = useState<any>(null)
+  const [job, setJob] = useState<JobRecord | null>(null)
   const [markingPaid, setMarkingPaid] = useState(false)
   const [paymentAmount, setPaymentAmount] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('')
   const [dialog, setDialog] = useState<{ title: string; message: string; confirmLabel?: string; destructive?: boolean; onConfirm: () => void } | null>(null)
 
-  useEffect(() => { load() }, [id])
-
-  async function load() {
+  const load = useCallback(async () => {
     const [{ data: insp }, { data: ph }, { data: cl }] = await Promise.all([
       supabase.from('inspections').select('*, properties(name, client_email), teams(name)').eq('id', id).single(),
       supabase.from('inspection_photos').select('*').eq('inspection_id', id).order('created_at'),
@@ -53,9 +85,11 @@ export default function InspectionDetailPage() {
         setPaymentMethod(j.payment_method ?? '')
       }
     }
-  }
+  }, [id, supabase])
 
-  async function toggleChecklist(item: any) {
+  useEffect(() => { load() }, [load])
+
+  async function toggleChecklist(item: ChecklistItem) {
     await supabase.from('checklist_items').update({ completed: !item.completed }).eq('id', item.id)
     setChecklist(prev => prev.map(c => c.id === item.id ? { ...c, completed: !c.completed } : c))
   }
@@ -64,7 +98,7 @@ export default function InspectionDetailPage() {
     const file = e.target.files?.[0]
     if (!file) return
     setUploadingType(photoType)
-    const path = `${id}/${Date.now()}-${file.name}`
+    const path = `${id}/${crypto.randomUUID()}-${file.name}`
     const { error } = await supabase.storage.from('inspection-photos').upload(path, file)
     if (!error) {
       await supabase.from('inspection_photos').insert({ inspection_id: id, storage_path: path, photo_type: photoType })
@@ -123,7 +157,7 @@ export default function InspectionDetailPage() {
         }).eq('id', id)
         await load()
       }
-    } catch (err) {
+    } catch {
       alert('Report generation failed. Please try again.')
     } finally {
       setGeneratingReport(false)
@@ -136,6 +170,34 @@ export default function InspectionDetailPage() {
     setSavingNote(false)
     setNoteSaved(true)
     setTimeout(() => setNoteSaved(false), 2000)
+  }
+
+  async function copySuggestedSummary() {
+    if (!customerSummarySuggestion) return
+    setCopyingSummary(true)
+    const nextNote = clientNote
+      ? `${clientNote.trim()}\n\n${customerSummarySuggestion}`
+      : customerSummarySuggestion
+    setClientNote(nextNote)
+    await supabase.from('inspections').update({ client_note: nextNote || null }).eq('id', id)
+    setCopyingSummary(false)
+    setNoteSaved(true)
+    setTimeout(() => setNoteSaved(false), 2000)
+  }
+
+  async function previewReport() {
+    await supabase.from('inspections').update({ client_note: clientNote || null }).eq('id', id)
+    let token = inspection?.share_token
+    if (!token) {
+      token = crypto.randomUUID()
+      const { error } = await supabase.from('inspections').update({ share_token: token }).eq('id', id)
+      if (error) {
+        alert('Could not create preview link. Please try again.')
+        return
+      }
+      setInspection((prev) => prev ? { ...prev, share_token: token } : prev)
+    }
+    window.open(`/report/${token}`, '_blank', 'noopener,noreferrer')
   }
 
   async function markAsPaid() {
@@ -159,16 +221,19 @@ export default function InspectionDetailPage() {
   }
 
   async function sendReport() {
-    const clientEmail = (inspection?.properties as any)?.client_email
+    const clientEmail = inspection?.properties?.client_email
     if (!clientEmail) {
       alert('No client email on this client. Add one in Settings → Clients.')
       return
     }
+    setSendingReport(true)
+    await supabase.from('inspections').update({ client_note: clientNote || null }).eq('id', id)
     const res = await fetch('/api/send-report', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ inspectionId: id }),
     })
+    setSendingReport(false)
     if (res.ok) {
       await supabase.from('inspections').update({ status: 'report_sent' }).eq('id', id)
       setReportSent(true)
@@ -190,6 +255,8 @@ export default function InspectionDetailPage() {
   const afterPhotos = photos.filter(p => p.photo_type === 'after')
   const issuePhotos = photos.filter(p => p.photo_type === 'issue')
   const isInProgress = inspection.status === 'in_progress'
+  const customerSummarySuggestion = extractCustomerSummary(inspection.ai_report)
+  const reportScore = inspection.overall_score ?? 0
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -317,7 +384,22 @@ export default function InspectionDetailPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-gray-400">This is what gets sent to the client — checklist, after photos, issues noted, and your personal note. The AI quality report stays internal.</p>
+          <p className="text-sm text-gray-400">This is what gets sent to the client — checklist, after photos, issues noted, and your personal note. Internal notes and the AI quality coaching are not shown to customers.</p>
+          {customerSummarySuggestion && (
+            <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-blue-200">AI-suggested client-safe summary</p>
+                  <p className="mt-1 text-sm text-blue-100/80">Use this as a starting point for the customer note. It avoids internal coaching and keeps the vibe professional instead of “robot wearing a polo.”</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={copySuggestedSummary} disabled={copyingSummary} className="border-blue-400/30 text-blue-200 hover:bg-blue-500/10">
+                  {copyingSummary ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Copy className="mr-2 h-3.5 w-3.5" />}
+                  Copy to note
+                </Button>
+              </div>
+              <p className="mt-3 whitespace-pre-wrap text-sm text-gray-200">{customerSummarySuggestion}</p>
+            </div>
+          )}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-300">Note to client <span className="text-gray-500 font-normal">(optional)</span></label>
             <textarea
@@ -333,9 +415,13 @@ export default function InspectionDetailPage() {
               {savingNote ? 'Saving…' : 'Save note'}
             </Button>
             {noteSaved && <span className="text-sm text-green-400 flex items-center gap-1"><CheckCircle className="h-3.5 w-3.5" /> Saved</span>}
-            <Button onClick={sendReport} disabled={reportSent}>
-              <Send className="mr-2 h-4 w-4" />
-              {reportSent ? 'Sent' : inspection.status === 'report_sent' ? 'Resend to Client' : 'Send to Client'}
+            <Button variant="outline" size="sm" onClick={previewReport}>
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Preview Report
+            </Button>
+            <Button onClick={sendReport} disabled={sendingReport || reportSent}>
+              {sendingReport ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+              {sendingReport ? 'Sending…' : reportSent ? 'Sent' : inspection.status === 'report_sent' ? 'Resend to Client' : 'Send to Client'}
             </Button>
             {reportSent && <span className="text-sm text-green-400 flex items-center gap-1.5"><CheckCircle className="h-4 w-4" /> Sent successfully</span>}
           </div>
@@ -420,8 +506,8 @@ export default function InspectionDetailPage() {
             <div>
               <div className="flex items-center gap-3 mb-4">
                 <span className="text-lg font-bold text-gray-100">Score:</span>
-                <span className={`text-2xl font-bold ${inspection.overall_score >= 80 ? 'text-green-400' : inspection.overall_score >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>
-                  {inspection.overall_score}%
+                <span className={`text-2xl font-bold ${reportScore >= 80 ? 'text-green-400' : reportScore >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>
+                  {reportScore}%
                 </span>
               </div>
               <div className="rounded-lg bg-white/5 border border-white/10 p-4 text-sm text-gray-300 whitespace-pre-wrap">
@@ -466,12 +552,20 @@ export default function InspectionDetailPage() {
   )
 }
 
-function PhotoThumb({ photo, supabase, onDelete }: { photo: any, supabase: any, onDelete: (photo: any) => void }) {
+function extractCustomerSummary(report?: string | null) {
+  if (!report) return ''
+  const match = report.match(/CLIENT-SAFE SUMMARY SUGGESTION:\s*([\s\S]*?)(?:\n\s*INTERNAL QUALITY COACHING:|$)/i)
+  return match?.[1]?.trim() ?? ''
+}
+
+function PhotoThumb({ photo, supabase, onDelete }: { photo: InspectionPhoto, supabase: ReturnType<typeof createClient>, onDelete: (photo: InspectionPhoto) => void }) {
   const [url, setUrl] = useState('')
   useEffect(() => {
+    let mounted = true
     supabase.storage.from('inspection-photos').createSignedUrl(photo.storage_path, 3600)
-      .then(({ data }: any) => { if (data?.signedUrl) setUrl(data.signedUrl) })
-  }, [photo.storage_path])
+      .then(({ data }) => { if (mounted && data?.signedUrl) setUrl(data.signedUrl) })
+    return () => { mounted = false }
+  }, [photo.storage_path, supabase.storage])
 
   return (
     <div className="relative overflow-hidden rounded-lg border border-white/10 h-20 group">

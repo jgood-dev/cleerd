@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { ClipboardCheck, CheckCircle, AlertTriangle, Calendar, RefreshCw, MapPin, PackageCheck, Users, CreditCard, Settings, ArrowRight } from 'lucide-react'
+import { ClipboardCheck, CheckCircle, AlertTriangle, Calendar, RefreshCw, MapPin, PackageCheck, Users, CreditCard, Settings, ArrowRight, Send, Trophy } from 'lucide-react'
 import { getOrgForUser } from '@/lib/get-org'
 
 export default async function DashboardPage() {
@@ -37,11 +37,19 @@ export default async function DashboardPage() {
     .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
   let pendingQuery = supabase.from('inspections').select('*', { count: 'exact', head: true })
     .eq('org_id', org?.id).eq('status', 'in_progress')
+  let scheduledJobQuery = supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('org_id', org?.id)
+  let completedAnyQuery = supabase.from('inspections').select('*', { count: 'exact', head: true })
+    .eq('org_id', org?.id).in('status', ['completed', 'report_sent'])
+  let sentReportQuery = supabase.from('inspections').select('*', { count: 'exact', head: true })
+    .eq('org_id', org?.id).eq('status', 'report_sent')
 
   if (teamJobIds) {
     statsQuery = statsQuery.in('job_id', teamJobIds.length ? teamJobIds : [''])
     completedQuery = completedQuery.in('job_id', teamJobIds.length ? teamJobIds : [''])
     pendingQuery = pendingQuery.in('job_id', teamJobIds.length ? teamJobIds : [''])
+    scheduledJobQuery = scheduledJobQuery.in('id', teamJobIds.length ? teamJobIds : [''])
+    completedAnyQuery = completedAnyQuery.in('job_id', teamJobIds.length ? teamJobIds : [''])
+    sentReportQuery = sentReportQuery.in('job_id', teamJobIds.length ? teamJobIds : [''])
   }
 
   const [
@@ -52,6 +60,9 @@ export default async function DashboardPage() {
     { count: clientCount },
     { count: templateCount },
     { count: teamCount },
+    { count: scheduledJobCount },
+    { count: completedAnyCount },
+    { count: sentReportCount },
   ] = await Promise.all([
     todayJobsQuery,
     statsQuery,
@@ -60,6 +71,9 @@ export default async function DashboardPage() {
     supabase.from('properties').select('*', { count: 'exact', head: true }).eq('org_id', org?.id),
     supabase.from('packages').select('*', { count: 'exact', head: true }).eq('org_id', org?.id),
     supabase.from('teams').select('*', { count: 'exact', head: true }).eq('org_id', org?.id),
+    scheduledJobQuery,
+    completedAnyQuery,
+    sentReportQuery,
   ])
 
   const hasBillingSetup = Boolean(org?.stripe_customer_id || org?.subscription_status === 'active' || org?.subscription_status === 'trialing')
@@ -104,6 +118,53 @@ export default async function DashboardPage() {
   const completedSetupTasks = setupTasks.filter(task => task.done).length
   const setupProgress = Math.round((completedSetupTasks / setupTasks.length) * 100)
 
+  const firstReportTasks = [
+    {
+      title: 'Add a client location',
+      description: 'Capture the address and client email so Cleerd can send confirmations and polished reports.',
+      href: '/settings/properties',
+      cta: 'Add client',
+      icon: MapPin,
+      done: (clientCount ?? 0) > 0,
+    },
+    {
+      title: 'Create a reusable service template',
+      description: 'Save the checklist once, then reuse it for every repeat job instead of freelancing in the field.',
+      href: '/settings/packages',
+      cta: 'Create template',
+      icon: PackageCheck,
+      done: (templateCount ?? 0) > 0,
+    },
+    {
+      title: 'Schedule the first real job',
+      description: 'Put work on the calendar, assign a team, and start building the operational habit.',
+      href: '/schedule?new=1',
+      cta: 'Schedule job',
+      icon: Calendar,
+      done: (scheduledJobCount ?? 0) > 0,
+    },
+    {
+      title: 'Complete an inspection',
+      description: 'The first completed checklist creates the proof a client actually sees after the work is done.',
+      href: (pendingCount ?? 0) > 0 ? '/inspections?filter=in_progress' : '/inspections',
+      cta: 'Open inspections',
+      icon: ClipboardCheck,
+      done: (completedAnyCount ?? 0) > 0,
+    },
+    {
+      title: 'Send the first client report',
+      description: 'This is the money moment: a branded recap with proof photos, next steps, and review/rebooking prompts.',
+      href: (completedAnyCount ?? 0) > 0 ? '/reports' : '/inspections',
+      cta: 'Send report',
+      icon: Send,
+      done: (sentReportCount ?? 0) > 0,
+    },
+  ]
+  const completedFirstReportTasks = firstReportTasks.filter(task => task.done).length
+  const firstReportProgress = Math.round((completedFirstReportTasks / firstReportTasks.length) * 100)
+  const nextFirstReportTask = firstReportTasks.find(task => !task.done)
+  const NextFirstReportIcon = nextFirstReportTask?.icon
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -117,6 +178,60 @@ export default async function DashboardPage() {
           </Link>
         )}
       </div>
+
+      {isOwner && (sentReportCount ?? 0) === 0 && (
+        <Card className="overflow-hidden border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-blue-500/5 to-transparent">
+          <CardHeader>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <Badge variant="success" className="mb-3">First value path</Badge>
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <Trophy className="h-5 w-5 text-emerald-400" />
+                  Send your first client report
+                </CardTitle>
+                <p className="mt-2 max-w-2xl text-sm text-gray-400">
+                  Cleerd becomes sticky when a customer receives a clean completion recap with proof photos, notes, and an easy path to rebook or leave a review. This checklist keeps the next revenue-producing action front and center.
+                </p>
+              </div>
+              <div className="min-w-[160px] rounded-xl border border-white/10 bg-[#111722]/80 px-4 py-3 text-center">
+                <p className="text-3xl font-bold text-white">{firstReportProgress}%</p>
+                <p className="text-xs text-gray-500">first report ready</p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {nextFirstReportTask && (
+              <Link href={nextFirstReportTask.href} className="group flex flex-col gap-3 rounded-xl border border-emerald-500/20 bg-[#111722]/80 p-4 transition-colors hover:border-emerald-400/40 hover:bg-white/5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-lg bg-emerald-500/10 p-2">
+                    {NextFirstReportIcon && <NextFirstReportIcon className="h-4 w-4 text-emerald-400" />}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-wide text-emerald-300">Next best action</p>
+                    <p className="mt-1 font-medium text-white">{nextFirstReportTask.title}</p>
+                    <p className="mt-1 text-sm text-gray-400">{nextFirstReportTask.description}</p>
+                  </div>
+                </div>
+                <Button size="sm" className="w-full sm:w-auto">
+                  {nextFirstReportTask.cta}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            )}
+
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
+              {firstReportTasks.map(({ title, href, icon: Icon, done }) => (
+                <Link key={title} href={href} className={`rounded-xl border p-4 transition-colors hover:bg-white/5 ${done ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-white/10 bg-[#161b27]'}`}>
+                  <div className="flex items-center gap-2">
+                    {done ? <CheckCircle className="h-4 w-4 text-emerald-400" /> : <Icon className="h-4 w-4 text-gray-500" />}
+                    <p className={`text-sm font-medium ${done ? 'text-emerald-200' : 'text-gray-300'}`}>{title}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {isOwner && completedSetupTasks < setupTasks.length && (
         <Card className="border-blue-500/20 bg-blue-500/5">
