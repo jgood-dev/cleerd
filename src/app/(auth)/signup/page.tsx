@@ -1,22 +1,40 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { CheckSquare, Mail } from 'lucide-react'
+import { CheckCircle, CheckSquare, Mail } from 'lucide-react'
+
+type PlanId = 'solo' | 'growth' | 'pro'
+
+const planOptions: Record<PlanId, { name: string; price: number; note: string }> = {
+  solo: { name: 'Starter', price: 39, note: 'Best for owner-operators and first workflows.' },
+  growth: { name: 'Growth', price: 69, note: 'Best value for recurring clients and small teams.' },
+  pro: { name: 'Pro', price: 99, note: 'Best for established teams that want more automation.' },
+}
+
+function normalizePlan(value: string | null): PlanId {
+  if (value === 'growth' || value === 'pro' || value === 'solo') return value
+  return 'solo'
+}
 
 export default function SignupPage() {
   const [businessName, setBusinessName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [selectedPlan, setSelectedPlan] = useState<PlanId>('solo')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [confirmPending, setConfirmPending] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+
+  useEffect(() => {
+    setSelectedPlan(normalizePlan(new URLSearchParams(window.location.search).get('plan')))
+  }, [])
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
@@ -27,7 +45,7 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        data: { business_name: businessName },
+        data: { business_name: businessName, selected_plan: selectedPlan },
         emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/confirm`,
       },
     })
@@ -43,7 +61,7 @@ export default function SignupPage() {
       await supabase.from('organizations').insert({
         name: businessName,
         owner_id: data.user!.id,
-        plan: 'solo',
+        plan: selectedPlan,
       })
       router.push('/dashboard')
     } else if (data.user) {
@@ -52,6 +70,8 @@ export default function SignupPage() {
       setLoading(false)
     }
   }
+
+  const plan = planOptions[selectedPlan]
 
   if (confirmPending) {
     return (
@@ -65,7 +85,7 @@ export default function SignupPage() {
           <h1 className="text-2xl font-bold text-white">Check your email</h1>
           <p className="mt-3 text-gray-400">
             We sent a confirmation link to <span className="text-white">{email}</span>.
-            Click it to activate your account and get started.
+            Click it to activate your account and start your {plan.name} trial.
           </p>
           <p className="mt-6 text-sm text-gray-500">
             Already confirmed?{' '}
@@ -77,7 +97,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0f1117]">
+    <div className="flex min-h-screen items-center justify-center bg-[#0f1117] py-10">
       <div className="w-full max-w-md px-4">
         <div className="mb-8 text-center">
           <div className="mb-4 flex justify-center">
@@ -90,6 +110,18 @@ export default function SignupPage() {
           <p className="mt-1 text-gray-400">14 days free, no credit card required</p>
         </div>
         <div className="rounded-xl border border-white/10 bg-[#161b27] p-8 shadow-xl">
+          <div className="mb-5 rounded-lg border border-blue-500/20 bg-blue-500/10 p-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-blue-300">Selected trial plan</p>
+            <div className="mt-2 flex items-start justify-between gap-4">
+              <div>
+                <p className="font-semibold text-white">{plan.name} · ${plan.price}/month after trial</p>
+                <p className="mt-1 text-sm text-gray-400">{plan.note}</p>
+              </div>
+              <CheckCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-300" />
+            </div>
+            <Link href="/#pricing" className="mt-3 inline-block text-xs font-medium text-blue-300 hover:text-blue-200">Change plan</Link>
+          </div>
+
           <form onSubmit={handleSignup} className="space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-300">Business name</label>
@@ -105,7 +137,7 @@ export default function SignupPage() {
             </div>
             {error && <p className="text-sm text-red-400">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating account...' : 'Start free trial'}
+              {loading ? 'Creating account...' : `Start free on ${plan.name}`}
             </Button>
           </form>
           <p className="mt-4 text-center text-sm text-gray-500">

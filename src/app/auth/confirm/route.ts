@@ -86,10 +86,13 @@ export async function GET(request: NextRequest) {
 
       if (count === 0) {
         const businessName = data.user.user_metadata?.business_name ?? 'My Business'
+        const selectedPlan = ['solo', 'growth', 'pro'].includes(data.user.user_metadata?.selected_plan)
+          ? data.user.user_metadata.selected_plan
+          : 'solo'
         const { data: org } = await admin.from('organizations').insert({
           name: businessName,
           owner_id: data.user.id,
-          plan: 'solo',
+          plan: selectedPlan,
         }).select('id, plan').single()
 
         await trackServerEvent({
@@ -112,7 +115,7 @@ export async function GET(request: NextRequest) {
               brandName: 'Cleerd',
               eyebrow: 'Welcome',
               heading: `Welcome to Cleerd, ${businessName}`,
-              intro: 'Your account is ready. The fastest path to value is to add one client, schedule one job, and send one confirmation email today.',
+              intro: `Your ${selectedPlan === 'solo' ? 'Starter' : selectedPlan === 'growth' ? 'Growth' : 'Pro'} trial is ready. The fastest path to value is to add one client, schedule one job, and send one confirmation email today.`,
               bodyHtml: `
           <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;">
             <tr><td style="padding:18px 20px;">
@@ -130,7 +133,7 @@ export async function GET(request: NextRequest) {
               to: data.user.email,
               subject: 'Welcome to Cleerd — your account is ready',
               html,
-              text: `Welcome to Cleerd, ${businessName}.\n\nYour account is ready. Start by adding one client, creating one team, and scheduling one job.\n\nOpen your dashboard: ${appUrl}/dashboard`,
+              text: `Welcome to Cleerd, ${businessName}.\n\nYour ${selectedPlan === 'solo' ? 'Starter' : selectedPlan === 'growth' ? 'Growth' : 'Pro'} trial is ready. Start by adding one client, creating one team, and scheduling one job.\n\nOpen your dashboard: ${appUrl}/dashboard`,
               fromName: 'Cleerd',
             })
           } catch (welcomeError) {

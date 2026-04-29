@@ -3,8 +3,11 @@ import { Button } from '@/components/ui/button'
 import {
   CheckSquare, Camera, Sparkles, Send, CheckCircle, CalendarDays,
   Users, ClipboardList, Bell, CreditCard, ArrowRight, Zap,
-  Circle,
+  ShieldCheck, TrendingUp, Clock, MessageSquare, Star, DollarSign,
+  MapPin, FileText, Circle,
 } from 'lucide-react'
+
+const signupHref = '/signup'
 
 function AppMockup() {
   const checklistItems = [
@@ -26,7 +29,6 @@ function AppMockup() {
 
   return (
     <div className="w-full max-w-4xl mx-auto">
-      {/* Browser chrome */}
       <div className="rounded-xl overflow-hidden border border-white/10 shadow-2xl shadow-black/50">
         <div className="bg-[#1e2433] border-b border-white/10 px-4 py-3 flex items-center gap-3">
           <div className="flex gap-1.5">
@@ -39,9 +41,7 @@ function AppMockup() {
           </div>
         </div>
 
-        {/* App shell */}
         <div className="flex bg-[#0f1117] min-h-[480px]">
-          {/* Sidebar */}
           <div className="hidden sm:flex w-44 flex-col bg-[#161b27] border-r border-white/10 p-3 gap-1 flex-shrink-0">
             <div className="flex items-center gap-2 px-2 py-3 mb-2">
               <CheckSquare className="h-4 w-4 text-blue-400" />
@@ -60,16 +60,14 @@ function AppMockup() {
             ))}
           </div>
 
-          {/* Main content */}
           <div className="flex-1 p-5 overflow-hidden">
-            {/* Header */}
             <div className="flex items-start justify-between mb-5">
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-base font-bold text-white">247 Maple Drive — Unit 3B</span>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 font-medium">Completed</span>
                 </div>
-                <p className="text-xs text-gray-500">Morning Crew · Mon Apr 21, 2025 · 9:00 AM · 2h 30m</p>
+                <p className="text-xs text-gray-500">Morning Crew · Mon Apr 21 · 9:00 AM · 2h 30m</p>
               </div>
               <div className="flex-shrink-0 text-right">
                 <div className="text-2xl font-bold text-emerald-400">94%</div>
@@ -78,7 +76,6 @@ function AppMockup() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Checklist */}
               <div className="rounded-lg bg-[#161b27] border border-white/10 p-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Checklist</p>
                 <div className="space-y-2">
@@ -94,9 +91,8 @@ function AppMockup() {
               </div>
 
               <div className="space-y-4">
-                {/* Photos */}
                 <div className="rounded-lg bg-[#161b27] border border-white/10 p-4">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Photos</p>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Proof photos</p>
                   <div className="grid grid-cols-4 gap-2">
                     {photos.map(({ label, color }, i) => (
                       <div key={i} className={`aspect-square rounded-md bg-gradient-to-br ${color} flex flex-col items-center justify-center gap-1`}>
@@ -107,14 +103,13 @@ function AppMockup() {
                   </div>
                 </div>
 
-                {/* AI Report excerpt */}
                 <div className="rounded-lg bg-[#161b27] border border-white/10 p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <Sparkles className="h-3.5 w-3.5 text-blue-400" />
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">AI Quality Report</p>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">AI client summary</p>
                   </div>
                   <p className="text-xs text-gray-400 leading-relaxed line-clamp-4">
-                    Overall quality score: <span className="text-emerald-400 font-semibold">94/100</span>. All primary tasks completed to standard. Minor gap noted: final quality check item not marked complete. Before/after photos confirm work completed across all areas. Team performance rated excellent...
+                    Overall quality score: <span className="text-emerald-400 font-semibold">94/100</span>. All primary tasks completed to standard. Before/after photos confirm work completed across all areas. Client-ready summary prepared for delivery...
                   </p>
                 </div>
               </div>
@@ -127,10 +122,54 @@ function AppMockup() {
 }
 
 export default function LandingPage() {
+  const revenueStats = [
+    { value: '14 days', label: 'free trial', sub: 'No credit card required' },
+    { value: '$39/mo', label: 'starter plan', sub: 'Built for owner-operators' },
+    { value: '10 min', label: 'setup target', sub: 'Add client, team, template, job' },
+  ]
+
+  const painKillers = [
+    {
+      icon: Clock,
+      title: 'Stop donating nights to admin work',
+      desc: 'Replace spreadsheet schedules, manual reminders, and copy-pasted client updates with one simple workflow.',
+    },
+    {
+      icon: ShieldCheck,
+      title: 'Prove the job was done right',
+      desc: 'Every visit gets a checklist, timestamped job record, before/after photos, and a polished completion summary.',
+    },
+    {
+      icon: TrendingUp,
+      title: 'Look premium before you hire ops staff',
+      desc: 'Give clients the professional communication they expect from bigger competitors without buying enterprise software.',
+    },
+  ]
+
+  const plans = [
+    {
+      id: 'solo', name: 'Starter', price: 39,
+      desc: 'Owner-operators proving every job',
+      bestFor: 'Solo crews and side-hustle service businesses',
+      features: ['1 team', 'Up to 50 jobs/month', 'AI quality reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations'],
+    },
+    {
+      id: 'growth', name: 'Growth', price: 69,
+      desc: 'Best value for recurring service revenue',
+      bestFor: 'Most small service teams with recurring clients',
+      features: ['Up to 3 teams', 'Unlimited jobs', 'AI quality reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations', 'Appointment reminders'],
+      popular: true,
+    },
+    {
+      id: 'pro', name: 'Pro', price: 99,
+      desc: 'Automation leverage for established operators',
+      bestFor: 'Growing businesses with multiple crews',
+      features: ['Unlimited teams', 'Unlimited jobs', 'AI quality reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations', 'Appointment reminders', 'Priority support'],
+    },
+  ]
+
   return (
     <div className="min-h-screen bg-[#0f1117] text-gray-100">
-
-      {/* Nav */}
       <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#0f1117]/90 backdrop-blur-sm">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2">
@@ -138,63 +177,65 @@ export default function LandingPage() {
             <span className="text-lg font-bold text-white">Cleerd</span>
           </div>
           <div className="flex items-center gap-4">
+            <Link href="#how-it-works" className="hidden md:block text-sm text-gray-400 hover:text-white transition-colors">How it works</Link>
             <Link href="#pricing" className="hidden sm:block text-sm text-gray-400 hover:text-white transition-colors">Pricing</Link>
             <Link href="/login" className="text-sm text-gray-400 hover:text-white transition-colors">Sign in</Link>
-            <Link href="/signup">
+            <Link href={signupHref}>
               <Button size="sm" className="bg-blue-500 hover:bg-blue-600 text-white">Start Free Trial</Button>
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="px-6 py-24 text-center max-w-4xl mx-auto">
+      <section className="px-6 pb-16 pt-20 text-center max-w-5xl mx-auto">
         <div className="inline-flex items-center gap-2 rounded-full bg-blue-500/10 border border-blue-500/20 px-4 py-1.5 text-sm text-blue-400 mb-8">
-          <Zap className="h-3.5 w-3.5" /> Built for field service businesses
+          <Zap className="h-3.5 w-3.5" /> Field-service software for teams that would rather make money than babysit spreadsheets
         </div>
         <h1 className="text-4xl sm:text-6xl font-bold text-white leading-tight mb-6 tracking-tight">
-          Schedule jobs. Document work.<br className="hidden sm:block" />
-          <span className="text-blue-400">Impress your clients.</span>
+          Turn every field job into<br className="hidden sm:block" />
+          <span className="text-blue-400">proof, trust, and repeat revenue.</span>
         </h1>
-        <p className="text-lg sm:text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-          Cleerd gives your field service business a complete operations platform — scheduling, team management, photo documentation, AI quality reports, and automated client communication.
+        <p className="text-lg sm:text-xl text-gray-400 mb-10 max-w-3xl mx-auto leading-relaxed">
+          Cleerd helps small field-service businesses schedule jobs, guide crews, capture photo proof, generate AI quality reports, and send client-ready updates without hiring an operations manager.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link href="/signup">
+          <Link href={signupHref}>
             <Button size="lg" className="bg-blue-500 hover:bg-blue-600 text-white gap-2">
-              Start 14-day free trial <ArrowRight className="h-4 w-4" />
+              Start your 14-day free trial <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
           <Link href="#pricing">
-            <Button size="lg" variant="outline" className="border-white/20 text-gray-300 hover:bg-white/10 hover:text-white">See pricing</Button>
+            <Button size="lg" variant="outline" className="border-white/20 text-gray-300 hover:bg-white/10 hover:text-white">Compare plans</Button>
           </Link>
         </div>
-        <p className="mt-4 text-sm text-gray-500">No credit card required · Cancel anytime</p>
+        <p className="mt-4 text-sm text-gray-500">No credit card required · Cancel anytime · Built for teams of 1–20</p>
+
+        <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {revenueStats.map(stat => (
+            <div key={stat.label} className="rounded-xl border border-white/10 bg-[#161b27] p-5">
+              <p className="text-2xl font-bold text-white">{stat.value}</p>
+              <p className="mt-1 text-sm font-medium text-blue-300">{stat.label}</p>
+              <p className="mt-1 text-xs text-gray-500">{stat.sub}</p>
+            </div>
+          ))}
+        </div>
       </section>
 
-      {/* App mockup */}
       <section className="px-6 pb-20 max-w-5xl mx-auto">
-        <p className="text-center text-sm text-gray-500 mb-6">Job detail view — tasks, photos, and AI quality report</p>
+        <p className="text-center text-sm text-gray-500 mb-6">Job detail view — tasks, photos, AI quality report, and client summary in one place</p>
         <AppMockup />
       </section>
 
-      {/* How it works */}
       <section className="bg-[#161b27] border-y border-white/10 px-6 py-20">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl font-bold text-white mb-3">How it works</h2>
-            <p className="text-gray-400 max-w-xl mx-auto">From booking to payment, every step of the job is covered.</p>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-white mb-3">The cheapest admin hire you will never have to manage</h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">If Cleerd saves one admin hour, prevents one callback, or helps win one review-driven booking, the monthly subscription is easy to justify.</p>
           </div>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { step: '01', icon: CalendarDays, title: 'Schedule the job', desc: 'Assign a property, team, package, and time. Booking confirmation goes to the client automatically.' },
-              { step: '02', icon: ClipboardList, title: 'Team completes the visit', desc: 'Your team logs in, sees their jobs, works through the task list, and uploads before & after photos.' },
-              { step: '03', icon: Sparkles, title: 'AI generates a quality report', desc: 'AI analyzes photos and completed tasks to produce an internal quality report with scores and notes — in seconds.' },
-              { step: '04', icon: Send, title: 'Client gets a summary', desc: 'Send a clean job completion summary to your client. Mark the job paid and send an invoice — all from one place.' },
-            ].map(({ step, icon: Icon, title, desc }) => (
-              <div key={step} className="relative rounded-xl bg-[#1e2433] border border-white/10 p-6">
-                <div className="text-xs font-bold text-blue-400/60 tracking-widest uppercase mb-4">{step}</div>
-                <div className="mb-3 inline-flex rounded-lg bg-blue-500/10 p-2.5">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+            {painKillers.map(({ icon: Icon, title, desc }) => (
+              <div key={title} className="rounded-xl border border-white/10 bg-[#1e2433] p-6">
+                <div className="mb-4 inline-flex rounded-lg bg-blue-500/10 p-3">
                   <Icon className="h-5 w-5 text-blue-400" />
                 </div>
                 <h3 className="text-base font-semibold text-white mb-2">{title}</h3>
@@ -205,54 +246,22 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features */}
-      <section className="px-6 py-20 max-w-5xl mx-auto">
+      <section id="how-it-works" className="px-6 py-20 max-w-5xl mx-auto">
         <div className="text-center mb-14">
-          <h2 className="text-3xl font-bold text-white mb-3">Everything in one place</h2>
-          <p className="text-gray-400 max-w-xl mx-auto">Replace the spreadsheets, group chats, and paper task lists with one modern platform.</p>
+          <h2 className="text-3xl font-bold text-white mb-3">From scheduled to paid, every step is covered</h2>
+          <p className="text-gray-400 max-w-xl mx-auto">Cleerd gives you a repeatable operating system for the part of the business that usually lives in someone&apos;s head.</p>
         </div>
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            {
-              icon: CalendarDays,
-              color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20',
-              title: 'Job scheduling',
-              desc: 'Schedule one-time or recurring jobs. Assign teams, set durations, and manage your full calendar from a single view.',
-            },
-            {
-              icon: Users,
-              color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20',
-              title: 'Team management',
-              desc: 'Invite your staff with their own login. Each team member sees only their assigned jobs — nothing else.',
-            },
-            {
-              icon: Camera,
-              color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20',
-              title: 'Photo documentation',
-              desc: 'Capture before, after, and issue photos on any phone. Build a visual record of every job completed.',
-            },
-            {
-              icon: Sparkles,
-              color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20',
-              title: 'AI quality reports',
-              desc: 'AI reads your task list and photos and writes a scored internal quality report — so you always know the standard of work your team delivered.',
-            },
-            {
-              icon: Bell,
-              color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/20',
-              title: 'Automated communication',
-              desc: 'Booking confirmations and appointment reminders go out automatically. Keep clients informed without the admin work.',
-            },
-            {
-              icon: CreditCard,
-              color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20',
-              title: 'Invoicing & payments',
-              desc: 'Mark jobs as paid and send a polished invoice email in one click. Track what\'s been paid and what hasn\'t.',
-            },
-          ].map(({ icon: Icon, color, bg, border, title, desc }) => (
-            <div key={title} className={`rounded-xl border ${border} bg-[#161b27] p-6`}>
-              <div className={`mb-4 inline-flex rounded-lg ${bg} p-3`}>
-                <Icon className={`h-5 w-5 ${color}`} />
+            { step: '01', icon: CalendarDays, title: 'Schedule the job', desc: 'Assign a client location, team, package, time, and duration. Booking confirmation can go to the client automatically.' },
+            { step: '02', icon: ClipboardList, title: 'Guide the team', desc: 'Your crew logs in, sees assigned jobs, follows the checklist, and documents the work from any phone.' },
+            { step: '03', icon: Sparkles, title: 'Generate proof', desc: 'AI turns checklist completion and job photos into a scored quality report with notes your team can understand.' },
+            { step: '04', icon: Send, title: 'Close the loop', desc: 'Send a clean client summary, request the review, track payment, and keep the next job moving.' },
+          ].map(({ step, icon: Icon, title, desc }) => (
+            <div key={step} className="relative rounded-xl bg-[#161b27] border border-white/10 p-6">
+              <div className="text-xs font-bold text-blue-400/60 tracking-widest uppercase mb-4">{step}</div>
+              <div className="mb-3 inline-flex rounded-lg bg-blue-500/10 p-2.5">
+                <Icon className="h-5 w-5 text-blue-400" />
               </div>
               <h3 className="text-base font-semibold text-white mb-2">{title}</h3>
               <p className="text-sm text-gray-400 leading-relaxed">{desc}</p>
@@ -261,37 +270,67 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Value props */}
       <section className="bg-[#161b27] border-y border-white/10 px-6 py-20">
-        <div className="max-w-4xl mx-auto">
-          <div className="grid grid-cols-1 gap-12 md:grid-cols-2 items-center">
-            <div>
-              <h2 className="text-3xl font-bold text-white mb-4">Built for teams of 1–20, not enterprise</h2>
-              <p className="text-gray-400 mb-8 leading-relaxed">
-                Most field service software costs $250+/month and is designed for large enterprise companies with IT departments. Cleerd is purpose-built for independent service businesses that want to look professional without the overhead.
-              </p>
-              <ul className="space-y-3">
-                {[
-                  'Set up in minutes, not weeks',
-                  'No training required — your team figures it out on day one',
-                  'Works from any phone or computer',
-                  'Starting at $39/month',
-                ].map(point => (
-                  <li key={point} className="flex items-center gap-3">
-                    <CheckCircle className="h-4 w-4 flex-shrink-0 text-emerald-400" />
-                    <span className="text-sm text-gray-300">{point}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="space-y-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl font-bold text-white mb-3">Built for real service businesses, not demo-day theater</h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">Use Cleerd for cleaning, lawn care, mobile detailing, pest control, maintenance, inspections, and any recurring field work where client trust matters.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              { icon: CalendarDays, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', title: 'Recurring job scheduling', desc: 'Schedule one-time or repeat jobs, assign teams, set durations, and keep the calendar from becoming a crime scene.' },
+              { icon: Users, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20', title: 'Team-specific access', desc: 'Invite staff with their own login. Members see their assigned work without wandering through owner-only settings.' },
+              { icon: Camera, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', title: 'Photo documentation', desc: 'Capture before, after, and issue photos on any phone so callbacks become conversations instead of arguments.' },
+              { icon: Sparkles, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', title: 'AI quality reports', desc: 'Turn task completion and photos into a scored internal quality report that helps owners spot issues faster.' },
+              { icon: MessageSquare, color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/20', title: 'Client communication', desc: 'Send booking confirmations, reminders, completion reports, invoices, and review requests from a repeatable workflow.' },
+              { icon: CreditCard, color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20', title: 'Billing-ready operations', desc: 'Stripe-backed subscriptions, plan limits, and customer portal flow are ready for production once account credentials are connected.' },
+            ].map(({ icon: Icon, color, bg, border, title, desc }) => (
+              <div key={title} className={`rounded-xl border ${border} bg-[#0f1117] p-6`}>
+                <div className={`mb-4 inline-flex rounded-lg ${bg} p-3`}>
+                  <Icon className={`h-5 w-5 ${color}`} />
+                </div>
+                <h3 className="text-base font-semibold text-white mb-2">{title}</h3>
+                <p className="text-sm text-gray-400 leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="px-6 py-20 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-2 items-center">
+          <div>
+            <h2 className="text-3xl font-bold text-white mb-4">Win the follow-up before your competitor even sends an invoice</h2>
+            <p className="text-gray-400 mb-8 leading-relaxed">
+              Clients do not just buy the service. They buy confidence that the work happened, the team was professional, and someone is in control. Cleerd makes that confidence visible after every job.
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {[
-                { label: 'Replace', items: ['Google Forms · WhatsApp threads · Paper task lists · Manual email updates'] },
-                { label: 'With', items: ['One platform your whole team actually uses'] },
-              ].map(({ label, items }) => (
-                <div key={label} className={`rounded-xl border p-5 ${label === 'Replace' ? 'border-red-500/20 bg-red-500/5' : 'border-emerald-500/20 bg-emerald-500/5'}`}>
-                  <p className={`text-xs font-bold uppercase tracking-widest mb-2 ${label === 'Replace' ? 'text-red-400' : 'text-emerald-400'}`}>{label}</p>
-                  {items.map(i => <p key={i} className="text-sm text-gray-300">{i}</p>)}
+                { icon: Star, label: 'Ask for reviews while the work is fresh' },
+                { icon: FileText, label: 'Send completion summaries clients can forward' },
+                { icon: MapPin, label: 'Keep locations, notes, contacts, and access details organized' },
+                { icon: DollarSign, label: 'Recover the subscription with one saved admin hour' },
+              ].map(({ icon: Icon, label }) => (
+                <div key={label} className="rounded-lg border border-white/10 bg-[#161b27] p-4">
+                  <Icon className="mb-3 h-5 w-5 text-blue-400" />
+                  <p className="text-sm text-gray-300">{label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6">
+            <p className="text-xs font-bold uppercase tracking-widest text-emerald-400 mb-3">Quick ROI math</p>
+            <h3 className="text-2xl font-bold text-white mb-4">One less admin headache can pay for the month.</h3>
+            <div className="space-y-3 text-sm text-gray-300">
+              {[
+                ['Saved scheduling/admin time', '1 hour'],
+                ['Avoided missed reminder or callback', '$50+ value'],
+                ['One better-timed review request', 'Potential new booking'],
+                ['Starter plan', '$39/month'],
+              ].map(([label, value]) => (
+                <div key={label} className="flex items-center justify-between gap-4 border-b border-white/10 pb-3 last:border-0 last:pb-0">
+                  <span className="text-gray-400">{label}</span>
+                  <span className="font-semibold text-white">{value}</span>
                 </div>
               ))}
             </div>
@@ -299,35 +338,21 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing */}
       <section id="pricing" className="bg-[#161b27] border-y border-white/10 px-6 py-20">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-white mb-3">Simple, transparent pricing</h2>
+        <div className="max-w-5xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-1.5 text-sm text-emerald-300 mb-6">
+            <CheckCircle className="h-3.5 w-3.5" /> Start free, upgrade when Cleerd is running your workflow
+          </div>
+          <h2 className="text-3xl font-bold text-white mb-3">Simple pricing that does not require a committee meeting</h2>
           <p className="text-gray-400 mb-4">Start free for 14 days. No credit card required.</p>
-          <p className="mx-auto mb-12 max-w-2xl text-sm text-gray-500">Most small service teams recover the monthly cost with one saved admin hour, one avoided callback, or one extra review-driven booking.</p>
+          <p className="mx-auto mb-12 max-w-2xl text-sm text-gray-500">Most teams should start on Growth if they have recurring clients or more than one crew. Starter is intentionally affordable for owner-operators validating the workflow.</p>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            {[
-              {
-                name: 'Starter', price: 39,
-                desc: 'Perfect for owner-operators proving every job',
-                features: ['1 team', 'Up to 50 jobs/month', 'AI quality reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations'],
-              },
-              {
-                name: 'Growth', price: 69,
-                desc: 'Best value for recurring service revenue',
-                features: ['Up to 3 teams', 'Unlimited jobs', 'AI quality reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations', 'Appointment reminders'],
-                popular: true,
-              },
-              {
-                name: 'Pro', price: 99,
-                desc: 'For established operations that want automation leverage',
-                features: ['Unlimited teams', 'Unlimited jobs', 'AI quality reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations', 'Appointment reminders'],
-              },
-            ].map(plan => (
-              <div key={plan.name} className={`rounded-xl border p-6 text-left flex flex-col ${plan.popular ? 'border-blue-500 bg-blue-500/10 shadow-xl shadow-blue-500/10' : 'border-white/10 bg-[#1e2433]'}`}>
-                {plan.popular && <div className="mb-3 text-xs font-bold uppercase tracking-widest text-blue-400">Most popular · built for revenue growth</div>}
+            {plans.map(plan => (
+              <div key={plan.id} className={`relative rounded-xl border p-6 text-left flex flex-col ${plan.popular ? 'border-blue-500 bg-blue-500/10 shadow-xl shadow-blue-500/10' : 'border-white/10 bg-[#1e2433]'}`}>
+                {plan.popular && <div className="absolute -top-3 left-6 rounded-full bg-blue-500 px-3 py-1 text-xs font-bold uppercase tracking-widest text-white">Best value</div>}
                 <h3 className="text-lg font-bold text-white mb-1">{plan.name}</h3>
-                <p className="text-sm text-gray-500 mb-4">{plan.desc}</p>
+                <p className="text-sm text-gray-500 mb-3">{plan.desc}</p>
+                <p className="mb-4 rounded-lg border border-white/10 bg-black/10 px-3 py-2 text-xs text-gray-400">Best for: <span className="text-gray-200">{plan.bestFor}</span></p>
                 <div className="mb-6">
                   <span className="text-4xl font-bold text-white">${plan.price}</span>
                   <span className="text-sm text-gray-400">/month</span>
@@ -340,32 +365,62 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <Link href="/signup">
+                <Link href={`${signupHref}?plan=${plan.id}`}>
                   <Button className={`w-full ${plan.popular ? 'bg-blue-500 hover:bg-blue-600 text-white' : 'bg-white/10 hover:bg-white/20 text-white border-0'}`}>
-                    Start free trial
+                    Start free on {plan.name}
                   </Button>
                 </Link>
               </div>
             ))}
           </div>
+          <div className="mt-8 rounded-xl border border-white/10 bg-[#0f1117] p-5 text-left md:flex md:items-center md:justify-between md:gap-6">
+            <div>
+              <p className="font-semibold text-white">Not sure which plan fits?</p>
+              <p className="mt-1 text-sm text-gray-400">Start free, set up a real job workflow, then pick the plan that matches your team count and job volume.</p>
+            </div>
+            <Link href={signupHref} className="mt-4 inline-flex md:mt-0">
+              <Button variant="outline" className="border-white/20 text-gray-300 hover:bg-white/10 hover:text-white">Try it before deciding</Button>
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* CTA */}
+      <section className="px-6 py-20 max-w-4xl mx-auto">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-white mb-3">Questions owners ask before trying Cleerd</h2>
+          <p className="text-gray-400">Short answers, because nobody launched a service business to read SaaS poetry.</p>
+        </div>
+        <div className="space-y-4">
+          {[
+            { q: 'Do I need a credit card to start?', a: 'No. The trial starts without a card so you can test the workflow before paying.' },
+            { q: 'Is Cleerd only for cleaning companies?', a: 'No. Cleerd works for any field-service business that schedules visits, documents work, and communicates with clients.' },
+            { q: 'Will my crew need training?', a: 'The product is designed around simple job lists, checklists, photos, and submit buttons so field teams can learn by doing.' },
+            { q: 'Why not just use spreadsheets and texts?', a: 'You can, until the missed reminder, missing photo, or forgotten follow-up costs more than the software. Cleerd keeps the process repeatable.' },
+          ].map(({ q, a }) => (
+            <div key={q} className="rounded-xl border border-white/10 bg-[#161b27] p-5">
+              <h3 className="font-semibold text-white">{q}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-gray-400">{a}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <section className="px-6 py-24 text-center max-w-2xl mx-auto">
-        <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Ready to run a tighter operation?</h2>
+        <div className="mb-6 inline-flex rounded-full bg-blue-500/10 p-3">
+          <Circle className="h-3 w-3 fill-blue-400 text-blue-400" />
+        </div>
+        <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Your next job can look more professional than your last one.</h2>
         <p className="text-gray-400 mb-10 leading-relaxed">
-          Join service businesses using Cleerd to schedule smarter, document every job, and keep quality high across every team.
+          Start the free trial, add one client, schedule one job, and let Cleerd turn the work into proof your customer can trust.
         </p>
-        <Link href="/signup">
+        <Link href={signupHref}>
           <Button size="lg" className="bg-blue-500 hover:bg-blue-600 text-white gap-2">
-            Start your free 14-day trial <ArrowRight className="h-4 w-4" />
+            Start free for 14 days <ArrowRight className="h-4 w-4" />
           </Button>
         </Link>
         <p className="mt-4 text-sm text-gray-500">No credit card · Cancel anytime · Set up in minutes</p>
       </section>
 
-      {/* Footer */}
       <footer className="border-t border-white/10 px-6 py-8 text-sm text-gray-500">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -380,7 +435,6 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
-
     </div>
   )
 }
