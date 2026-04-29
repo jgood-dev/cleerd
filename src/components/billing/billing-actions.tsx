@@ -11,6 +11,16 @@ type BillingActionsProps = {
   label: string
 }
 
+function getCustomerSafeBillingError(message: string) {
+  if (message.toLowerCase().includes('not configured')) {
+    return 'Online checkout is almost ready for this plan. Please contact support and we can activate it for you.'
+  }
+  if (message.toLowerCase().includes('no billing account')) {
+    return 'Start a paid plan first, then the billing portal will be available here.'
+  }
+  return message
+}
+
 export function BillingActions({ planId, mode, label }: BillingActionsProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -37,7 +47,8 @@ export function BillingActions({ planId, mode, label }: BillingActionsProps) {
       })
       window.location.href = data.url
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Billing action failed'
+      const rawMessage = err instanceof Error ? err.message : 'Billing action failed'
+      const message = getCustomerSafeBillingError(rawMessage)
       trackClientEvent({
         eventName: `${eventPrefix}_failed`,
         properties: { plan_id: planId ?? null, label, error: message },

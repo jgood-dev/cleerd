@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, CheckCircle, CreditCard, Sparkles, TrendingUp } from 'lucide-react'
+import { AlertCircle, ArrowLeft, CheckCircle, CreditCard, Sparkles, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import { getOrgForUser } from '@/lib/get-org'
 import { redirect } from 'next/navigation'
@@ -16,7 +16,13 @@ function statusLabel(status: string) {
   return 'Manual / Trial'
 }
 
-export default async function BillingPage() {
+type BillingPageProps = {
+  searchParams?: Promise<{ checkout?: string }>
+}
+
+export default async function BillingPage({ searchParams }: BillingPageProps) {
+  const params = await searchParams
+  const checkoutStatus = params?.checkout
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const { org, isOwner } = await getOrgForUser(supabase, user!.id)
@@ -56,6 +62,30 @@ export default async function BillingPage() {
           </Card>
         ))}
       </div>
+
+      {checkoutStatus === 'success' && (
+        <Card className="border-emerald-500/30 bg-emerald-500/10">
+          <CardContent className="flex items-start gap-3 p-4">
+            <CheckCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-300" />
+            <div>
+              <p className="font-semibold text-emerald-100">Checkout complete.</p>
+              <p className="mt-1 text-sm text-emerald-100/80">Stripe is syncing your subscription now. If this page still shows the old plan, refresh in a moment.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {checkoutStatus === 'cancelled' && (
+        <Card className="border-amber-500/30 bg-amber-500/10">
+          <CardContent className="flex items-start gap-3 p-4">
+            <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-300" />
+            <div>
+              <p className="font-semibold text-amber-100">Checkout was cancelled.</p>
+              <p className="mt-1 text-sm text-amber-100/80">No changes were made. Pick a plan below when you are ready, or contact support if you want help choosing.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader><CardTitle>Current Plan</CardTitle></CardHeader>
@@ -110,7 +140,7 @@ export default async function BillingPage() {
               </div>
             )
           })}
-          <p className="text-xs text-gray-500 pt-1">Stripe checkout and the customer portal require production Stripe environment variables. If a button reports that pricing is not configured yet, add the matching Stripe price ID in Vercel/Supabase environment settings.</p>
+          <p className="text-xs text-gray-500 pt-1">Need help choosing? Tell us how many teams and monthly jobs you run, and we will point you at the lowest plan that fits.</p>
           <Link href="mailto:support@cleerd.io"><Button variant="outline" size="sm">Contact support</Button></Link>
         </CardContent>
       </Card>
