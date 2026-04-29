@@ -1,4 +1,5 @@
 import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { CheckCircle, Clock, Users, Calendar, Star, Camera, AlertCircle, ShieldCheck, Send, Share2 } from 'lucide-react'
 
@@ -74,7 +75,11 @@ export default async function ClientReportPage({ params }: { params: Promise<{ t
   const companyName = org?.name ?? 'Your Service Company'
   const ownerName = property?.owner_name ? property.owner_name.split(' ')[0] : null
   const address = property?.address ?? property?.name ?? 'your property'
-  const reportUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/report/${token}`
+  const requestHeaders = await headers()
+  const forwardedProto = requestHeaders.get('x-forwarded-proto') ?? 'https'
+  const forwardedHost = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host')
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || (forwardedHost ? `${forwardedProto}://${forwardedHost}` : '')
+  const reportUrl = `${appUrl}/report/${token}`
   const shareSubject = encodeURIComponent(`${companyName} completed the job at ${address}`)
   const shareBody = encodeURIComponent(`Here is the completed job summary from ${companyName}:\n\n${reportUrl}`)
   const completionRate = checklist.length ? Math.round((completedItems.length / checklist.length) * 100) : null
