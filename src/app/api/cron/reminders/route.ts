@@ -1,10 +1,17 @@
-import { createClient } from '@supabase/supabase-js'
+﻿import { createClient } from '@supabase/supabase-js'
 import { NextRequest } from 'next/server'
+import { sendTransactionalEmail } from '@/lib/email'
 
 export async function GET(req: NextRequest) {
-  // Verify Vercel cron secret
+  // Verify Vercel cron secret. Fail closed if the secret is not configured.
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret) {
+    console.error('CRON_SECRET is not configured')
+    return Response.json({ error: 'Cron is not configured' }, { status: 503 })
+  }
+
   const auth = req.headers.get('authorization')
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (auth !== `Bearer ${cronSecret}`) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -25,7 +32,7 @@ export async function GET(req: NextRequest) {
   for (const org of orgs) {
     const leadHours = org.reminder_lead_hours ?? 48
     const now = new Date()
-    const windowStart = new Date(now.getTime() + (leadHours - 2) * 3600000) // ±2h buffer
+    const windowStart = new Date(now.getTime() + (leadHours - 2) * 3600000) // Â±2h buffer
     const windowEnd = new Date(now.getTime() + (leadHours + 2) * 3600000)
 
     const { data: jobs } = await supabase
@@ -75,7 +82,7 @@ export async function GET(req: NextRequest) {
         <tr><td style="background:#ffffff;padding:32px;">
           <p style="margin:0 0 8px;font-size:20px;font-weight:700;color:#111827;">${greeting}</p>
           <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.6;">
-            Just a friendly reminder — your service appointment is coming up in <strong>${leadLabel}</strong>.
+            Just a friendly reminder â€” your service appointment is coming up in <strong>${leadLabel}</strong>.
           </p>
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
             <tr><td style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:20px 24px;">
@@ -91,7 +98,7 @@ export async function GET(req: NextRequest) {
           </p>
         </td></tr>
         <tr><td style="background:#f9fafb;border-radius:0 0 12px 12px;border-top:1px solid #e5e7eb;padding:18px 32px;text-align:center;">
-          <p style="margin:0;color:#9ca3af;font-size:12px;">Sent by <strong style="color:#6b7280;">${companyName}</strong> · Powered by Cleerd</p>
+          <p style="margin:0;color:#9ca3af;font-size:12px;">Sent by <strong style="color:#6b7280;">${companyName}</strong> Â· Powered by Cleerd</p>
         </td></tr>
       </table>
     </td></tr>
@@ -99,29 +106,20 @@ export async function GET(req: NextRequest) {
 </body>
 </html>`
 
-      const text = `${greeting}\n\nYour service appointment at ${address} is coming up in ${leadLabel}.\n\n${apptFormatted} at ${apptTime}${teamName ? `\nTeam: ${teamName}` : ''}\n\nIf you need to reschedule, just reply to this email.\n\n— ${companyName}`
+      const text = `${greeting}\n\nYour service appointment at ${address} is coming up in ${leadLabel}.\n\n${apptFormatted} at ${apptTime}${teamName ? `\nTeam: ${teamName}` : ''}\n\nIf you need to reschedule, just reply to this email.\n\nâ€” ${companyName}`
 
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: `${companyName} <support@cleerd.io>`,
-          reply_to: 'support@cleerd.io',
+      try {
+        await sendTransactionalEmail({
           to: property.client_email,
           subject: `Reminder: service appointment at ${address} on ${apptFormatted}`,
           html,
           text,
-        }),
-      })
-
-      if (res.ok) {
+          fromName: companyName,
+        })
         await supabase.from('jobs').update({ reminder_sent_at: new Date().toISOString() }).eq('id', job.id)
         totalSent++
-      } else {
-        console.error('Reminder send failed for job', job.id, await res.text())
+      } catch (error) {
+        console.error('Reminder send failed for job', job.id, error)
       }
     }
   }
