@@ -4,7 +4,11 @@ import { userCanAccessOrg } from '@/lib/org-access'
 import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest } from 'next/server'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+function getAnthropicClient() {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) return null
+  return new Anthropic({ apiKey })
+}
 
 export async function POST(request: NextRequest) {
   const { inspectionId } = await request.json()
@@ -92,7 +96,8 @@ INTERNAL QUALITY COACHING:
 [your internal quality report]`,
   })
 
-  if (!process.env.ANTHROPIC_API_KEY) return Response.json({ error: 'ANTHROPIC_API_KEY not set in environment' }, { status: 500 })
+  const anthropic = getAnthropicClient()
+  if (!anthropic) return Response.json({ error: 'ANTHROPIC_API_KEY not set in environment' }, { status: 500 })
 
   const message = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
@@ -127,8 +132,5 @@ INTERNAL QUALITY COACHING:
 }
 
 export async function GET() {
-  return Response.json({
-    ok: true,
-    hasKey: !!process.env.ANTHROPIC_API_KEY,
-  })
+  return Response.json({ error: 'Method not allowed' }, { status: 405 })
 }
