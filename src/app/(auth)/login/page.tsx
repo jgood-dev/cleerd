@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -29,7 +29,6 @@ export default function LoginPage() {
   const [redirectTo, setRedirectTo] = useState('/dashboard')
   const [authMessage, setAuthMessage] = useState('')
   const router = useRouter()
-  const supabase = createClient()
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -41,6 +40,7 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
+    const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
       setError(error.message)
@@ -71,7 +71,7 @@ export default function LoginPage() {
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-300">Password</label>
-              <Input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
+              <Input type="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" value={password} onChange={e => setPassword(e.target.value)} required />
             </div>
             {authMessage && <p className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-3 text-sm text-yellow-100">{authMessage}</p>}
             {error && <p className="text-sm text-red-400">{error}</p>}
