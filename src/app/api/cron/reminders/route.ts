@@ -1,6 +1,6 @@
 ﻿import { createClient } from '@supabase/supabase-js'
 import { NextRequest } from 'next/server'
-import { sendTransactionalEmail } from '@/lib/email'
+import { escapeHtml, sendTransactionalEmail } from '@/lib/email'
 
 export async function GET(req: NextRequest) {
   // Verify Vercel cron secret. Fail closed if the secret is not configured.
@@ -55,6 +55,10 @@ export async function GET(req: NextRequest) {
       const ownerFirst = property.owner_name ? property.owner_name.split(' ')[0] : null
       const greeting = ownerFirst ? `Hi ${ownerFirst},` : 'Hi,'
       const teamName = (job.teams as any)?.name
+      const safeCompanyName = escapeHtml(companyName)
+      const safeAddress = escapeHtml(address)
+      const safeGreeting = escapeHtml(greeting)
+      const safeTeamName = teamName ? escapeHtml(teamName) : null
 
       const apptDate = new Date(job.scheduled_at)
       const apptFormatted = apptDate.toLocaleDateString('en-US', {
@@ -75,12 +79,12 @@ export async function GET(req: NextRequest) {
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
         <tr><td style="background:#161b27;border-radius:12px 12px 0 0;padding:20px 32px;">
           <table width="100%"><tr>
-            <td style="color:#ffffff;font-size:17px;font-weight:700;">${companyName}</td>
+            <td style="color:#ffffff;font-size:17px;font-weight:700;">${safeCompanyName}</td>
             <td align="right" style="color:#6b7280;font-size:13px;">Appointment Reminder</td>
           </tr></table>
         </td></tr>
         <tr><td style="background:#ffffff;padding:32px;">
-          <p style="margin:0 0 8px;font-size:20px;font-weight:700;color:#111827;">${greeting}</p>
+          <p style="margin:0 0 8px;font-size:20px;font-weight:700;color:#111827;">${safeGreeting}</p>
           <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.6;">
             Just a friendly reminder â€” your service appointment is coming up in <strong>${leadLabel}</strong>.
           </p>
@@ -89,8 +93,8 @@ export async function GET(req: NextRequest) {
               <p style="margin:0 0 6px;font-size:13px;color:#6b7280;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;">Your Appointment</p>
               <p style="margin:0 0 4px;font-size:18px;font-weight:700;color:#1e40af;">${apptFormatted}</p>
               <p style="margin:0 0 8px;font-size:16px;color:#3b82f6;">${apptTime}</p>
-              <p style="margin:0;font-size:14px;color:#374151;">${address}</p>
-              ${teamName ? `<p style="margin:4px 0 0;font-size:13px;color:#6b7280;">Team: ${teamName}</p>` : ''}
+              <p style="margin:0;font-size:14px;color:#374151;">${safeAddress}</p>
+              ${safeTeamName ? `<p style="margin:4px 0 0;font-size:13px;color:#6b7280;">Team: ${safeTeamName}</p>` : ''}
             </td></tr>
           </table>
           <p style="margin:0;font-size:14px;color:#6b7280;line-height:1.6;">
@@ -98,7 +102,7 @@ export async function GET(req: NextRequest) {
           </p>
         </td></tr>
         <tr><td style="background:#f9fafb;border-radius:0 0 12px 12px;border-top:1px solid #e5e7eb;padding:18px 32px;text-align:center;">
-          <p style="margin:0;color:#9ca3af;font-size:12px;">Sent by <strong style="color:#6b7280;">${companyName}</strong> Â· Powered by Cleerd</p>
+          <p style="margin:0;color:#9ca3af;font-size:12px;">Sent by <strong style="color:#6b7280;">${safeCompanyName}</strong> Â· Powered by Cleerd</p>
         </td></tr>
       </table>
     </td></tr>
