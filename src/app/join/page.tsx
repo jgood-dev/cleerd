@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Suspense } from 'react'
 import { useState, useEffect } from 'react'
@@ -11,7 +11,6 @@ import { CheckSquare } from 'lucide-react'
 import { PhoneInput } from '@/components/ui/phone-input'
 
 function JoinForm() {
-  const supabase = createClient()
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token') ?? ''
@@ -61,7 +60,8 @@ function JoinForm() {
       return
     }
 
-    // Sign in immediately — no confirmation email required
+    // Sign in immediately â€” no confirmation email required
+    const supabase = createClient()
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
     if (signInError) {
       setError(signInError.message)
