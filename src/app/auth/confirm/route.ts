@@ -79,6 +79,9 @@ export async function GET(request: NextRequest) {
       }
 
       // Normal owner signup — create org if none exists
+      const selectedPlan = ['solo', 'growth', 'pro'].includes(data.user.user_metadata?.selected_plan)
+        ? data.user.user_metadata.selected_plan
+        : 'solo'
       const { count } = await admin
         .from('organizations')
         .select('*', { count: 'exact', head: true })
@@ -86,13 +89,10 @@ export async function GET(request: NextRequest) {
 
       if (count === 0) {
         const businessName = data.user.user_metadata?.business_name ?? 'My Business'
-        const selectedPlan = ['solo', 'growth', 'pro'].includes(data.user.user_metadata?.selected_plan)
-          ? data.user.user_metadata.selected_plan
-          : 'solo'
         const { data: org } = await admin.from('organizations').insert({
           name: businessName,
           owner_id: data.user.id,
-          plan: selectedPlan,
+          plan: 'solo',
         }).select('id, plan').single()
 
         await trackServerEvent({
@@ -103,6 +103,7 @@ export async function GET(request: NextRequest) {
           dedupeKey: `owner_signup_activated:${data.user.id}`,
           properties: {
             plan: org?.plan ?? 'solo',
+            selected_plan: selectedPlan,
             business_name_provided: Boolean(data.user.user_metadata?.business_name),
             email_domain: data.user.email?.split('@')[1] ?? null,
           },
@@ -115,7 +116,7 @@ export async function GET(request: NextRequest) {
               brandName: 'Cleerd',
               eyebrow: 'Welcome',
               heading: `Welcome to Cleerd, ${businessName}`,
-              intro: `Your ${selectedPlan === 'solo' ? 'Starter' : selectedPlan === 'growth' ? 'Growth' : 'Pro'} trial is ready. The fastest path to value is to add one real client, create one reusable service template, and schedule one job today.`,
+              intro: `Your Starter workspace is ready. If you selected Growth or Pro, activate that plan from Billing after setup. The fastest path to value is to add one real client, create one reusable service template, and schedule one job today.`,
               bodyHtml: `
           <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;">
             <tr><td style="padding:18px 20px;">
@@ -133,7 +134,7 @@ export async function GET(request: NextRequest) {
               to: data.user.email,
               subject: 'Welcome to Cleerd — your account is ready',
               html,
-              text: `Welcome to Cleerd, ${businessName}.\n\nYour ${selectedPlan === 'solo' ? 'Starter' : selectedPlan === 'growth' ? 'Growth' : 'Pro'} trial is ready. Start by adding one real client, creating one reusable service template, and scheduling one job.\n\nStart the 10-minute setup: ${appUrl}/dashboard`,
+              text: `Welcome to Cleerd, ${businessName}.\n\nYour Starter workspace is ready. If you selected Growth or Pro, activate that plan from Billing after setup. Start by adding one real client, creating one reusable service template, and scheduling one job.\n\nStart the 10-minute setup: ${appUrl}/dashboard`,
               fromName: 'Cleerd',
             })
           } catch (welcomeError) {
@@ -142,7 +143,7 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+      return NextResponse.redirect(new URL(selectedPlan === 'solo' ? '/dashboard' : '/settings/billing', request.url))
     }
   }
 

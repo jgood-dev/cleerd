@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -14,19 +14,19 @@ const planOptions: Record<PlanId, { name: string; price: number; note: string; f
   solo: {
     name: 'Starter',
     price: 39,
-    note: '1 team Â· 50 jobs/month',
+    note: '1 team · 50 jobs/month',
     fit: 'Best for owner-operators and first workflows.',
   },
   growth: {
     name: 'Growth',
     price: 69,
-    note: '3 teams Â· unlimited jobs',
+    note: '3 teams · unlimited jobs',
     fit: 'Best value for recurring clients and small teams.',
   },
   pro: {
     name: 'Pro',
     price: 99,
-    note: 'Unlimited teams Â· priority support',
+    note: 'Unlimited teams · priority support',
     fit: 'Best for established teams that want more automation.',
   },
 }
@@ -86,11 +86,11 @@ export default function SignupPage() {
     }
 
     if (data.session) {
-      // Email confirmation not required â€” create org and go
+      // Email confirmation not required — create org and go
       const { error: orgError } = await supabase.from('organizations').insert({
         name: businessName,
         owner_id: data.user!.id,
-        plan: selectedPlan,
+        plan: 'solo',
       })
 
       if (orgError) {
@@ -99,9 +99,9 @@ export default function SignupPage() {
         return
       }
 
-      router.push('/dashboard')
+      router.push(selectedPlan === 'solo' ? '/dashboard' : '/settings/billing')
     } else if (data.user) {
-      // Email confirmation required â€” org will be created in /auth/confirm
+      // Email confirmation required — org will be created in /auth/confirm
       setConfirmPending(true)
       setLoading(false)
     }
@@ -176,7 +176,7 @@ export default function SignupPage() {
               })}
             </div>
             <div className="mt-4 rounded-lg border border-white/10 bg-[#0f1117]/70 p-3">
-              <p className="font-semibold text-white">{plan.name} Â· ${plan.price}/month after trial</p>
+              <p className="font-semibold text-white">{plan.name} · ${plan.price}/month after trial</p>
               <p className="mt-1 text-sm text-blue-200">{plan.note}</p>
               <p className="mt-1 text-sm text-gray-400">{plan.fit}</p>
             </div>
@@ -214,7 +214,7 @@ export default function SignupPage() {
             </Button>
           </form>
           <p className="mt-3 text-center text-xs text-gray-500">
-            No credit card Â· Cancel anytime Â· Takes about 2 minutes to get into the dashboard
+            No credit card · Cancel anytime · Takes about 2 minutes to get into the dashboard
           </p>
           <p className="mt-4 text-center text-sm text-gray-500">
             Already have an account?{' '}
