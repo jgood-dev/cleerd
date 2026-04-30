@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { trackServerEvent } from '@/lib/analytics'
+import { userCanAccessOrg } from '@/lib/org-access'
 import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest } from 'next/server'
 
@@ -19,6 +20,10 @@ export async function POST(request: NextRequest) {
   ])
 
   if (!inspection) return Response.json({ error: `Inspection not found: ${inspErr?.message}` }, { status: 404 })
+
+  if (!(await userCanAccessOrg(supabase, inspection.org_id, user.id))) {
+    return Response.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const completedItems = checklist?.filter(c => c.completed) ?? []
   const totalItems = checklist?.length ?? 0

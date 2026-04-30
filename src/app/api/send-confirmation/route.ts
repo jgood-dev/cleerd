@@ -1,6 +1,7 @@
 ﻿import { createClient } from '@/lib/supabase/server'
 import { trackServerEvent } from '@/lib/analytics'
 import { sendTransactionalEmail } from '@/lib/email'
+import { userCanAccessOrg } from '@/lib/org-access'
 import { NextRequest } from 'next/server'
 
 export async function POST(request: NextRequest) {
@@ -19,6 +20,10 @@ export async function POST(request: NextRequest) {
   if (!job) return Response.json({ error: 'Job not found' }, { status: 404 })
 
   const property = job.properties as any
+  const orgId = job.org_id ?? property?.org_id
+  if (!(await userCanAccessOrg(supabase, orgId, user.id))) {
+    return Response.json({ error: 'Forbidden' }, { status: 403 })
+  }
   if (!property?.client_email) return Response.json({ error: 'No client email' }, { status: 400 })
 
   const org = job.organizations as any
