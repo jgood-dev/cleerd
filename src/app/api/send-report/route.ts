@@ -3,6 +3,7 @@ import { trackServerEvent } from '@/lib/analytics'
 import { NextRequest } from 'next/server'
 import { randomUUID } from 'crypto'
 import { sendTransactionalEmail } from '@/lib/email'
+import { userCanAccessOrg } from '@/lib/org-access'
 
 function escapeHtml(value: string) {
   return value
@@ -26,7 +27,15 @@ export async function POST(request: NextRequest) {
     .eq('id', inspectionId)
     .single()
 
-  if (!inspection?.properties?.client_email) {
+  if (!inspection) return Response.json({ error: 'Inspection not found' }, { status: 404 })
+
+  const property = inspection.properties as any
+  const orgId = inspection.org_id ?? property?.org_id
+  if (!(await userCanAccessOrg(supabase, orgId, user.id))) {
+    return Response.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  if (!property?.client_email) {
     return Response.json({ error: 'No client email' }, { status: 400 })
   }
 
@@ -43,7 +52,6 @@ export async function POST(request: NextRequest) {
     await supabase.from('inspections').update({ share_token: token }).eq('id', inspectionId)
   }
 
-  const property = inspection.properties as any
   const team = inspection.teams as any
   const companyName = org?.name ?? 'Your Service Company'
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin
