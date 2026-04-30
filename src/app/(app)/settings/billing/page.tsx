@@ -132,8 +132,10 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
                   <p className="mt-1 text-xs text-gray-400">{plan.description}</p>
                   <p className="text-xs text-gray-500 mt-1">{plan.features.join(' · ')}</p>
                 </div>
-                {isCurrent ? (
-                  hasStripeCustomer ? <BillingActions mode="portal" label="Manage" /> : <Button variant="outline" size="sm" disabled>Current trial</Button>
+                {isCurrent && hasStripeCustomer ? (
+                  <BillingActions mode="portal" label="Manage" />
+                ) : isCurrent ? (
+                  <BillingActions planId={plan.id as PlanId} mode="checkout" label={`Activate ${plan.name}`} />
                 ) : (
                   <BillingActions planId={plan.id as PlanId} mode="checkout" label={`Choose ${plan.name}`} />
                 )}
