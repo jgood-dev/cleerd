@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
+import { sendTransactionalEmail } from '@/lib/email'
 import { NextRequest } from 'next/server'
 
 export async function POST(request: NextRequest) {
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
             </thead>
             <tbody>
               <tr style="border-top:1px solid #e5e7eb;">
-                <td style="padding:14px 16px;font-size:14px;color:#374151;">Service — ${address}${paymentMethod ? `<br><span style="font-size:12px;color:#9ca3af;">Paid via ${paymentMethod}</span>` : ''}</td>
+                <td style="padding:14px 16px;font-size:14px;color:#374151;">Service â€” ${address}${paymentMethod ? `<br><span style="font-size:12px;color:#9ca3af;">Paid via ${paymentMethod}</span>` : ''}</td>
                 <td style="padding:14px 16px;font-size:14px;color:#374151;text-align:right;font-weight:600;">${amount != null ? `$${Number(amount).toFixed(2)}` : 'See invoice'}</td>
               </tr>
             </tbody>
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
         </td></tr>
 
         <tr><td style="background:#f9fafb;border-radius:0 0 12px 12px;border-top:1px solid #e5e7eb;padding:18px 32px;text-align:center;">
-          <p style="margin:0;color:#9ca3af;font-size:12px;">Sent by <strong style="color:#6b7280;">${companyName}</strong> · Powered by Cleerd</p>
+          <p style="margin:0;color:#9ca3af;font-size:12px;">Sent by <strong style="color:#6b7280;">${companyName}</strong> Â· Powered by Cleerd</p>
         </td></tr>
 
       </table>
@@ -88,27 +89,18 @@ export async function POST(request: NextRequest) {
 
   const amountLine = amount != null ? `Amount: $${Number(amount).toFixed(2)}\n` : ''
   const methodLine = paymentMethod ? `Payment method: ${paymentMethod}\n` : ''
-  const plainText = `${greeting}\n\nThank you for choosing ${companyName}!\n\nInvoice for service at ${address} on ${scheduledDate}.\n${amountLine}${methodLine}\nThis invoice is marked as PAID. Thank you for your payment!\n\nIf you have questions, please reach out.\n\n— ${companyName}`
+  const plainText = `${greeting}\n\nThank you for choosing ${companyName}!\n\nInvoice for service at ${address} on ${scheduledDate}.\n${amountLine}${methodLine}\nThis invoice is marked as PAID. Thank you for your payment!\n\nIf you have questions, please reach out.\n\nâ€” ${companyName}`
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: `${companyName} <support@cleerd.io>`,
-      reply_to: 'support@cleerd.io',
+  try {
+    await sendTransactionalEmail({
       to: property.client_email,
-      subject: `Invoice — service at ${address}`,
+      subject: `Invoice - service at ${address}`,
       html,
       text: plainText,
-    }),
-  })
-
-  if (!res.ok) {
-    const err = await res.text()
-    console.error('Resend error:', err)
+      fromName: companyName,
+    })
+  } catch (error) {
+    console.error('Failed to send invoice email:', error)
     return Response.json({ error: 'Failed to send email' }, { status: 500 })
   }
 
