@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
 import { NextRequest } from 'next/server'
 
 const TEAM_LIMITS: Record<string, number | null> = {
@@ -14,8 +14,21 @@ export async function POST(request: NextRequest) {
 
   const { org_id, name } = await request.json()
 
-  const { data: org } = await supabase.from('organizations').select('id, plan').eq('id', org_id).single()
+  const { data: org } = await supabase.from('organizations').select('id, plan, owner_id').eq('id', org_id).single()
   if (!org) return Response.json({ error: 'Org not found' }, { status: 404 })
+
+  if (org.owner_id !== user.id) {
+    const { data: membership } = await supabase
+      .from('org_members')
+      .select('id')
+      .eq('org_id', org_id)
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (!membership) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 })
+    }
+  }
 
   const limit = TEAM_LIMITS[org.plan ?? 'solo']
   if (limit !== null) {
@@ -35,3 +48,4 @@ export async function POST(request: NextRequest) {
   if (error) return Response.json({ error: error.message }, { status: 500 })
   return Response.json({ data })
 }
+
