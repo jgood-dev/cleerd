@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+﻿import { createClient } from '@supabase/supabase-js'
 import { NextRequest } from 'next/server'
 
 export async function POST(request: NextRequest) {
@@ -11,7 +11,9 @@ export async function POST(request: NextRequest) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 
-  // Verify invite is valid and unused
+  const normalizedEmail = String(email).trim().toLowerCase()
+
+  // Verify invite is valid, unused, and being accepted by the invited email address.
   const { data: member } = await admin
     .from('org_members')
     .select('id, email, invite_accepted_at')
@@ -20,18 +22,21 @@ export async function POST(request: NextRequest) {
 
   if (!member) return Response.json({ error: 'Invalid invite' }, { status: 404 })
   if (member.invite_accepted_at) return Response.json({ error: 'Invite already used' }, { status: 410 })
+  if (String(member.email).trim().toLowerCase() !== normalizedEmail) {
+    return Response.json({ error: 'This invite is only valid for the invited email address.' }, { status: 403 })
+  }
 
-  // Create user with email pre-confirmed — no confirmation email sent
+  // Create user with email pre-confirmed; no confirmation email sent.
   const { data: userData, error: createError } = await admin.auth.admin.createUser({
-    email,
+    email: normalizedEmail,
     password,
     email_confirm: true,
   })
 
   if (createError) {
-    // User already exists — just link the invite
+    // User already exists; link the invite only when the email still matches the invite.
     const { data: existingData } = await admin.auth.admin.listUsers()
-    const existingUser = existingData?.users?.find((u: any) => u.email === email)
+    const existingUser = existingData?.users?.find((u: any) => u.email?.trim().toLowerCase() === normalizedEmail)
     if (!existingUser) return Response.json({ error: createError.message }, { status: 400 })
 
     await admin.from('org_members').update({
@@ -44,7 +49,6 @@ export async function POST(request: NextRequest) {
     return Response.json({ success: true })
   }
 
-  // Link the invite to the new user
   await admin.from('org_members').update({
     user_id: userData.user.id,
     invite_accepted_at: new Date().toISOString(),
