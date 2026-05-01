@@ -76,7 +76,7 @@ The next agent or developer should avoid redoing the audit and should continue f
 | 1 | Apply `cleerd_launch_automation_patch.diff` to a new Git branch and review the diff. | No, unless repo write access is needed. |
 | 2 | Rotate any credentials that were previously committed or included in project documentation. | Yes. |
 | 3 | Run `supabase-billing-stripe.sql` in Supabase. | Yes, if database access is not available. |
-| 4 | Create Stripe products/prices for Solo $39, Growth $69, and Pro $99 monthly tiers; set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_SOLO`, `STRIPE_PRICE_GROWTH`, and `STRIPE_PRICE_PRO` in Vercel. | Yes, because payment credentials and dashboard access are sensitive. |
+| 4 | Create Stripe products/prices for Solo $29, Growth $79, and Pro $149 monthly tiers; set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_SOLO`, `STRIPE_PRICE_GROWTH`, and `STRIPE_PRICE_PRO` in Vercel. | Yes, because payment credentials and dashboard access are sensitive. |
 | 5 | Test Stripe checkout, webhook sync, and customer portal in test mode. | Possibly, depending on account access. |
 | 6 | Follow `CLEERD_PRODUCTION_SETUP.md` to configure Vercel, Supabase, Stripe, Resend, DNS, and the final smoke test. | Yes for account credentials and dashboard actions. |
 | 7 | Improve mobile job detail flow, blackout/availability controls, and quick-edit workflows. | No. |

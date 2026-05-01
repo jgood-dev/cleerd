@@ -12,20 +12,20 @@ type PlanId = 'solo' | 'growth' | 'pro'
 
 const planOptions: Record<PlanId, { name: string; price: number; note: string; fit: string }> = {
   solo: {
-    name: 'Starter',
-    price: 39,
+    name: 'Solo',
+    price: 29,
     note: '1 team · 50 jobs/month',
     fit: 'Best for owner-operators and first workflows.',
   },
   growth: {
     name: 'Growth',
-    price: 69,
+    price: 79,
     note: '3 teams · unlimited jobs',
     fit: 'Best value for recurring clients and small teams.',
   },
   pro: {
     name: 'Pro',
-    price: 99,
+    price: 149,
     note: 'Unlimited teams · priority support',
     fit: 'Best for established teams that want more automation.',
   },
