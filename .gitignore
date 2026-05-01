@@ -51,3 +51,7 @@ scripts/*.local.js
 *.secrets
 
 scripts/reset-supabase.mjs
+
+# Claude Code agent coordination files
+CLAUDE_HANDOFF.md
+CLAUDE_STATUS.md
