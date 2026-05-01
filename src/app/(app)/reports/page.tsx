@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import Link from 'next/link'
-import { AlertCircle, ArrowRight, CheckCircle, ExternalLink, FileText, Send, Trash2 } from 'lucide-react'
+import { AlertCircle, ArrowRight, CheckCircle, ExternalLink, FileText, Send, Star, Trash2 } from 'lucide-react'
 import { getOrgForUser } from '@/lib/get-org'
 
 function formatDate(value: string | null | undefined) {
@@ -46,6 +46,8 @@ export default function ReportsPage() {
   const [inspections, setInspections] = useState<ReportInspection[]>([])
   const [sendingId, setSendingId] = useState<string | null>(null)
   const [previewingId, setPreviewingId] = useState<string | null>(null)
+  const [reviewingId, setReviewingId] = useState<string | null>(null)
+  const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set())
   const [dialog, setDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
 
   const load = useCallback(async () => {
@@ -113,6 +115,22 @@ export default function ReportsPage() {
         }))
     } else {
       alert('Failed to send report. Check that your Resend API key is set in Vercel.')
+    }
+  }
+
+  async function sendReviewRequest(inspection: ReportInspection) {
+    setReviewingId(inspection.id)
+    const res = await fetch('/api/send-review-request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ inspectionId: inspection.id }),
+    })
+    setReviewingId(null)
+    if (res.ok) {
+      setReviewedIds(prev => new Set([...prev, inspection.id]))
+    } else {
+      const data = await res.json()
+      alert(data.error ?? 'Failed to send review request.')
     }
   }
 
@@ -273,7 +291,17 @@ export default function ReportsPage() {
                           Add email
                         </Link>
                       )}
-                      {isSent && <CheckCircle className="h-4 w-4 text-emerald-400" />}
+                      {isSent && (
+                        <Button
+                          variant="outline" size="sm"
+                          onClick={() => sendReviewRequest(i)}
+                          disabled={reviewingId === i.id || reviewedIds.has(i.id)}
+                          className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10"
+                        >
+                          <Star className="mr-2 h-3.5 w-3.5" />
+                          {reviewedIds.has(i.id) ? 'Requested' : reviewingId === i.id ? 'Sending…' : 'Request Review'}
+                        </Button>
+                      )}
                       <Button variant="ghost" size="icon" onClick={() => confirmDeleteReport(i.id)}
                         className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Trash2 className="h-4 w-4" />
