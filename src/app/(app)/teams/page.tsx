@@ -46,12 +46,12 @@ export default function TeamsPage() {
     setIsOwner(owner)
     setPlan(org.plan ?? 'solo')
     if (owner) setOwnerEmail(user.email ?? '')
-    const [{ data: teamsData }, { data: membersData }] = await Promise.all([
+    const [{ data: teamsData }, membersRes] = await Promise.all([
       supabase.from('teams').select('*, team_members(*)').eq('org_id', org.id).order('created_at'),
-      supabase.from('org_members').select('id, email, name').eq('org_id', org.id).not('invite_accepted_at', 'is', null),
+      fetch('/api/org-members'),
     ])
     setTeams(teamsData ?? [])
-    setOrgMembers(membersData ?? [])
+    setOrgMembers(membersRes.ok ? await membersRes.json() : [])
   }
 
   async function addTeam(e: React.FormEvent) {
