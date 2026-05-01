@@ -48,7 +48,7 @@ The following values should be configured in Vercel for Production, Preview, and
 | Step | Dashboard | Owner Action |
 |---:|---|---|
 | 1 | Supabase | Run `supabase-billing-stripe.sql` once, after confirming it targets the production project. |
-| 2 | Stripe | Create three monthly recurring products/prices: Solo **$39**, Growth **$69**, and Pro **$99**. |
+| 2 | Stripe | Create three monthly recurring products/prices: Solo **$29**, Growth **$79**, and Pro **$149**. |
 | 3 | Stripe | Add webhook endpoint `${NEXT_PUBLIC_APP_URL}/api/billing/webhook` and subscribe to checkout/session and subscription lifecycle events. |
 | 4 | Stripe | Copy the live secret key, webhook signing secret, and three price IDs into Vercel. |
 | 5 | Resend | Verify the production sending domain and create/copy `RESEND_API_KEY`. |

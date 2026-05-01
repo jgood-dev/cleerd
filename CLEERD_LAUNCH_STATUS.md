@@ -4,7 +4,7 @@ Updated by **Manus AI** on 2026-04-30.
 
 ## Production Validation Summary
 
-The latest Vercel production deployment is live after correcting the Stripe pricing mismatch. The live homepage now reflects the production Stripe products: **Solo at $39**, **Growth at $69**, and **Pro at $99** per month. The production environment variables were re-pulled and shape-checked after the redeploy; the Stripe price variables now use `price_` IDs rather than `prod_` IDs.
+The latest Vercel production deployment is live, but a follow-up pricing alignment is required before final testing. The selected production price ladder is **Solo at $29**, **Growth at $79**, and **Pro at $149** per month. The homepage and billing configuration already use these amounts; the signup page has now been corrected to match. The Stripe price variables should continue to use `price_` IDs rather than `prod_` IDs.
 
 | Area | Status | Notes |
 |---|---:|---|
@@ -12,7 +12,7 @@ The latest Vercel production deployment is live after correcting the Stripe pric
 | Public route smoke checks | Passed | Public pages returned successful responses in the production smoke matrix. |
 | Stripe webhook route | Passed safe check | Unauthenticated POST produced the expected safe failure path, confirming the webhook route and secret wiring are present without exposing secret values. |
 | Protected cron route | Passed | Authenticated cron smoke check succeeded using the production `CRON_SECRET`. |
-| Pricing consistency | Passed | Application pricing copy and billing plan values now match the live Stripe products. |
+| Pricing consistency | Pending redeploy | Application pricing copy and billing plan values are aligned to Solo $29, Growth $79, and Pro $149. Redeploy and live smoke test are still needed after this correction. |
 | Supabase email template file | Updated | `supabase-email-confirm.html` now uses Cleerd branding and `cleerd.io` contact/domain references. This still needs to be pasted into Supabase Auth templates by the account owner. |
 
 ## Changes Made Locally
