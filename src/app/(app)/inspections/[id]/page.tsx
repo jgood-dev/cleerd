@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Camera, Sparkles, Send, CheckSquare, Square, Loader2, CheckCircle, Trash2, MessageSquare, DollarSign, ExternalLink, Copy } from 'lucide-react'
+import { Camera, Sparkles, Send, CheckSquare, Square, Loader2, CheckCircle, Trash2, MessageSquare, DollarSign, ExternalLink, Copy, Star } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 type InspectionRecord = {
@@ -57,6 +57,9 @@ export default function InspectionDetailPage() {
   const [uploadingType, setUploadingType] = useState<string | null>(null)
   const [reportSent, setReportSent] = useState(false)
   const [sendingReport, setSendingReport] = useState(false)
+  const [sendingReview, setSendingReview] = useState(false)
+  const [reviewSent, setReviewSent] = useState(false)
+  const [reviewError, setReviewError] = useState('')
   const [copyingSummary, setCopyingSummary] = useState(false)
   const [clientNote, setClientNote] = useState('')
   const [savingNote, setSavingNote] = useState(false)
@@ -243,6 +246,23 @@ export default function InspectionDetailPage() {
     }
   }
 
+  async function sendReviewRequest() {
+    setSendingReview(true)
+    setReviewError('')
+    const res = await fetch('/api/send-review-request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ inspectionId: id }),
+    })
+    setSendingReview(false)
+    if (res.ok) {
+      setReviewSent(true)
+    } else {
+      const data = await res.json()
+      setReviewError(data.error ?? 'Failed to send review request.')
+    }
+  }
+
   if (!inspection) return (
     <div className="flex items-center justify-center h-64">
       <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
@@ -261,7 +281,7 @@ export default function InspectionDetailPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">{inspection.properties?.name ?? 'Inspection'}</h1>
           <p className="text-gray-400">
@@ -425,6 +445,16 @@ export default function InspectionDetailPage() {
             </Button>
             {reportSent && <span className="text-sm text-green-400 flex items-center gap-1.5"><CheckCircle className="h-4 w-4" /> Sent successfully</span>}
           </div>
+          {inspection.status === 'report_sent' && (
+            <div className="flex flex-wrap items-center gap-3 pt-1 border-t border-white/10">
+              <Button variant="outline" size="sm" onClick={sendReviewRequest} disabled={sendingReview || reviewSent}>
+                {sendingReview ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Star className="mr-2 h-3.5 w-3.5" />}
+                {reviewSent ? 'Review request sent' : sendingReview ? 'Sending…' : 'Request Review'}
+              </Button>
+              {reviewSent && <span className="text-sm text-green-400 flex items-center gap-1.5"><CheckCircle className="h-3.5 w-3.5" /> Sent to client</span>}
+              {reviewError && <span className="text-sm text-red-400">{reviewError}</span>}
+            </div>
+          )}
         </CardContent>
       </Card>
 

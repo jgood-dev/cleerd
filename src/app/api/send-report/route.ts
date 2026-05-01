@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
             <tr><td style="background:#eff6ff;border-left:4px solid #3b82f6;border-radius:6px;padding:14px 16px;">
               <p style="margin:0;font-size:14px;color:#374151;line-height:1.6;">${safeClientNote}</p>
-              ${safeTeamName ? `<p style="margin:8px 0 0;font-size:13px;color:#9ca3af;">â€” ${safeTeamName}</p>` : ''}
+              ${safeTeamName ? `<p style=”margin:8px 0 0;font-size:13px;color:#9ca3af;”>&mdash; ${safeTeamName}</p>` : ''}
             </td></tr>
           </table>` : ''}
 
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
 
         <!-- Footer -->
         <tr><td style="background:#f9fafb;border-radius:0 0 12px 12px;border-top:1px solid #e5e7eb;padding:18px 32px;text-align:center;">
-          <p style="margin:0;color:#9ca3af;font-size:12px;">Sent by <strong style="color:#6b7280;">${safeCompanyName}</strong> Â· Powered by Cleerd</p>
+          <p style="margin:0;color:#9ca3af;font-size:12px;">Sent by <strong style="color:#6b7280;">${safeCompanyName}</strong> &middot; Powered by Cleerd</p>
         </td></tr>
 
       </table>
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
 </body>
 </html>`
 
-  const plainText = `${greeting}\n\nYour job at ${address} is complete. ${companyName} put together a private summary with proof photos, completed task items, and notes from the team.${inspection.client_note ? `\n\n${inspection.client_note}` : ''}\n\nView your job summary here:\n${reportUrl}\n\nIf anything needs attention, reply to this email while the details are fresh. If you want another visit scheduled, replying here is the fastest next step.${org?.review_link ? `\n\nHappy with the work? Leave a review here:\n${org.review_link}` : ''}\n\nâ€” ${companyName}`
+  const plainText = `${greeting}\n\nYour job at ${address} is complete. ${companyName} put together a private summary with proof photos, completed task items, and notes from the team.${inspection.client_note ? `\n\n${inspection.client_note}` : ''}\n\nView your job summary here:\n${reportUrl}\n\nIf anything needs attention, reply to this email while the details are fresh. If you want another visit scheduled, replying here is the fastest next step.${org?.review_link ? `\n\nHappy with the work? Leave a review here:\n${org.review_link}` : ''}\n\n— ${companyName}`
 
   try {
     await sendTransactionalEmail({
