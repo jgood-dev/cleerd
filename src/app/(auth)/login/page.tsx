@@ -70,8 +70,11 @@ export default function LoginPage() {
               <Input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-300">Password</label>
-              <Input type="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" value={password} onChange={e => setPassword(e.target.value)} required />
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="text-sm font-medium text-gray-300">Password</label>
+                <Link href="/forgot-password" className="text-xs text-blue-400 hover:text-blue-300">Forgot password?</Link>
+              </div>
+              <Input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
             </div>
             {authMessage && <p className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-3 text-sm text-yellow-100">{authMessage}</p>}
             {error && <p className="text-sm text-red-400">{error}</p>}

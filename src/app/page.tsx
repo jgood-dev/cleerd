@@ -64,10 +64,10 @@ function AppMockup() {
             <div className="flex items-start justify-between mb-5">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-base font-bold text-white">247 Maple Drive â€” Unit 3B</span>
+                  <span className="text-base font-bold text-white">247 Maple Drive &mdash; Unit 3B</span>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 font-medium">Completed</span>
                 </div>
-                <p className="text-xs text-gray-500">Morning Crew Â· Mon Apr 21 Â· 9:00 AM Â· 2h 30m</p>
+                <p className="text-xs text-gray-500">Morning Crew &middot; Mon Apr 21 &middot; 9:00 AM &middot; 2h 30m</p>
               </div>
               <div className="flex-shrink-0 text-right">
                 <div className="text-2xl font-bold text-emerald-400">94%</div>
@@ -208,7 +208,7 @@ export default function LandingPage() {
             <Button size="lg" variant="outline" className="border-white/20 text-gray-300 hover:bg-white/10 hover:text-white">Compare plans</Button>
           </Link>
         </div>
-        <p className="mt-4 text-sm text-gray-500">No credit card required Â· Cancel anytime Â· Built for teams of 1â€“20</p>
+        <p className="mt-4 text-sm text-gray-500">No credit card required &middot; Cancel anytime &middot; Built for teams of 1&ndash;20</p>
 
         <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {revenueStats.map(stat => (
@@ -222,7 +222,7 @@ export default function LandingPage() {
       </section>
 
       <section className="px-6 pb-20 max-w-5xl mx-auto">
-        <p className="text-center text-sm text-gray-500 mb-6">Job detail view â€” tasks, photos, AI quality report, and client summary in one place</p>
+        <p className="text-center text-sm text-gray-500 mb-6">Job detail view &mdash; tasks, photos, AI quality report, and client summary in one place</p>
         <AppMockup />
       </section>
 
@@ -441,7 +441,7 @@ export default function LandingPage() {
             Start free for 14 days <ArrowRight className="h-4 w-4" />
           </Button>
         </Link>
-        <p className="mt-4 text-sm text-gray-500">No credit card Â· Cancel anytime Â· Set up in minutes</p>
+        <p className="mt-4 text-sm text-gray-500">No credit card &middot; Cancel anytime &middot; Set up in minutes</p>
       </section>
 
       <footer className="border-t border-white/10 px-6 py-8 text-sm text-gray-500">
@@ -449,7 +449,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-2">
             <CheckSquare className="h-4 w-4 text-blue-400" />
             <span className="font-semibold text-gray-400">Cleerd</span>
-            <span className="ml-2">Â© {new Date().getFullYear()}</span>
+            <span className="ml-2">&copy; {new Date().getFullYear()}</span>
           </div>
           <div className="flex gap-6">
             <Link href="/privacy" className="hover:text-gray-300 transition-colors">Privacy</Link>
