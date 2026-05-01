@@ -1,4 +1,4 @@
-export type PlanId = 'solo' | 'growth' | 'pro'
+﻿export type PlanId = 'solo' | 'growth' | 'pro'
 
 export type BillingPlan = {
   id: PlanId
@@ -14,8 +14,8 @@ export type BillingPlan = {
 export const BILLING_PLANS: BillingPlan[] = [
   {
     id: 'solo',
-    name: 'Starter',
-    price: 39,
+    name: 'Solo',
+    price: 29,
     priceEnv: 'STRIPE_PRICE_SOLO',
     teamLimit: 1,
     jobLimit: 50,
@@ -25,7 +25,7 @@ export const BILLING_PLANS: BillingPlan[] = [
   {
     id: 'growth',
     name: 'Growth',
-    price: 69,
+    price: 79,
     priceEnv: 'STRIPE_PRICE_GROWTH',
     teamLimit: 3,
     jobLimit: null,
@@ -35,7 +35,7 @@ export const BILLING_PLANS: BillingPlan[] = [
   {
     id: 'pro',
     name: 'Pro',
-    price: 99,
+    price: 149,
     priceEnv: 'STRIPE_PRICE_PRO',
     teamLimit: null,
     jobLimit: null,
@@ -60,3 +60,4 @@ export function inferPlanFromPriceId(priceId?: string | null): PlanId | null {
   }
   return null
 }
+

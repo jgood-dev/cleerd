@@ -1,4 +1,4 @@
-import Link from 'next/link'
+﻿import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
   CheckSquare, Camera, Sparkles, Send, CheckCircle, CalendarDays,
@@ -64,10 +64,10 @@ function AppMockup() {
             <div className="flex items-start justify-between mb-5">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-base font-bold text-white">247 Maple Drive — Unit 3B</span>
+                  <span className="text-base font-bold text-white">247 Maple Drive â€” Unit 3B</span>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 font-medium">Completed</span>
                 </div>
-                <p className="text-xs text-gray-500">Morning Crew · Mon Apr 21 · 9:00 AM · 2h 30m</p>
+                <p className="text-xs text-gray-500">Morning Crew Â· Mon Apr 21 Â· 9:00 AM Â· 2h 30m</p>
               </div>
               <div className="flex-shrink-0 text-right">
                 <div className="text-2xl font-bold text-emerald-400">94%</div>
@@ -124,7 +124,7 @@ function AppMockup() {
 export default function LandingPage() {
   const revenueStats = [
     { value: '14 days', label: 'free trial', sub: 'No credit card required' },
-    { value: '$39/mo', label: 'starter plan', sub: 'Built for owner-operators' },
+    { value: '$29/mo', label: 'solo plan', sub: 'Built for owner-operators' },
     { value: '10 min', label: 'setup target', sub: 'Add client, team, template, job' },
   ]
 
@@ -148,20 +148,20 @@ export default function LandingPage() {
 
   const plans = [
     {
-      id: 'solo', name: 'Starter', price: 39,
+      id: 'solo', name: 'Solo', price: 29,
       desc: 'Owner-operators proving every job',
       bestFor: 'Solo crews and side-hustle service businesses',
       features: ['1 team', 'Up to 50 jobs/month', 'AI quality reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations'],
     },
     {
-      id: 'growth', name: 'Growth', price: 69,
+      id: 'growth', name: 'Growth', price: 79,
       desc: 'Best value for recurring service revenue',
       bestFor: 'Most small service teams with recurring clients',
       features: ['Up to 3 teams', 'Unlimited jobs', 'AI quality reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations', 'Appointment reminders'],
       popular: true,
     },
     {
-      id: 'pro', name: 'Pro', price: 99,
+      id: 'pro', name: 'Pro', price: 149,
       desc: 'Automation leverage for established operators',
       bestFor: 'Growing businesses with multiple crews',
       features: ['Unlimited teams', 'Unlimited jobs', 'AI quality reports', 'Photo documentation', 'Client email delivery', 'Booking confirmations', 'Appointment reminders', 'Priority support'],
@@ -208,7 +208,7 @@ export default function LandingPage() {
             <Button size="lg" variant="outline" className="border-white/20 text-gray-300 hover:bg-white/10 hover:text-white">Compare plans</Button>
           </Link>
         </div>
-        <p className="mt-4 text-sm text-gray-500">No credit card required · Cancel anytime · Built for teams of 1–20</p>
+        <p className="mt-4 text-sm text-gray-500">No credit card required Â· Cancel anytime Â· Built for teams of 1â€“20</p>
 
         <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {revenueStats.map(stat => (
@@ -222,7 +222,7 @@ export default function LandingPage() {
       </section>
 
       <section className="px-6 pb-20 max-w-5xl mx-auto">
-        <p className="text-center text-sm text-gray-500 mb-6">Job detail view — tasks, photos, AI quality report, and client summary in one place</p>
+        <p className="text-center text-sm text-gray-500 mb-6">Job detail view â€” tasks, photos, AI quality report, and client summary in one place</p>
         <AppMockup />
       </section>
 
@@ -326,7 +326,7 @@ export default function LandingPage() {
                 ['Saved scheduling/admin time', '1 hour'],
                 ['Avoided missed reminder or callback', '$50+ value'],
                 ['One better-timed review request', 'Potential new booking'],
-                ['Starter plan', '$39/month'],
+                ['Solo plan', '$29/month'],
               ].map(([label, value]) => (
                 <div key={label} className="flex items-center justify-between gap-4 border-b border-white/10 pb-3 last:border-0 last:pb-0">
                   <span className="text-gray-400">{label}</span>
@@ -368,7 +368,7 @@ export default function LandingPage() {
           </div>
           <h2 className="text-3xl font-bold text-white mb-3">Simple pricing that does not require a committee meeting</h2>
           <p className="text-gray-400 mb-4">Start free for 14 days. No credit card required.</p>
-          <p className="mx-auto mb-12 max-w-2xl text-sm text-gray-500">Most teams should start on Growth if they have recurring clients or more than one crew. Starter is intentionally affordable for owner-operators validating the workflow.</p>
+          <p className="mx-auto mb-12 max-w-2xl text-sm text-gray-500">Most teams should start on Growth if they have recurring clients or more than one crew. Solo is intentionally affordable for owner-operators validating the workflow.</p>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             {plans.map(plan => (
               <div key={plan.id} className={`relative rounded-xl border p-6 text-left flex flex-col ${plan.popular ? 'border-blue-500 bg-blue-500/10 shadow-xl shadow-blue-500/10' : 'border-white/10 bg-[#1e2433]'}`}>
@@ -441,7 +441,7 @@ export default function LandingPage() {
             Start free for 14 days <ArrowRight className="h-4 w-4" />
           </Button>
         </Link>
-        <p className="mt-4 text-sm text-gray-500">No credit card · Cancel anytime · Set up in minutes</p>
+        <p className="mt-4 text-sm text-gray-500">No credit card Â· Cancel anytime Â· Set up in minutes</p>
       </section>
 
       <footer className="border-t border-white/10 px-6 py-8 text-sm text-gray-500">
@@ -449,7 +449,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-2">
             <CheckSquare className="h-4 w-4 text-blue-400" />
             <span className="font-semibold text-gray-400">Cleerd</span>
-            <span className="ml-2">© {new Date().getFullYear()}</span>
+            <span className="ml-2">Â© {new Date().getFullYear()}</span>
           </div>
           <div className="flex gap-6">
             <Link href="/privacy" className="hover:text-gray-300 transition-colors">Privacy</Link>
@@ -461,3 +461,5 @@ export default function LandingPage() {
     </div>
   )
 }
+
+
