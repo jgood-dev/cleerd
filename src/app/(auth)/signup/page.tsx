@@ -50,11 +50,32 @@ export default function SignupPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [confirmPending, setConfirmPending] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
+  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const router = useRouter()
 
   useEffect(() => {
     setSelectedPlan(normalizePlan(new URLSearchParams(window.location.search).get('plan')))
   }, [])
+
+  async function handleResend() {
+    if (resendCooldown > 0) return
+    setResendStatus('sending')
+    const supabase = createClient()
+    const { error } = await supabase.auth.resend({ type: 'signup', email })
+    if (error) {
+      setResendStatus('error')
+    } else {
+      setResendStatus('sent')
+      setResendCooldown(60)
+      const interval = setInterval(() => {
+        setResendCooldown(prev => {
+          if (prev <= 1) { clearInterval(interval); return 0 }
+          return prev - 1
+        })
+      }, 1000)
+    }
+  }
 
   function choosePlan(planId: PlanId) {
     setSelectedPlan(planId)
@@ -129,7 +150,18 @@ export default function SignupPage() {
               Open the dashboard, add one client location, and schedule one real job. Cleerd will keep the next step visible so you are not hunting around like it is a tax portal.
             </p>
           </div>
-          <p className="mt-6 text-sm text-gray-500">
+          <div className="mt-6">
+            <button
+              onClick={handleResend}
+              disabled={resendCooldown > 0 || resendStatus === 'sending'}
+              className="w-full rounded-lg border border-white/10 bg-[#161b27] px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {resendStatus === 'sending' ? 'Sending…' : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend confirmation email'}
+            </button>
+            {resendStatus === 'sent' && <p className="mt-2 text-center text-xs text-emerald-400">Confirmation email resent.</p>}
+            {resendStatus === 'error' && <p className="mt-2 text-center text-xs text-red-400">Could not resend. Try again in a moment.</p>}
+          </div>
+          <p className="mt-4 text-sm text-gray-500 text-center">
             Already confirmed?{' '}
             <Link href="/login" className="font-medium text-blue-400 hover:text-blue-300">Sign in</Link>
           </p>
