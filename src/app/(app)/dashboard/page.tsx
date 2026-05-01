@@ -76,7 +76,7 @@ export default async function DashboardPage() {
     sentReportQuery,
   ])
 
-  const hasBillingSetup = Boolean(org?.stripe_customer_id || org?.subscription_status === 'active' || org?.subscription_status === 'trialing')
+  const hasBillingSetup = Boolean(org?.stripe_customer_id || org?.subscription_status === 'active')
   const hasClientCommunicationSetup = Boolean(org?.review_link || org?.reminder_lead_hours)
   const setupTasks = [
     {
