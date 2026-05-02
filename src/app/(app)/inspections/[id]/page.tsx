@@ -132,6 +132,7 @@ export default function InspectionDetailPage() {
       destructive: false,
       onConfirm: async () => {
         await supabase.from('inspections').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id)
+        if (job?.id) await supabase.from('jobs').update({ status: 'done' }).eq('id', job.id)
         setDialog(null)
         await load()
       },
@@ -158,6 +159,7 @@ export default function InspectionDetailPage() {
           status: 'completed',
           completed_at: new Date().toISOString(),
         }).eq('id', id)
+        if (job?.id) await supabase.from('jobs').update({ status: 'done' }).eq('id', job.id)
         await load()
       }
     } catch {
@@ -239,6 +241,7 @@ export default function InspectionDetailPage() {
     setSendingReport(false)
     if (res.ok) {
       await supabase.from('inspections').update({ status: 'report_sent' }).eq('id', id)
+      if (job?.id) await supabase.from('jobs').update({ status: 'done' }).eq('id', job.id)
       setReportSent(true)
       await load()
     } else {
