@@ -82,6 +82,9 @@ export default function BusinessSettingsPage() {
   const [orgName, setOrgName] = useState('')
   const [timezone, setTimezone] = useState('')
   const [editing, setEditing] = useState(false)
+  const [ownerName, setOwnerName] = useState('')
+  const [ownerNameSaving, setOwnerNameSaving] = useState(false)
+  const [ownerNameSaved, setOwnerNameSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [tzSaving, setTzSaving] = useState(false)
@@ -101,6 +104,7 @@ export default function BusinessSettingsPage() {
     setOrg(o)
     setIsOwner(owner)
     setOrgName(o?.name ?? '')
+    setOwnerName(o?.owner_name ?? '')
     setTimezone(o?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone)
     setReviewLink(o?.review_link ?? '')
     setReminderLeadHours(String(o?.reminder_lead_hours ?? 48))
@@ -150,6 +154,15 @@ export default function BusinessSettingsPage() {
     setEditing(false)
   }
 
+  async function saveOwnerName() {
+    if (!org) return
+    setOwnerNameSaving(true)
+    await supabase.from('organizations').update({ owner_name: ownerName.trim() || null }).eq('id', org.id)
+    setOwnerNameSaving(false)
+    setOwnerNameSaved(true)
+    setTimeout(() => setOwnerNameSaved(false), 2000)
+  }
+
   function detectTimezone() {
     setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone)
   }
@@ -191,6 +204,25 @@ export default function BusinessSettingsPage() {
               {saved && <p className="text-sm text-green-400 mt-2">Saved successfully.</p>}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Your Name</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-gray-500">Shown on reports and job assignments instead of your email address.</p>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Full name"
+              value={ownerName}
+              onChange={e => setOwnerName(e.target.value)}
+              disabled={!isOwner}
+            />
+            <Button onClick={saveOwnerName} disabled={ownerNameSaving || !isOwner}>
+              {ownerNameSaving ? 'Saving...' : 'Save'}
+            </Button>
+          </div>
+          {ownerNameSaved && <p className="text-sm text-green-400">Saved.</p>}
         </CardContent>
       </Card>
 
