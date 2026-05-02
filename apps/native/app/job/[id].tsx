@@ -1,16 +1,57 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
-  View, Text, ScrollView, TouchableOpacity, TextInput,
-  Alert, ActivityIndicator, Image,
+  View, Text, ScrollView, TouchableOpacity,
+  Alert, ActivityIndicator, Image, Linking, ActionSheetIOS, Platform,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
+import * as FileSystem from 'expo-file-system/legacy'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '@/lib/supabase'
 
 type ChecklistItem = { id: string; label: string; completed: boolean }
-type Photo = { id: string; url: string; label?: string }
+type Photo = { id: string; storage_path: string; photo_type: string }
+type PhotoType = 'before' | 'after' | 'issue'
+
+const PHOTO_TYPE_LABELS: Record<PhotoType, string> = {
+  before: 'Before',
+  after: 'After',
+  issue: 'Issue',
+}
+
+const PHOTO_TYPE_COLORS: Record<PhotoType, string> = {
+  before: '#3b82f6',
+  after: '#22c55e',
+  issue: '#ef4444',
+}
+
+function pickPhotoType(): Promise<PhotoType | null> {
+  return new Promise(resolve => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: 'Photo type',
+          options: ['Cancel', 'Before', 'After', 'Issue'],
+          cancelButtonIndex: 0,
+        },
+        index => {
+          if (index === 0) resolve(null)
+          else if (index === 1) resolve('before')
+          else if (index === 2) resolve('after')
+          else resolve('issue')
+        }
+      )
+    } else {
+      Alert.alert('Photo type', 'Choose a photo type', [
+        { text: 'Cancel', style: 'cancel', onPress: () => resolve(null) },
+        { text: 'Before', onPress: () => resolve('before') },
+        { text: 'After', onPress: () => resolve('after') },
+        { text: 'Issue', onPress: () => resolve('issue') },
+      ])
+    }
+  })
+}
 
 export default function JobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -50,13 +91,45 @@ export default function JobDetailScreen() {
 
   async function startJob() {
     await supabase.from('jobs').update({ status: 'in_progress' }).eq('id', id)
+    const { data: newInspection } = await supabase
+      .from('inspections')
+      .insert({ job_id: id, org_id: job.org_id, status: 'in_progress' })
+      .select()
+      .single()
     setJob((prev: any) => ({ ...prev, status: 'in_progress' }))
+    setInspection(newInspection)
+  }
+
+  async function uploadUri(uri: string, fileName: string, photoType: PhotoType) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) throw new Error('Not authenticated')
+
+    const uploadUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/inspection-photos/${fileName}`
+    const result = await FileSystem.uploadAsync(uploadUrl, uri, {
+      httpMethod: 'POST',
+      uploadType: 1,
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
+        'Content-Type': 'image/jpeg',
+        'x-upsert': 'false',
+      },
+    })
+    if (result.status !== 200 && result.status !== 201) {
+      throw new Error(`Storage ${result.status}: ${result.body}`)
+    }
+    const { error: dbError } = await supabase.from('inspection_photos').insert({
+      inspection_id: inspection.id,
+      storage_path: fileName,
+      photo_type: photoType,
+    })
+    if (dbError) throw new Error(`DB insert: ${dbError.message}`)
   }
 
   async function takePhoto() {
     if (!inspection?.id) return Alert.alert('No inspection', 'Job must be started first.')
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
+    const photoType = await pickPhotoType()
+    if (!photoType) return
 
     const result = await ImagePicker.launchCameraAsync({ quality: 0.85, allowsEditing: false })
     if (result.canceled) return
@@ -65,28 +138,10 @@ export default function JobDetailScreen() {
     try {
       const uri = result.assets[0].uri
       const fileName = `${inspection.id}/${Date.now()}.jpg`
-      const response = await fetch(uri)
-      const blob = await response.blob()
-
-      const { error: uploadError } = await supabase.storage
-        .from('inspection-photos')
-        .upload(fileName, blob, { contentType: 'image/jpeg', upsert: false })
-
-      if (uploadError) throw uploadError
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('inspection-photos')
-        .getPublicUrl(fileName)
-
-      await supabase.from('inspection_photos').insert({
-        inspection_id: inspection.id,
-        url: publicUrl,
-        label: 'Photo',
-      })
-
+      await uploadUri(uri, fileName, photoType)
       await load()
     } catch (err: any) {
-      Alert.alert('Upload failed', err.message)
+      Alert.alert('Upload failed', err.message ?? JSON.stringify(err))
     } finally {
       setUploadingPhoto(false)
     }
@@ -94,8 +149,11 @@ export default function JobDetailScreen() {
 
   async function pickFromLibrary() {
     if (!inspection?.id) return Alert.alert('No inspection', 'Job must be started first.')
+    const photoType = await pickPhotoType()
+    if (!photoType) return
+
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsMultipleSelection: true,
       quality: 0.85,
     })
@@ -105,14 +163,7 @@ export default function JobDetailScreen() {
     try {
       for (const asset of result.assets) {
         const fileName = `${inspection.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
-        const response = await fetch(asset.uri)
-        const blob = await response.blob()
-        const { error } = await supabase.storage
-          .from('inspection-photos')
-          .upload(fileName, blob, { contentType: 'image/jpeg', upsert: false })
-        if (error) throw error
-        const { data: { publicUrl } } = supabase.storage.from('inspection-photos').getPublicUrl(fileName)
-        await supabase.from('inspection_photos').insert({ inspection_id: inspection.id, url: publicUrl, label: 'Photo' })
+        await uploadUri(asset.uri, fileName, photoType)
       }
       await load()
     } catch (err: any) {
@@ -124,56 +175,67 @@ export default function JobDetailScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-[#0f1117] items-center justify-center">
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#0f1117', alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator color="#2563eb" />
       </SafeAreaView>
     )
   }
 
   const completedCount = checklist.filter(c => c.completed).length
+  const photosByType = {
+    before: photos.filter(p => p.photo_type === 'before'),
+    after: photos.filter(p => p.photo_type === 'after'),
+    issue: photos.filter(p => p.photo_type === 'issue'),
+  }
 
   return (
-    <SafeAreaView className="flex-1 bg-[#0f1117]">
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0f1117' }}>
       {/* Header */}
-      <View className="flex-row items-center px-4 py-3 border-b border-white/10">
-        <TouchableOpacity onPress={() => router.back()} className="mr-3">
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12 }}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
-        <View className="flex-1">
-          <Text className="text-white font-bold text-lg" numberOfLines={1}>
-            {job?.title || job?.properties?.name || 'Job'}
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: '#ffffff', fontWeight: '700', fontSize: 17 }} numberOfLines={1}>
+            {job?.properties?.name || 'Job'}
           </Text>
-          <Text className="text-gray-400 text-xs">{job?.properties?.address}</Text>
+          <Text style={{ color: '#6b7280', fontSize: 12 }}>{job?.properties?.address}</Text>
         </View>
-        <View className={`px-2.5 py-1 rounded-full ${job?.status === 'in_progress' ? 'bg-amber-500/20' : job?.status === 'done' ? 'bg-green-500/20' : 'bg-blue-500/20'}`}>
-          <Text className={`text-xs font-medium ${job?.status === 'in_progress' ? 'text-amber-400' : job?.status === 'done' ? 'text-green-400' : 'text-blue-400'}`}>
+        <View style={{
+          paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
+          backgroundColor: job?.status === 'in_progress' ? 'rgba(245,158,11,0.15)' : job?.status === 'done' ? 'rgba(34,197,94,0.15)' : 'rgba(59,130,246,0.15)',
+        }}>
+          <Text style={{
+            fontSize: 12, fontWeight: '600',
+            color: job?.status === 'in_progress' ? '#f59e0b' : job?.status === 'done' ? '#22c55e' : '#3b82f6',
+          }}>
             {job?.status === 'in_progress' ? 'In Progress' : job?.status === 'done' ? 'Done' : 'Scheduled'}
           </Text>
         </View>
       </View>
 
-      <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, gap: 16 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, gap: 16 }}>
         {/* Start job */}
         {job?.status === 'scheduled' && (
           <TouchableOpacity
-            className="bg-brand rounded-xl py-4 items-center"
+            style={{ backgroundColor: '#2563eb', borderRadius: 12, paddingVertical: 16, alignItems: 'center' }}
             onPress={startJob}
           >
-            <Text className="text-white font-semibold text-base">Start Job</Text>
+            <Text style={{ color: '#ffffff', fontWeight: '600', fontSize: 16 }}>Start Job</Text>
           </TouchableOpacity>
         )}
 
         {/* Checklist */}
         {checklist.length > 0 && (
-          <View className="bg-surface rounded-xl border border-white/10 overflow-hidden">
-            <View className="px-4 py-3 border-b border-white/10 flex-row justify-between items-center">
-              <Text className="text-white font-semibold">Checklist</Text>
-              <Text className="text-gray-400 text-sm">{completedCount}/{checklist.length}</Text>
+          <View style={{ backgroundColor: '#1a1d27', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+            <View style={{ paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ color: '#ffffff', fontWeight: '600', fontSize: 15 }}>Checklist</Text>
+              <Text style={{ color: '#6b7280', fontSize: 13 }}>{completedCount}/{checklist.length}</Text>
             </View>
             {checklist.map((item, idx) => (
               <TouchableOpacity
                 key={item.id}
-                className={`flex-row items-center px-4 py-3.5 ${idx < checklist.length - 1 ? 'border-b border-white/5' : ''}`}
+                style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: idx < checklist.length - 1 ? 1 : 0, borderBottomColor: 'rgba(255,255,255,0.04)' }}
                 onPress={() => toggleItem(item)}
                 activeOpacity={0.6}
               >
@@ -182,7 +244,7 @@ export default function JobDetailScreen() {
                   size={22}
                   color={item.completed ? '#22c55e' : '#6b7280'}
                 />
-                <Text className={`ml-3 text-sm flex-1 ${item.completed ? 'text-gray-500 line-through' : 'text-gray-100'}`}>
+                <Text style={{ marginLeft: 12, fontSize: 14, flex: 1, color: item.completed ? '#6b7280' : '#f3f4f6', textDecorationLine: item.completed ? 'line-through' : 'none' }}>
                   {item.label}
                 </Text>
               </TouchableOpacity>
@@ -191,59 +253,81 @@ export default function JobDetailScreen() {
         )}
 
         {/* Photos */}
-        <View className="bg-surface rounded-xl border border-white/10 overflow-hidden">
-          <View className="px-4 py-3 border-b border-white/10 flex-row justify-between items-center">
-            <Text className="text-white font-semibold">Photos</Text>
-            <Text className="text-gray-400 text-sm">{photos.length}</Text>
+        <View style={{ backgroundColor: '#1a1d27', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+          <View style={{ paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ color: '#ffffff', fontWeight: '600', fontSize: 15 }}>Photos</Text>
+            <Text style={{ color: '#6b7280', fontSize: 13 }}>{photos.length}</Text>
           </View>
 
-          {photos.length > 0 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 py-3">
-              <View className="flex-row gap-2">
-                {photos.map(p => (
-                  <Image key={p.id} source={{ uri: p.url }} className="w-24 h-24 rounded-lg" />
-                ))}
+          {(['before', 'after', 'issue'] as PhotoType[]).map(type => {
+            const group = photosByType[type]
+            if (group.length === 0) return null
+            return (
+              <View key={type}>
+                <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: PHOTO_TYPE_COLORS[type] }} />
+                  <Text style={{ color: '#9ca3af', fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    {PHOTO_TYPE_LABELS[type]}
+                  </Text>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    {group.map(p => {
+                      const { data: { publicUrl } } = supabase.storage.from('inspection-photos').getPublicUrl(p.storage_path)
+                      return (
+                        <Image
+                          key={p.id}
+                          source={{ uri: publicUrl }}
+                          style={{ width: 96, height: 96, borderRadius: 8, backgroundColor: '#374151' }}
+                        />
+                      )
+                    })}
+                  </View>
+                </ScrollView>
               </View>
-            </ScrollView>
-          )}
+            )
+          })}
 
-          <View className="flex-row gap-3 px-4 py-3">
+          <View style={{ flexDirection: 'row', gap: 12, paddingHorizontal: 16, paddingVertical: 12 }}>
             <TouchableOpacity
-              className="flex-1 bg-brand/20 border border-brand/30 rounded-xl py-3 items-center flex-row justify-center gap-2"
               onPress={takePhoto}
               disabled={uploadingPhoto}
+              style={{ flex: 1, backgroundColor: 'rgba(37,99,235,0.15)', borderWidth: 1, borderColor: 'rgba(37,99,235,0.3)', borderRadius: 10, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
             >
-              <Ionicons name="camera-outline" size={18} color="#2563eb" />
-              <Text className="text-blue-400 font-medium text-sm">Take Photo</Text>
+              <Ionicons name="camera-outline" size={18} color="#3b82f6" />
+              <Text style={{ color: '#3b82f6', fontWeight: '600', fontSize: 14 }}>Take Photo</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              className="flex-1 bg-white/5 border border-white/10 rounded-xl py-3 items-center flex-row justify-center gap-2"
               onPress={pickFromLibrary}
               disabled={uploadingPhoto}
+              style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderRadius: 10, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
             >
               <Ionicons name="images-outline" size={18} color="#9ca3af" />
-              <Text className="text-gray-400 font-medium text-sm">Library</Text>
+              <Text style={{ color: '#9ca3af', fontWeight: '600', fontSize: 14 }}>Library</Text>
             </TouchableOpacity>
           </View>
+
           {uploadingPhoto && (
-            <View className="items-center py-2">
+            <View style={{ alignItems: 'center', paddingBottom: 12 }}>
               <ActivityIndicator size="small" color="#2563eb" />
-              <Text className="text-gray-400 text-xs mt-1">Uploading…</Text>
+              <Text style={{ color: '#6b7280', fontSize: 12, marginTop: 4 }}>Uploading…</Text>
             </View>
           )}
         </View>
 
-        {/* Web link for report/invoice */}
-        <TouchableOpacity
-          className="bg-surface border border-white/10 rounded-xl p-4 flex-row items-center justify-between"
-          onPress={() => Alert.alert('Open on web', 'Open this job on cleerd.io to send reports and invoices.', [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Open', onPress: () => {} },
-          ])}
-        >
-          <Text className="text-gray-300 text-sm">Send report / invoice</Text>
-          <Text className="text-gray-500 text-xs">Opens cleerd.io →</Text>
-        </TouchableOpacity>
+        {/* Send report / invoice */}
+        {inspection?.id && (
+          <TouchableOpacity
+            onPress={() => Linking.openURL(`https://www.cleerd.io/inspections/${inspection.id}`)}
+            style={{ backgroundColor: '#1a1d27', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+          >
+            <View>
+              <Text style={{ color: '#e5e7eb', fontSize: 14, fontWeight: '500' }}>Send report / invoice</Text>
+              <Text style={{ color: '#4b5563', fontSize: 12, marginTop: 2 }}>Opens cleerd.io</Text>
+            </View>
+            <Ionicons name="open-outline" size={18} color="#4b5563" />
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </SafeAreaView>
   )

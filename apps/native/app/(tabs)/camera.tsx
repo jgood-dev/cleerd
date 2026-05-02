@@ -1,130 +1,169 @@
-import { useState, useRef } from 'react'
-import { View, Text, TouchableOpacity, Image, FlatList, Alert, ActivityIndicator } from 'react-native'
+import { useCallback, useState } from 'react'
+import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, Alert, ActionSheetIOS, Platform } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { CameraView, CameraType, useCameraPermissions } from 'expo-camera'
-import * as ImagePicker from 'expo-image-picker'
+import { useRouter, useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import * as ImagePicker from 'expo-image-picker'
+import * as FileSystem from 'expo-file-system/legacy'
 import { supabase } from '@/lib/supabase'
+import { getOrgForUser } from '@/lib/get-org'
 
-// Standalone job-site camera — attach photos to active job
-// Manus: wire up job selection and upload to inspection_photos table
-export default function CameraScreen() {
-  const [permission, requestPermission] = useCameraPermissions()
-  const [facing, setFacing] = useState<CameraType>('back')
-  const [captured, setCaptured] = useState<string[]>([])
-  const [uploading, setUploading] = useState(false)
-  const cameraRef = useRef<CameraView>(null)
+type Job = { id: string; status: string; scheduled_at: string; properties: { name: string; address: string } | null; inspections: { id: string }[] }
+type PhotoType = 'before' | 'after' | 'issue'
 
-  if (!permission) return <View className="flex-1 bg-[#0f1117]" />
+function pickPhotoType(): Promise<PhotoType | null> {
+  return new Promise(resolve => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { title: 'Photo type', options: ['Cancel', 'Before', 'After', 'Issue'], cancelButtonIndex: 0 },
+        i => { if (i === 0) resolve(null); else if (i === 1) resolve('before'); else if (i === 2) resolve('after'); else resolve('issue') }
+      )
+    } else {
+      Alert.alert('Photo type', '', [
+        { text: 'Cancel', style: 'cancel', onPress: () => resolve(null) },
+        { text: 'Before', onPress: () => resolve('before') },
+        { text: 'After', onPress: () => resolve('after') },
+        { text: 'Issue', onPress: () => resolve('issue') },
+      ])
+    }
+  })
+}
 
-  if (!permission.granted) {
+export default function QuickCameraTab() {
+  const [jobs, setJobs] = useState<Job[]>([])
+  const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState<string | null>(null)
+  const router = useRouter()
+
+  const load = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { org } = await getOrgForUser(user.id, user.email)
+      if (!org) return
+      const { data } = await supabase
+        .from('jobs')
+        .select('id, status, scheduled_at, properties(name, address), inspections(id)')
+        .eq('org_id', org.id)
+        .eq('status', 'in_progress')
+        .order('scheduled_at', { ascending: true })
+      setJobs((data as any) ?? [])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useFocusEffect(useCallback(() => { load() }, [load]))
+
+  async function quickPhoto(job: Job) {
+    const inspectionId = job.inspections?.[0]?.id
+    if (!inspectionId) {
+      Alert.alert('Not started', 'Open this job and tap "Start Job" first.')
+      return
+    }
+
+    const photoType = await pickPhotoType()
+    if (!photoType) return
+
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.85 })
+    if (result.canceled) return
+
+    setUploading(job.id)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Not authenticated')
+      const uri = result.assets[0].uri
+      const fileName = `${inspectionId}/${Date.now()}.jpg`
+      const uploadUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/inspection-photos/${fileName}`
+
+      const res = await FileSystem.uploadAsync(uploadUrl, uri, {
+        httpMethod: 'POST',
+        uploadType: 1,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
+          'Content-Type': 'image/jpeg',
+          'x-upsert': 'false',
+        },
+      })
+      if (res.status !== 200 && res.status !== 201) throw new Error(`Storage ${res.status}: ${res.body}`)
+
+      const { error: dbError } = await supabase.from('inspection_photos').insert({
+        inspection_id: inspectionId,
+        storage_path: fileName,
+        photo_type: photoType,
+      })
+      if (dbError) throw new Error(dbError.message)
+
+      Alert.alert('Uploaded', `${photoType.charAt(0).toUpperCase() + photoType.slice(1)} photo added to ${(job.properties as any)?.name ?? 'job'}.`)
+    } catch (err: any) {
+      Alert.alert('Upload failed', err.message)
+    } finally {
+      setUploading(null)
+    }
+  }
+
+  if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-[#0f1117] items-center justify-center px-8">
-        <Ionicons name="camera-outline" size={48} color="#6b7280" />
-        <Text className="text-white text-xl font-bold mt-4 mb-2">Camera access needed</Text>
-        <Text className="text-gray-400 text-center mb-8">
-          Cleerd needs camera access to photograph job sites.
-        </Text>
-        <TouchableOpacity className="bg-brand rounded-xl px-8 py-4" onPress={requestPermission}>
-          <Text className="text-white font-semibold">Allow Camera</Text>
-        </TouchableOpacity>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#0f1117', alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color="#2563eb" />
       </SafeAreaView>
     )
   }
 
-  async function takePicture() {
-    const photo = await cameraRef.current?.takePictureAsync({ quality: 0.8 })
-    if (photo?.uri) setCaptured(prev => [...prev, photo.uri])
-  }
-
-  async function pickFromLibrary() {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      quality: 0.8,
-    })
-    if (!result.canceled) {
-      setCaptured(prev => [...prev, ...result.assets.map(a => a.uri)])
-    }
-  }
-
-  function removePhoto(uri: string) {
-    setCaptured(prev => prev.filter(p => p !== uri))
-  }
-
-  // TODO: Manus — implement uploadPhotos to upload to Supabase Storage
-  // and insert rows into inspection_photos for the selected inspection
-  async function uploadPhotos() {
-    Alert.alert('Upload', `${captured.length} photo(s) ready to attach to a job. Job selection coming soon.`)
-  }
-
   return (
-    <View className="flex-1 bg-black">
-      <CameraView ref={cameraRef} className="flex-1" facing={facing}>
-        <SafeAreaView className="flex-1 justify-between">
-          {/* Top controls */}
-          <View className="flex-row justify-end p-4">
-            <TouchableOpacity
-              className="bg-black/40 rounded-full p-2"
-              onPress={() => setFacing(f => f === 'back' ? 'front' : 'back')}
-            >
-              <Ionicons name="camera-reverse-outline" size={24} color="white" />
-            </TouchableOpacity>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0f1117' }}>
+      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 }}>
+        <Text style={{ color: '#ffffff', fontSize: 24, fontWeight: '700' }}>Quick Capture</Text>
+        <Text style={{ color: '#6b7280', fontSize: 13, marginTop: 2 }}>Take a photo for an active job</Text>
+      </View>
+
+      <FlatList
+        data={jobs}
+        keyExtractor={j => j.id}
+        contentContainerStyle={{ padding: 20, gap: 12 }}
+        ListEmptyComponent={
+          <View style={{ alignItems: 'center', paddingTop: 64 }}>
+            <Ionicons name="camera-outline" size={48} color="#374151" />
+            <Text style={{ color: '#6b7280', fontSize: 15, marginTop: 16 }}>No jobs in progress</Text>
+            <Text style={{ color: '#4b5563', fontSize: 13, marginTop: 4, textAlign: 'center' }}>
+              Start a job first, then come here to quickly add photos.
+            </Text>
           </View>
-
-          {/* Bottom controls */}
-          <View className="pb-8 px-6">
-            {/* Thumbnail strip */}
-            {captured.length > 0 && (
-              <FlatList
-                data={captured}
-                keyExtractor={u => u}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                className="mb-4"
-                contentContainerStyle={{ gap: 8 }}
-                renderItem={({ item }) => (
-                  <TouchableOpacity onLongPress={() => removePhoto(item)}>
-                    <Image source={{ uri: item }} className="w-16 h-16 rounded-lg" />
-                  </TouchableOpacity>
-                )}
-              />
-            )}
-
-            <View className="flex-row items-center justify-between">
+        }
+        renderItem={({ item }) => (
+          <View style={{ backgroundColor: '#1a1d27', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: '#ffffff', fontWeight: '600', fontSize: 15 }} numberOfLines={1}>
+                {(item.properties as any)?.name ?? 'Job'}
+              </Text>
+              {(item.properties as any)?.address && (
+                <Text style={{ color: '#6b7280', fontSize: 13, marginTop: 2 }} numberOfLines={1}>
+                  {(item.properties as any).address}
+                </Text>
+              )}
+            </View>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
               <TouchableOpacity
-                className="bg-white/20 rounded-full p-3"
-                onPress={pickFromLibrary}
+                onPress={() => router.push(`/job/${item.id}`)}
+                style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: 10 }}
               >
-                <Ionicons name="images-outline" size={24} color="white" />
+                <Ionicons name="open-outline" size={18} color="#6b7280" />
               </TouchableOpacity>
-
-              {/* Shutter */}
               <TouchableOpacity
-                className="bg-white rounded-full w-20 h-20 items-center justify-center border-4 border-white/40"
-                onPress={takePicture}
-              />
-
-              <TouchableOpacity
-                className="bg-brand rounded-full p-3"
-                onPress={uploadPhotos}
-                disabled={captured.length === 0 || uploading}
+                onPress={() => quickPhoto(item)}
+                disabled={uploading === item.id}
+                style={{ backgroundColor: '#2563eb', borderRadius: 8, padding: 10 }}
               >
-                {uploading
-                  ? <ActivityIndicator color="white" size="small" />
-                  : <Ionicons name="cloud-upload-outline" size={24} color="white" />
+                {uploading === item.id
+                  ? <ActivityIndicator size="small" color="white" />
+                  : <Ionicons name="camera" size={18} color="white" />
                 }
               </TouchableOpacity>
             </View>
-
-            {captured.length > 0 && (
-              <Text className="text-white/60 text-xs text-center mt-3">
-                {captured.length} photo{captured.length !== 1 ? 's' : ''} · long press thumbnail to remove
-              </Text>
-            )}
           </View>
-        </SafeAreaView>
-      </CameraView>
-    </View>
+        )}
+      />
+    </SafeAreaView>
   )
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
+  KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Linking,
 } from 'react-native'
 import { Link } from 'expo-router'
 import { supabase } from '@/lib/supabase'
@@ -83,11 +83,9 @@ export default function LoginScreen() {
 
         <View className="flex-row justify-center mt-8">
           <Text className="text-gray-500 text-sm">Don't have an account? </Text>
-          <Link href="/(auth)/signup" asChild>
-            <TouchableOpacity>
-              <Text className="text-blue-400 text-sm font-medium">Sign up at cleerd.io</Text>
-            </TouchableOpacity>
-          </Link>
+          <TouchableOpacity onPress={() => Linking.openURL('https://www.cleerd.io/signup')}>
+            <Text className="text-blue-400 text-sm font-medium">Sign up at cleerd.io</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </KeyboardAvoidingView>
