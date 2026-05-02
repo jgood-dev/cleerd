@@ -2,6 +2,12 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function proxy(request: NextRequest) {
+  // Supabase sends PKCE codes to the Site URL — intercept and forward to callback handler.
+  if (request.nextUrl.pathname === '/' && request.nextUrl.searchParams.has('code')) {
+    const code = request.nextUrl.searchParams.get('code')!
+    return NextResponse.redirect(new URL(`/auth/callback?code=${code}`, request.url))
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
