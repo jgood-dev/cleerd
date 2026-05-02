@@ -86,8 +86,7 @@ export default function TeamsPage() {
   async function addMember(teamId: string) {
     const email = selectedMember[teamId]
     if (!email) return
-    const allAccounts = ownerEmail ? [{ id: 'owner', email: ownerEmail, name: ownerEmail }, ...orgMembers] : orgMembers
-    const match = allAccounts.find(om => om.email === email)
+    const match = orgMembers.find((om: any) => om.email === email)
     setMemberAdding(prev => ({ ...prev, [teamId]: true }))
     await supabase.from('team_members').insert({
       team_id: teamId,
@@ -179,11 +178,7 @@ export default function TeamsPage() {
           const members: any[] = team.team_members ?? []
           const isExpanded = expandedTeam === team.id
           const teamEmails = new Set(members.map((m: any) => m.email).filter(Boolean))
-          const allAccounts = [
-            ...(ownerEmail ? [{ id: 'owner', email: ownerEmail }] : []),
-            ...orgMembers,
-          ]
-          const available = allAccounts.filter(om => !teamEmails.has(om.email))
+          const available = orgMembers.filter((om: any) => !teamEmails.has(om.email))
           return (
             <div key={team.id} className="rounded-xl border border-white/10 bg-[#161b27] overflow-hidden">
               {/* Header */}
@@ -283,7 +278,7 @@ export default function TeamsPage() {
                             <option value="">Select account…</option>
                             {available.map(om => (
                               <option key={om.id} value={om.email}>
-                                {om.name ?? om.email}{om.id === 'owner' ? ' (you)' : ''}
+                                {om.name ?? om.email}{String(om.id).startsWith('owner:') ? ' (you)' : ''}
                               </option>
                             ))}
                           </select>

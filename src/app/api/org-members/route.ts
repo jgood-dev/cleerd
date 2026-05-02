@@ -19,5 +19,11 @@ export async function GET(request: NextRequest) {
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
 
-  return Response.json(data ?? [])
+  const ownerEntry = {
+    id: `owner:${org.owner_id}`,
+    email: user.email ?? '',
+    name: (org as any).owner_name ?? null,
+  }
+
+  return Response.json([ownerEntry, ...(data ?? [])])
 }
