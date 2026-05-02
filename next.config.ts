@@ -1,7 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+  webpack(config) {
+    config.watchOptions = {
+      ...config.watchOptions,
+      ignored: /apps\//,
+    }
+    return config
+  },
 };
 
 export default nextConfig;
