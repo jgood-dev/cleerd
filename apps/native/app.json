@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "Cleerd",
+    "slug": "cleerd",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "cleerd",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f1117"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "io.cleerd.app",
+      "buildNumber": "1"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0f1117"
+      },
+      "package": "io.cleerd.app",
+      "versionCode": 1
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Cleerd needs camera access to photograph job sites."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Cleerd needs photo library access to attach images to jobs."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
