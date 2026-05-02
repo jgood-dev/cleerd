@@ -55,3 +55,10 @@ scripts/reset-supabase.mjs
 # Claude Code agent coordination files
 CLAUDE_HANDOFF.md
 CLAUDE_STATUS.md
+
+# Native app
+apps/native/node_modules/
+apps/native/.expo/
+apps/native/dist/
+apps/native/.env
+apps/native/google-play-key.json
