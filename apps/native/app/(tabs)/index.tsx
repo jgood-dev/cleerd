@@ -30,6 +30,7 @@ export default function JobsScreen() {
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [showCompleted, setShowCompleted] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
@@ -45,15 +46,15 @@ export default function JobsScreen() {
         .from('jobs')
         .select('id, status, scheduled_at, properties(name, address), teams(name)')
         .eq('org_id', org.id)
-        .in('status', ['scheduled', 'in_progress'])
-        .order('scheduled_at', { ascending: true })
+        .in('status', showCompleted ? ['done'] : ['scheduled', 'in_progress'])
+        .order('scheduled_at', { ascending: !showCompleted })
 
       if (queryError) setError(queryError.message)
       setJobs((data as any) ?? [])
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [showCompleted])
 
   // Reload whenever this tab comes into focus so status changes from job detail are reflected
   useFocusEffect(useCallback(() => { load() }, [load]))
@@ -74,9 +75,19 @@ export default function JobsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0f1117' }}>
-      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 }}>
-        <Text style={{ color: '#ffffff', fontSize: 24, fontWeight: '700' }}>Jobs</Text>
-        <Text style={{ color: '#6b7280', fontSize: 13, marginTop: 2 }}>Active and scheduled</Text>
+      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View>
+          <Text style={{ color: '#ffffff', fontSize: 24, fontWeight: '700' }}>Jobs</Text>
+          <Text style={{ color: '#6b7280', fontSize: 13, marginTop: 2 }}>{showCompleted ? 'Completed jobs' : 'Active and scheduled'}</Text>
+        </View>
+        <TouchableOpacity
+          onPress={() => setShowCompleted(v => !v)}
+          style={{ backgroundColor: showCompleted ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: showCompleted ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.1)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}
+        >
+          <Text style={{ color: showCompleted ? '#22c55e' : '#9ca3af', fontSize: 13, fontWeight: '600' }}>
+            {showCompleted ? 'Active' : 'Completed'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {error && (

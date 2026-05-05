@@ -100,6 +100,17 @@ export default function JobDetailScreen() {
     setInspection(newInspection)
   }
 
+  async function markDone() {
+    await supabase.from('jobs').update({ status: 'done' }).eq('id', id)
+    if (inspection?.id) await supabase.from('inspections').update({ status: 'completed' }).eq('id', inspection.id)
+    setJob((prev: any) => ({ ...prev, status: 'done' }))
+  }
+
+  async function reopenJob() {
+    await supabase.from('jobs').update({ status: 'in_progress' }).eq('id', id)
+    setJob((prev: any) => ({ ...prev, status: 'in_progress' }))
+  }
+
   async function uploadUri(uri: string, fileName: string, photoType: PhotoType) {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) throw new Error('Not authenticated')
@@ -128,6 +139,8 @@ export default function JobDetailScreen() {
 
   async function takePhoto() {
     if (!inspection?.id) return Alert.alert('No inspection', 'Job must be started first.')
+    const { status } = await ImagePicker.requestCameraPermissionsAsync()
+    if (status !== 'granted') return Alert.alert('Permission needed', 'Camera access is required to take photos.')
     const photoType = await pickPhotoType()
     if (!photoType) return
 
@@ -222,6 +235,29 @@ export default function JobDetailScreen() {
             onPress={startJob}
           >
             <Text style={{ color: '#ffffff', fontWeight: '600', fontSize: 16 }}>Start Job</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Mark as done */}
+        {job?.status === 'in_progress' && (
+          <TouchableOpacity
+            style={{ backgroundColor: '#16a34a', borderRadius: 12, paddingVertical: 16, alignItems: 'center' }}
+            onPress={() => Alert.alert('Mark as Done?', 'This will mark the job as completed.', [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Mark Done', onPress: markDone },
+            ])}
+          >
+            <Text style={{ color: '#ffffff', fontWeight: '600', fontSize: 16 }}>Mark as Done</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Reopen job */}
+        {job?.status === 'done' && (
+          <TouchableOpacity
+            style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', borderRadius: 12, paddingVertical: 16, alignItems: 'center' }}
+            onPress={reopenJob}
+          >
+            <Text style={{ color: '#9ca3af', fontWeight: '600', fontSize: 16 }}>Reopen Job</Text>
           </TouchableOpacity>
         )}
 

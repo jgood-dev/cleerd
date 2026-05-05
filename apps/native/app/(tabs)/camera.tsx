@@ -62,6 +62,9 @@ export default function QuickCameraTab() {
       return
     }
 
+    const { status } = await ImagePicker.requestCameraPermissionsAsync()
+    if (status !== 'granted') return Alert.alert('Permission needed', 'Camera access is required to take photos.')
+
     const photoType = await pickPhotoType()
     if (!photoType) return
 
