@@ -16,7 +16,8 @@
       "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "Cleerd needs camera access to photograph job sites.",
-        "NSPhotoLibraryUsageDescription": "Cleerd needs photo library access to attach images to jobs."
+        "NSPhotoLibraryUsageDescription": "Cleerd needs photo library access to attach images to jobs.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -25,7 +26,11 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0f1117"
-      }
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -54,8 +59,10 @@
     },
     "extra": {
       "eas": {
-        "projectId": "FILL_IN_AFTER_EAS_INIT"
-      }
-    }
+        "projectId": "80653883-7896-420d-8bd6-606e960f9889"
+      },
+      "router": {}
+    },
+    "owner": "goodwinj47"
   }
 }
