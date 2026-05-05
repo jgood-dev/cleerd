@@ -46,20 +46,12 @@ export async function POST(request: NextRequest) {
 
   const content: Anthropic.MessageParam['content'] = []
 
-  // Add photos as vision inputs
+  // Add photos as vision inputs via URL (avoids base64 size limits)
   for (const url of photoUrls) {
-    try {
-      const imgRes = await fetch(url)
-      const buffer = await imgRes.arrayBuffer()
-      const base64 = Buffer.from(buffer).toString('base64')
-      const raw = imgRes.headers.get('content-type') ?? ''
-      const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-      const contentType = validTypes.find(t => raw.includes(t)) ?? 'image/jpeg'
-      content.push({
-        type: 'image',
-        source: { type: 'base64', media_type: contentType as any, data: base64 },
-      })
-    } catch { /* skip failed image */ }
+    content.push({
+      type: 'image',
+      source: { type: 'url', url },
+    })
   }
 
   content.push({
