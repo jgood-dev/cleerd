@@ -99,11 +99,16 @@ INTERNAL QUALITY COACHING:
   const anthropic = getAnthropicClient()
   if (!anthropic) return Response.json({ error: 'ANTHROPIC_API_KEY not set in environment' }, { status: 500 })
 
-  const message = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 1024,
-    messages: [{ role: 'user', content }],
-  })
+  let message
+  try {
+    message = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content }],
+    })
+  } catch (err: any) {
+    return Response.json({ error: `Anthropic API error: ${err?.message ?? String(err)}` }, { status: 500 })
+  }
 
   const responseText = message.content[0].type === 'text' ? message.content[0].text : ''
 

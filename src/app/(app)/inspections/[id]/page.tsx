@@ -162,8 +162,8 @@ export default function InspectionDetailPage() {
         if (job?.id) await supabase.from('jobs').update({ status: 'done' }).eq('id', job.id)
         await load()
       }
-    } catch {
-      alert('Report generation failed. Please try again.')
+    } catch (err: any) {
+      alert(`Report generation failed: ${err?.message ?? 'Please try again.'}`)
     } finally {
       setGeneratingReport(false)
     }
