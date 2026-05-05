@@ -52,7 +52,9 @@ export async function POST(request: NextRequest) {
       const imgRes = await fetch(url)
       const buffer = await imgRes.arrayBuffer()
       const base64 = Buffer.from(buffer).toString('base64')
-      const contentType = imgRes.headers.get('content-type') ?? 'image/jpeg'
+      const raw = imgRes.headers.get('content-type') ?? ''
+      const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+      const contentType = validTypes.find(t => raw.includes(t)) ?? 'image/jpeg'
       content.push({
         type: 'image',
         source: { type: 'base64', media_type: contentType as any, data: base64 },
